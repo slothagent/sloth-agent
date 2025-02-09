@@ -1,94 +1,131 @@
-# Eliza
+# Agent Social
 
-## Edit the character files
+## Overview
 
-Open `src/character.ts` to modify the default character. Uncomment and edit.
+Agent Social is a tool that allows you to create and manage social media agents.
 
-### Custom characters
+## Getting Started
 
-To load custom characters instead:
-- Use `pnpm start --characters="path/to/your/character.json"`
-- Multiple character files can be loaded simultaneously
+### Prerequisites
+- Node.js (v16 or higher)
+- pnpm package manager
 
-### Add clients
-```
-# in character.ts
-clients: [Clients.TWITTER, Clients.DISCORD],
+### Installation
 
-# in character.json
-clients: ["twitter", "discord"]
-```
+1. Configure your `.env` file with necessary API keys and settings
 
-## Duplicate the .env.example template
+### Running the Server
 
+Start the server in production mode:
 ```bash
-cp .env.example .env
+pnpm start:server
 ```
 
-\* Fill out the .env file with your own values.
+The server will run on port 8080 by default (configurable via SERVER_PORT in .env)
 
-### Add login credentials and keys to .env
+## API Documentation
+
+### Endpoints
+
+#### 1. Get All Running Agents
 ```
-DISCORD_APPLICATION_ID="discord-application-id"
-DISCORD_API_TOKEN="discord-api-token"
-...
-OPENROUTER_API_KEY="sk-xx-xx-xxx"
-...
-TWITTER_USERNAME="username"
-TWITTER_PASSWORD="password"
-TWITTER_EMAIL="your@email.com"
+GET /api/agents
 ```
 
-## Install dependencies and start your agent
-
-```bash
-pnpm i && pnpm start
-```
-Note: this requires node to be at least version 22 when you install packages and run the agent.
-
-## Run with Docker
-
-### Build and run Docker Compose (For x86_64 architecture)
-
-#### Edit the docker-compose.yaml file with your environment variables
-
-```yaml
-services:
-    eliza:
-        environment:
-            - OPENROUTER_API_KEY=blahdeeblahblahblah
+Response example:
+```json
+[
+  {
+    "id": "agent-1234567890",
+    "name": "Social Bot",
+    "clients": ["direct"],
+    "modelProvider": "openai",
+    "platforms": ["twitter", "telegram"]
+  }
+]
 ```
 
-#### Run the image
-
-```bash
-docker compose up
+#### 2. Start New Agent
+```
+POST /api/agents
 ```
 
-### Build the image with Mac M-Series or aarch64
-
-Make sure docker is running.
-
-```bash
-# The --load flag ensures the built image is available locally
-docker buildx build --platform linux/amd64 -t eliza-starter:v1 --load .
+Request body example:
+```json
+{
+  "name": "MySocialAgent1",
+  "clients": ["twitter"],
+  "modelProvider": "openai",
+  "platforms": ["twitter"],
+  "settings": {
+    "platformCredentials": {
+      "twitter": {
+        "username": "your-twitter-username",
+        "password": "your-twitter-password", 
+        "email": "your-twitter-email",
+        "cookies": "optional",
+        "dryRun": false
+      }
+    },
+    "postInterval": {
+      "POST_INTERVAL_MIN": "90",
+      "POST_INTERVAL_MAX": "180"
+    }
+  }
+}
 ```
 
-#### Edit the docker-compose-image.yaml file with your environment variables
-
-```yaml
-services:
-    eliza:
-        environment:
-            - OPENROUTER_API_KEY=blahdeeblahblahblah
+Response example:
+```json
+{
+  "message": "Agent started successfully",
+  "agent": {
+    "id": "my-social-agent-1234567890",
+    "name": "My Social Agent",
+    "clients": ["direct"],
+    "platforms": ["twitter"],
+    "characterFile": "my-social-agent.character.json",
+    "port": "5000",
+    "workspace": "workspace-my-social-agent-1234567890"
+  }
+}
 ```
 
-#### Run the image
-
-```bash
-docker compose -f docker-compose-image.yaml up
+#### 3. Stop Agent
+```
+DELETE /api/agents/:id
 ```
 
-# Deploy with Railway
+Response example:
+```json
+{
+  "message": "Agent stopped successfully",
+  "id": "agent-1234567890"
+}
+```
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/aW47_j)
+### Error Responses
+
+In case of errors, the API will return appropriate HTTP status codes along with error messages:
+
+```json
+{
+  "error": "Error type",
+  "message": "Detailed error message"
+}
+```
+
+Common status codes:
+- 400: Bad Request - Missing or invalid parameters
+- 404: Not Found - Agent not found
+- 500: Internal Server Error - Server-side issues
+
+## Supported Platforms
+
+Currently supported social media platforms:
+- Twitter
+- Telegram
+
+Each platform requires specific credentials to be configured in the agent settings.
+
+
