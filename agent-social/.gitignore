@@ -3,8 +3,8 @@ dist
 !index.ts
 !character.ts
 !server.ts
-!routes/agents.ts
-!routes/twitter.ts
+!agents.ts
+!twitter.ts
 .env
 node_modules
 dist/
