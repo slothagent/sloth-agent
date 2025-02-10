@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
-import Sidebar from "@/components/Sidebar";
 import { Suspense } from "react";
 import Loading from "@/components/Loading";
 import "./globals.css";
