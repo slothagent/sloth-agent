@@ -27,14 +27,9 @@ export default function RootLayout({
     <html lang="en" className="light">
       <body className={`${spaceGrotesk.variable} font-sans bg-white text-gray-900`}>
         <Providers>
-          <div className="flex">
-            <Sidebar />
-            <div className="flex-1 md:ml-64">
-              <Suspense fallback={<Loading />}>
+          <Suspense fallback={<Loading />}>
                 {children}
-              </Suspense>
-            </div>
-          </div>
+            </Suspense>
         </Providers>
         <Toaster position="top-center" />
       </body>
