@@ -1,59 +1,62 @@
-import { useRouter } from "next/navigation";
+import Link from 'next/link';
+import { Home, Inbox, HelpCircle, FileText, History, Plus } from 'lucide-react';
 
-export default function Sidebar() {
-    const router = useRouter();
+const Sidebar = () => {
     return (
-        <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 flex flex-col">
-          <div>
-            <button onClick={() => router.push('/playground')} className="bg-transparent border border-gray-200 hover:bg-gray-100 text-gray-700 px-4 py-2 rounded-lg mb-6 w-full transition-colors">
-              + New Thread
-            </button>
+        <div className="bg-gray-50 border-r border-gray-200 p-4 flex flex-col">
+            <Link href="/playground" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg mb-6 w-full transition-colors flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                <span>New Thread</span>
+            </Link>
             
             <div className="space-y-6 mb-8">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 text-lg">G</div>
-                  <span className="text-gray-700">Memetrade</span>
+                <div className="space-y-4">
+                    <Link href="/" className="flex items-center space-x-3 text-gray-700 hover:text-green-500 transition-colors">
+                        <div className="w-5 h-5">M</div>
+                        <span>Memetrade</span>
+                    </Link>
+                    <Link href="/home" className="flex items-center space-x-3 text-gray-700 hover:text-green-500 transition-colors">
+                        <Home className="w-5 h-5" />
+                        <span>Home</span>
+                    </Link>
+                    <Link href="/inbox" className="flex items-center space-x-3 text-gray-700 hover:text-green-500 transition-colors">
+                        <Inbox className="w-5 h-5" />
+                        <span>Inbox</span>
+                    </Link>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6">🏠</div>
-                  <span className="text-gray-700">Home</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6">📥</div>
-                  <span className="text-gray-700">Inbox</span>
-                </div>
-              </div>
 
-              <div className="space-y-3">
-                <h2 className="text-sm text-gray-500">Recent Threads</h2>
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="text-gray-600 text-sm">Thread from 01/09</div>
-                ))}
-                <div className="text-gray-500 text-sm cursor-pointer hover:text-gray-700">
-                  ... View More
+                <div className="space-y-3">
+                    <h2 className="text-sm text-gray-500">Recent Threads</h2>
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="text-gray-400 text-sm hover:text-[#4ADE80] cursor-pointer transition-colors">
+                            Thread from 01/09
+                        </div>
+                    ))}
+                    <div className="text-gray-500 text-sm cursor-pointer hover:text-[#4ADE80] transition-colors">
+                        ... View More
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
 
-          <div className="mt-auto space-y-3">
-            <div className="flex items-center space-x-3 text-gray-600">
-              <div className="w-6 h-6">❓</div>
-              <span>Support</span>
+            <div className="mt-auto space-y-3">
+                <Link href="/support" className="flex items-center space-x-3 text-gray-600 hover:text-green-500 transition-colors">
+                    <HelpCircle className="w-5 h-5" />
+                    <span>Support</span>
+                </Link>
+                <Link href="/docs" className="flex items-center space-x-3 text-gray-600 hover:text-green-500 transition-colors">
+                    <FileText className="w-5 h-5" />
+                    <span>Docs</span>
+                </Link>
+                <Link href="/changelog" className="flex items-center space-x-3 text-gray-600 hover:text-green-500 transition-colors">
+                    <History className="w-5 h-5" />
+                    <span>Changelog</span>
+                </Link>
+                <button className="mt-4 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg w-full transition-colors">
+                    Memetrade
+                </button>
             </div>
-            <div className="flex items-center space-x-3 text-gray-600">
-              <div className="w-6 h-6">📄</div>
-              <span>Docs</span>
-            </div>
-            <div className="flex items-center space-x-3 text-gray-600">
-              <div className="w-6 h-6">🔄</div>
-              <span>Changelog</span>
-            </div>
-            <button className="mt-4 bg-transparent border border-gray-200 text-gray-700 px-4 py-2 rounded-lg w-full hover:bg-gray-100 transition-colors">
-              Memetrade
-            </button>
-          </div>
         </div>
-    )
-}
+    );
+};
+
+export default Sidebar;
