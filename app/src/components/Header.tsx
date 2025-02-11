@@ -1,82 +1,33 @@
 'use client'
+
 import Image from "next/image";
 import Link from "next/link";
-import { FormEventHandler, useEffect, useState } from "react";
-import WalletButton from './WalletButton';
 
-interface HeaderType{
-  handleSearch?: FormEventHandler<HTMLFormElement>
-  search?: string
-  setSearch?: (search: string) => void
-}
-
-const Header = ({ handleSearch, search, setSearch }: HeaderType) => {
-  const [width, setWidth] = useState<number>(0);
-  
-  useEffect(() => {
-    setWidth(window.innerWidth);
-    
-    const handleResize = () => {
-      setWidth(window.innerWidth);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const isMobile = width < 768;
-  const isDesktop = width >= 1024;
-
+const Header = () => {
   return (
-    <>
-      <header className="p-4 border-b border-gray-100 sticky top-0 bg-white z-10">
-        <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} items-center justify-between w-full ${isMobile ? 'gap-4' : 'gap-0'}`}>
-          <div className={`flex flex-row items-start md:items-center gap-4 w-full ${!isMobile && 'w-auto'}`}>
-            {isMobile ? (
-              <Link href="/">
-                <Image
-                  src="/assets/logo/memetrade-co.png"
-                  alt="Memetrade Logo"
-                  width={50}
-                  height={50}
-                  className="w-12 h-12"
-                />
-              </Link>
-            ) : (
-              <Link href="/">
-                <Image
-                  src="/assets/logo/memetrade-co.png"
-                  alt="Memetrade Logo"
-                  width={40}
-                  height={40}
-                  className="w-8 h-8"
-                />
-              </Link>
-            )}
-            {
-              isDesktop && (
-                <form onSubmit={handleSearch} className="w-full md:w-[600px]">
-                  <div className="px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 focus-within:border-neon-pink focus-within:ring-1 focus-within:ring-neon-pink">
-                    <input
-                      type="text"
-                      placeholder="Search for a token"
-                      value={search}
-                      onChange={(e) => setSearch && setSearch(e.target.value)}
-                      className="w-full bg-transparent outline-none"
-                    />
-                  </div>
-                </form>
-              )
-            }
-          </div>
-          {isDesktop && (
-            <div className="flex gap-2">
-              <WalletButton />
+    <header className=" top-0 left-0 right-0 z-50 bg-white">
+      <div className="container mx-auto ">
+        <div className="h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-14 h-14 relative">
+              <Image
+                src="/assets/logo/sloth-ai-light.jpg"
+                alt="Sloth AI Logo"
+                fill
+                className="object-contain"
+              />
             </div>
-          )}
+            <span className="text-sloth-light font-bold text-3xl">Sloth AI</span>
+          </Link>
+
+          {/* Connect Wallet Button */}
+          <button className="bg-sloth-light hover:bg-sloth-light text-black px-4 py-2 rounded-full transition-colors font-medium">
+            Connect wallet
+          </button>
         </div>
-      </header>
-    </>
+      </div>
+    </header>
   );
 };
 
