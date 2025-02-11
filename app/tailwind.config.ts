@@ -6,6 +6,7 @@ const config: Config = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+
   ],
   theme: {
   	extend: {
@@ -15,6 +16,10 @@ const config: Config = {
   			]
   		},
   		colors: {
+			sloth: {
+				light: '#93E905',
+				dark: '#00FF00',
+			},
   			neon: {
   				pink: '#FF0080',
   				green: '#00FF00',
