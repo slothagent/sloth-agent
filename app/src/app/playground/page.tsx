@@ -154,7 +154,7 @@ const Playground: NextPage = () => {
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         placeholder="Tell me what to do..." 
-                                        className="w-full bg-white border border-gray-200 text-gray-700 px-4 py-3 rounded-lg pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400"
+                                        className="w-full bg-white border-4 border-black text-gray-700 px-4 py-3 pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' && inputValue.trim()) {
                                                 handleSendMessage(inputValue);
@@ -165,7 +165,7 @@ const Playground: NextPage = () => {
                                         <Search className="w-6 h-6 text-gray-400" />
                                     </div>
                                     <button 
-                                        className="ml-2 p-4 rounded-lg bg-green-500 hover:bg-green-600 transition-colors"
+                                        className="ml-2 p-4 bg-green-500 hover:bg-green-600 transition-colors"
                                         onClick={() => handleSendMessage(inputValue)}
                                     >
                                         <Send className="w-6 h-6 text-white" />
@@ -178,8 +178,8 @@ const Playground: NextPage = () => {
                                     {tokens.map((token) => (
                                         <Link
                                             key={token.name}
-                                            href={`/playground/agents/${token.name.toLowerCase()}`}
-                                            className="whitespace-nowrap flex-shrink-0 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                            href={`/playground/token/${token.name.toLowerCase()}`}
+                                            className="whitespace-nowrap flex-shrink-0 px-4 py-2 bg-white border-4 border-black text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
                                         >
                                             <div className="text-green-500">{token.icon}</div>
                                             <span>{token.name}</span>   
@@ -206,14 +206,14 @@ const Playground: NextPage = () => {
                                         <Link
                                             key={agent.name}
                                             href={`/playground/agents/${agent.name.toLowerCase()}`}
-                                            className="group bg-[#121212] border border-gray-800 p-4 rounded-xl hover:border-gray-700 transition-all"
+                                            className="group bg-white border-4 border-black p-4 hover:border-gray-700 transition-all"
                                         >
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="p-1 rounded-lg bg-white">
+                                                    <div className="p-1 rounded-lg bg-white border border-black">
                                                         {agent.icon}
                                                     </div>
-                                                    <h3 className="text-white font-medium">{agent.name}</h3>
+                                                    <p className="text-black font-semibold text-lg">{agent.name}</p>
                                                 </div>
                                                 <div className="flex gap-1">
                                                     <button className="p-1.5 border border-gray-800 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-300 transition-colors">
@@ -224,7 +224,7 @@ const Playground: NextPage = () => {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <p className="text-gray-400 text-sm line-clamp-2">{agent.description}</p>
+                                            <p className="text-gray-600 text-lg line-clamp-2">{agent.description}</p>
                                         </Link>
                                     ))}
                                 </div>

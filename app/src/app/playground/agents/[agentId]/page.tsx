@@ -334,26 +334,24 @@ const Playground: NextPage<PageProps> = ({ params }) => {
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         placeholder="Tell me what to do..." 
-                                        className="w-full bg-white border border-gray-200 text-gray-700 px-4 py-3 rounded-lg pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                                        className="w-full bg-white border-4 border-black text-gray-700 px-4 py-3 rounded-lg pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' && inputValue.trim()) {
                                                 handleSendMessage(inputValue);
                                             }
                                         }}
                                     />
-                                    <Search 
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400"
-                                    />
+                                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
                                 </div>
                                 <button 
-                                    className="p-2 rounded-lg bg-green-500"
+                                    className="p-2 rounded-lg bg-green-500 border-4 border-black"
                                     onClick={() => handleSendMessage(inputValue)}
                                 >
                                     <Send className="w-6 h-6 text-white" />
                                 </button>       
                             </div>
 
-                            <button className="block mx-auto mb-8 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            <button className="block mx-auto mb-8 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border-4 border-black hover:bg-gray-200 transition-colors">
                                 I'm Feeling Lucky
                             </button>
 
@@ -362,7 +360,7 @@ const Playground: NextPage<PageProps> = ({ params }) => {
                                     <Link
                                         key={agent.name}
                                         href={`/playground/agents/${agent.name.toLowerCase()}`}
-                                        className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                        className="px-4 py-2 bg-white border-4 border-black rounded-lg text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
                                     >
                                         {agent.icon}
                                         <span>{agent.name}</span>
@@ -375,7 +373,7 @@ const Playground: NextPage<PageProps> = ({ params }) => {
                                     <Link
                                         key={agent.name}
                                         href={`/playground/agents/${agent.name.toLowerCase().replace('agent ', '')}`}
-                                        className="bg-white border border-gray-200 p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                                        className="bg-white border-4 border-black p-4 rounded-lg hover:bg-gray-50 transition-colors"
                                     >
                                         <div className="flex items-center space-x-3 mb-3">
                                             {agent.icon}
