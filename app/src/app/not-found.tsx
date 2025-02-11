@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import Header from '@/components/Header'
+
 
 export default function NotFound() {
   return (
     <>
-      <Header />
+      
       <main className="p-4">
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] px-4 bg-gradient-to-br from-blue-50 via-white to-purple-50">
           <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-4">404</h1>
