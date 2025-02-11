@@ -12,17 +12,20 @@ import {
     ExternalLink 
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useParams } from 'next/navigation';
 
-export default function AgentDetails({ params }: { params: { id: string } }) {
+export default function AgentDetails() {
+    const { id } = useParams();
+
   // Mock data for the agent
-const agent = {
-    id: params.id,
-    name: 'FARTCOIN',
-    address: '9BB6NF...bgpump',
-    description: 'Tokenising farts with the help of bots. Fartcoin dev orphaned it, we adopted $Fartcoin No TG, No cabal, Fart freely! 💨',
-    created: 'Oct 18, 2024',
-    createdAgo: '116d ago',
-};
+    const agent = {
+        id: id,
+        name: 'FARTCOIN',
+        address: '9BB6NF...bgpump',
+        description: 'Tokenising farts with the help of bots. Fartcoin dev orphaned it, we adopted $Fartcoin No TG, No cabal, Fart freely! 💨',
+        created: 'Oct 18, 2024',
+        createdAgo: '116d ago',
+    };
 
     return (
     <div className="min-h-screen bg-white">

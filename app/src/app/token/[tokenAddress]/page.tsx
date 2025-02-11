@@ -15,19 +15,16 @@ import { parseEther, formatEther } from 'viem'
 import toast from "react-hot-toast";
 
 
-// Update the interface based on API response
 interface TokenHolder {
     address: {
         hash: string;
         is_contract: boolean;
-        // Add other address properties if needed
     };
     value: string;
     percentage: number;
     type?: string;
 }
 
-// Add this interface at the top of the file
 interface Transaction {
     hash: string;
     from: string;
@@ -37,7 +34,6 @@ interface Transaction {
     type: 'buy' | 'sell';
 }
 
-// Add these interfaces at the top
 interface TokenPrice {
     timestamp: string;
     price: string;
@@ -56,9 +52,7 @@ interface ChartData {
 
 const TokenPage = () => {
     const { tokenAddress } = useParams();
-    const { 
-        address
-    } = useAccount();
+    const { address } = useAccount();
     const [timeframe, setTimeframe] = useState('1m');
     const [tokenData, setTokenData] = useState<Token | null>(null);
     const [holders, setHolders] = useState<number>(0);
