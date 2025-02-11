@@ -181,7 +181,7 @@ const Playground: NextPage = () => {
                                 </div>
                             </div>
 
-                            <div className="mb-8">
+                            <div className="mb-6">
                                 <div className="flex items-center mb-6">
                                     <div className="flex items-center gap-2">
                                         <Zap className="w-5 h-5 text-[#93E905]" />
