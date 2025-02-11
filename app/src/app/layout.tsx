@@ -12,7 +12,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Memetrade Co. | Meme Token Platform",
+  title: "Sloth AI | Agent AI Platform",
   description: "Discover and trade meme tokens",
 };
 

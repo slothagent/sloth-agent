@@ -16,6 +16,10 @@ const config: Config = {
   			]
   		},
   		colors: {
+			sloth: {
+				light: '#93E905',
+				dark: '#00FF00',
+			},
   			neon: {
   				pink: '#FF0080',
   				green: '#00FF00',
