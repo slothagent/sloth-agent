@@ -4,7 +4,7 @@ import { Home, Inbox, HelpCircle, FileText, History, Plus } from 'lucide-react';
 const Sidebar = () => {
     return (
         <div className="h-full bg-gray-50 border-r border-gray-200 p-4 flex flex-col">
-            <Link href="/playground" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg mb-6 w-full transition-colors flex items-center gap-2">
+            <Link href="/" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg mb-6 w-full transition-colors flex items-center gap-2">
                 <Plus className="w-5 h-5" />
                 <span>New Thread</span>
             </Link>

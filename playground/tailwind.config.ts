@@ -1,15 +1,37 @@
 import type { Config } from "tailwindcss";
 
-export default {
+const config: Config = {
     darkMode: ["class"],
     content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			sans: [
+  				'var(--font-space-grotesk)'
+  			]
+  		},
   		colors: {
+			sloth: {
+				light: '#93E905',
+				dark: '#00FF00',
+			},
+  			neon: {
+  				pink: '#FF0080',
+  				green: '#00FF00',
+  				purple: '#9C27B0',
+  				yellow: '#FFB800',
+  				blue: '#00B4D8'
+  			},
+  			gradient: {
+  				start: '#FF0080',
+  				middle: '#7928CA',
+  				end: '#04D9B2'
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -51,12 +73,64 @@ export default {
   				'5': 'hsl(var(--chart-5))'
   			}
   		},
+  		animation: {
+  			glow: 'glow 2s ease-in-out infinite alternate',
+  			gradient: 'gradient 6s linear infinite',
+  			shine: 'shine 1.5s ease-in-out infinite',
+  			slide: 'slide 25s linear infinite'
+  		},
+  		keyframes: {
+  			glow: {
+  				'0%': {
+  					boxShadow: '0 0 5px #FF0080, 0 0 10px #FF0080, 0 0 15px #FF0080'
+  				},
+  				'100%': {
+  					boxShadow: '0 0 10px #04D9B2, 0 0 20px #04D9B2, 0 0 30px #04D9B2'
+  				}
+  			},
+  			gradient: {
+  				'0%, 100%': {
+  					'background-size': '200% 200%',
+  					'background-position': 'left center'
+  				},
+  				'50%': {
+  					'background-size': '200% 200%',
+  					'background-position': 'right center'
+  				}
+  			},
+  			shine: {
+  				'0%': {
+  					transform: 'translateX(-100%)'
+  				},
+  				'100%': {
+  					transform: 'translateX(100%)'
+  				}
+  			},
+  			slide: {
+  				'0%': {
+  					transform: 'translateX(0)'
+  				},
+  				'100%': {
+  					transform: 'translateX(-50%)'
+  				}
+  			}
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
-  		}
+  		},
+  		backgroundImage: {
+  			'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+  			'gradient-conic':
+  				'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+  		},
   	}
   },
-  plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+  plugins: [
+    require("tailwindcss-animate"),
+    require('tailwind-scrollbar'),
+  ],
+};
+
+export default config;

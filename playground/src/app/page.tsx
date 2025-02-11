@@ -146,7 +146,7 @@ const Playground: NextPage = () => {
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         placeholder="Tell me what to do..." 
-                                        className="w-full bg-white border-4 border-black text-gray-700 px-4 py-3 pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400"
+                                        className="w-full bg-white border-2 border-neutral-700 text-gray-700 px-4 py-3 pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' && inputValue.trim()) {
                                                 handleSendMessage(inputValue);
@@ -157,7 +157,7 @@ const Playground: NextPage = () => {
                                         <Search className="w-6 h-6 text-gray-400" />
                                     </div>
                                     <button 
-                                        className="ml-2 p-4 bg-green-500 hover:bg-green-600 transition-colors"
+                                        className="ml-2 p-4 bg-[#93E905] hover:bg-[#93E905]/80 transition-colors"
                                         onClick={() => handleSendMessage(inputValue)}
                                     >
                                         <Send className="w-6 h-6 text-white" />
@@ -171,9 +171,9 @@ const Playground: NextPage = () => {
                                         <Link
                                             key={token.name}
                                             href={`/token/${token.name.toLowerCase()}`}
-                                            className="whitespace-nowrap flex-shrink-0 px-4 py-2 bg-white border-4 border-black text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                            className="whitespace-nowrap flex-shrink-0 px-4 py-2 bg-white border-2 border-neutral-700 text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
                                         >
-                                            <div className="text-green-500">{token.icon}</div>
+                                            <div className="text-[#93E905]">{token.icon}</div>
                                             <span>{token.name}</span>   
                                             <span className={parseFloat(token.value) >= 0 ? 'text-green-500' : 'text-red-500'}>{token.value}</span>
                                         </Link>
@@ -184,7 +184,7 @@ const Playground: NextPage = () => {
                             <div className="mb-8">
                                 <div className="flex items-center mb-6">
                                     <div className="flex items-center gap-2">
-                                        <Zap className="w-5 h-5 text-green-500" />
+                                        <Zap className="w-5 h-5 text-[#93E905]" />
                                         <h2 className="text-xl font-semibold">Featured Agents</h2>
                                     </div>
                                     <Link href="/store" className="ml-auto flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800">
@@ -198,14 +198,14 @@ const Playground: NextPage = () => {
                                         <Link
                                             key={agent.name}
                                             href={`/agents/${agent.name.toLowerCase()}`}
-                                            className="group bg-white border-4 border-black p-4 hover:border-gray-700 transition-all"
+                                            className="group bg-white border-2 border-neutral-700 p-4 hover:border-gray-700 transition-all"
                                         >
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="p-1 rounded-lg bg-white border border-black">
+                                                    <div className="p-1 rounded-lg bg-white border border-neutral-700">
                                                         {agent.icon}
                                                     </div>
-                                                    <p className="text-black font-semibold text-lg">{agent.name}</p>
+                                                    <p className="text-neutral-700 font-semibold text-lg">{agent.name}</p>
                                                 </div>
                                                 <div className="flex gap-1">
                                                     <button className="p-1.5 border border-gray-800 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-300 transition-colors">
@@ -233,7 +233,7 @@ const Playground: NextPage = () => {
                                                 key={index} 
                                                 className={`flex ${msg.type == 'user' ? 'justify-end' : 'justify-start'} mb-4`}
                                             >
-                                               http://localhost:3000/playground <div 
+                                               <div 
                                                     className={`rounded-lg p-3 max-w-md ${
                                                         msg.type === 'user' 
                                                             ? 'bg-[#4ADE80] text-[#121212]' 

@@ -328,33 +328,29 @@ const Playground: NextPage = () => {
                                         value={inputValue}
                                         onChange={(e) => setInputValue(e.target.value)}
                                         placeholder="Tell me what to do..." 
-                                        className="w-full bg-white border-4 border-black text-gray-700 px-4 py-3 rounded-lg pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                                        className="w-full bg-white border-2 border-neutral-700 text-gray-700 px-4 py-3 rounded-lg pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter' && inputValue.trim()) {
                                                 handleSendMessage(inputValue);
                                             }
                                         }}
                                     />
-                                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
+                                    
                                 </div>
                                 <button 
-                                    className="p-2 rounded-lg bg-green-500 border-4 border-black"
+                                    className="p-2 rounded-lg bg-[#93E905] border-2 border-neutral-700"
                                     onClick={() => handleSendMessage(inputValue)}
                                 >
                                     <Send className="w-6 h-6 text-white" />
                                 </button>       
                             </div>
 
-                            <button className="block mx-auto mb-8 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg border-4 border-black hover:bg-gray-200 transition-colors">
-                                I'm Feeling Lucky
-                            </button>
-
                             <div className="flex flex-wrap gap-2 justify-center mb-12">
                                 {agents.map((agent) => (
                                     <Link
                                         key={agent.name}
                                         href={`/playground/agents/${agent.name.toLowerCase()}`}
-                                        className="px-4 py-2 bg-white border-4 border-black rounded-lg text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                                        className="px-4 py-2 bg-white border-2 border-neutral-700 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
                                     >
                                         {agent.icon}
                                         <span>{agent.name}</span>
@@ -366,8 +362,8 @@ const Playground: NextPage = () => {
                                 {mainAgents.map((agent) => (
                                     <Link
                                         key={agent.name}
-                                        href={`/playground/agents/${agent.name.toLowerCase().replace('agent ', '')}`}
-                                        className="bg-white border-4 border-black p-4 rounded-lg hover:bg-gray-50 transition-colors"
+                                        href={`/agents/${agent.name.toLowerCase().replace('agent ', '')}`}
+                                        className="bg-white border-2 border-neutral-700 p-4 rounded-lg hover:bg-gray-50 transition-colors"
                                     >
                                         <div className="flex items-center space-x-3 mb-3">
                                             {agent.icon}
@@ -410,7 +406,7 @@ const Playground: NextPage = () => {
                                               >
                                                 <div 
                                                   className={`rounded-lg p-3 max-w-md ${
-                                                    msg.type === 'user' ? 'bg-green-500 text-white' : 'bg-gray-100'
+                                                    msg.type === 'user' ? 'bg-[#93E905] text-white' : 'bg-gray-100'
                                                   }`}
                                                 >
                                                   {msg.type === 'user' ? msg.content : <TypewriterEffect content={msg.content} />}
@@ -539,7 +535,7 @@ const Playground: NextPage = () => {
                                                 <div className="text-right">
                                                     <p className="text-gray-800">{token.value}</p>
                                                     <p className="text-gray-500 text-sm">{token.price}</p>
-                                                </div>
+                                                </div>gr50een-0
                                             </div>
                                         ))}
                                     </div>
