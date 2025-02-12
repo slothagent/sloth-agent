@@ -15,6 +15,8 @@ import {
     MessageSquare,
     Send,
     ArrowUpRight,
+    Menu,
+    X,
 } from "lucide-react";
 import ListToken from "@/components/custom/ListToken";
 interface Message {
@@ -71,6 +73,7 @@ const Playground: NextPage = () => {
     const [editingChatId, setEditingChatId] = useState<string | null>(null);
     const [newTitle, setNewTitle] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleSearch = (value: string) => {
         setSearchTerm(value);
@@ -87,8 +90,50 @@ const Playground: NextPage = () => {
 
     return (
         <div className="w-full bg-white text-gray-800">
+            {/* Mobile Header */}
+            <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
+                <button 
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => setIsMobileMenuOpen(true)}
+                >
+                    <Menu className="w-6 h-6 text-gray-700" />
+                </button>
+                <h1 className="text-xl font-semibold text-green-500">Memetrade Co.</h1>
+                <div className="w-10" /> {/* Spacer for alignment */}
+            </div>
+
+            {/* Mobile Sidebar */}
+            <div className={`
+                fixed inset-y-0 left-0 w-[280px] bg-white z-50 transform transition-transform duration-300 ease-in-out
+                lg:hidden
+                ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}>
+                <div className="flex flex-col h-full">
+                    <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                        <h2 className="text-xl font-semibold">Menu</h2>
+                        <button 
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="p-2 hover:bg-gray-100 rounded-lg"
+                        >
+                            <X className="w-6 h-6 text-gray-700" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        <Sidebar />
+                    </div>
+                </div>
+            </div>
+
+            {/* Backdrop for mobile sidebar */}
+            {isMobileMenuOpen && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                />
+            )}
+
             <div className="flex flex-col lg:flex-row w-full min-h-screen">
-                {/* Sidebar - hidden on mobile, shown on desktop */}
+                {/* Desktop Sidebar */}
                 <div className="hidden lg:block lg:w-[240px] flex-shrink-0">
                     <Sidebar />
                 </div>
@@ -96,8 +141,8 @@ const Playground: NextPage = () => {
                 {/* Main Content */}
                 <div className="flex-1 p-4 lg:p-8">
                     <div className="w-full max-w-7xl mx-auto">
-                        {/* Header */}
-                        <h1 className="text-center text-3xl lg:text-5xl font-mono text-green-500 mb-4 lg:mb-8">
+                        {/* Remove duplicate header on mobile */}
+                        <h1 className="hidden lg:block text-center text-5xl font-mono text-green-500 mb-8">
                             Memetrade Co.
                         </h1>
 
