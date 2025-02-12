@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import { Providers } from "./providers";
+import Header from "@/components/Header";
+import { Analytics } from "@vercel/analytics/react";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -84,12 +86,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="light">
       <body className={`${spaceGrotesk.variable} font-sans bg-white text-gray-900`}>
+        <Header />
         <Providers>
           <Suspense fallback={ <Loading /> }>
               {children}
           </Suspense>
         </Providers>
         <Toaster position="top-center" />
+        <Analytics />
       </body>
     </html>
   );
