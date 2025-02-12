@@ -5,7 +5,9 @@ import {
   Bot, 
   Search,
   CircleDot,
-  Blocks 
+  Blocks,
+  Menu,
+  X
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParams } from 'next/navigation';
@@ -29,6 +31,8 @@ export default function TokenPage() {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -101,55 +105,76 @@ export default function TokenPage() {
   );
 
   return (
-    <div className={`flex h-screen bg-white`}>
+    <div className="flex flex-col lg:flex-row h-screen bg-white">
+      {/* Mobile Header */}
+      <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="p-2"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <h1 className="text-xl font-semibold">GRIFFAIN</h1>
+        <button
+          onClick={() => setIsMobileChatOpen(!isMobileChatOpen)}
+          className="p-2"
+        >
+          <Bot className="w-6 h-6" />
+        </button>
+      </div>
+
       {/* Sidebar */}
-      <div className="w-[240px] flex-shrink-0">
-        <Sidebar/>
+      <div className={`
+        fixed inset-y-0 left-0 z-40 w-[240px] bg-white transform transition-transform duration-200 ease-in-out
+        lg:relative lg:transform-none
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <Sidebar />
       </div>
 
       {/* Main content */}
-      <div className="flex-grow p-6 h-full overflow-y-auto scrollbar-hide">
+      <div className="flex-grow p-4 lg:p-6 h-full overflow-y-auto scrollbar-hide">
         {/* Search bar */}
         <div className="flex w-full mb-4 gap-2">
           <input 
             type="text"
             placeholder="Search for a token" 
-            className="w-full bg-white border-4 border-black text-gray-700 px-4 py-3 pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400 text-lg"
+            className="w-full bg-white border-2  border-black text-gray-700 px-4 py-2 lg:py-3 pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400 text-base lg:text-lg"
           />
-          <div className="flex items-center p-4 bg-green-400">
-            <Search className="w-6 h-6 text-green-700" />
+          <div className="flex items-center p-3 lg:p-4 bg-green-400">
+            <Search className="w-5 h-5 lg:w-6 lg:h-6 text-green-700" />
           </div>
         </div>
 
         {/* Header with token info */}
-        <div className="flex items-center gap-4 mb-6">
-          <div className="bg-gray-100 rounded-lg p-3">
-            <Blocks className="w-10 h-10 text-gray-700" />
+        <div className="flex items-center gap-3 lg:gap-4 mb-4 lg:mb-6">
+          <div className="bg-gray-100 rounded-lg p-2 lg:p-3">
+            <Blocks className="w-8 h-8 lg:w-10 lg:h-10 text-gray-700" />
           </div>
           <div>
-            <h1 className="text-gray-900 text-2xl font-semibold">test griffain.com</h1>
-            <p className="text-gray-500 text-lg">GRIFFAIN</p>
+            <h1 className="text-gray-900 text-xl lg:text-2xl font-semibold">test griffain.com</h1>
+            <p className="text-gray-500 text-base lg:text-lg">GRIFFAIN</p>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-8">
+          <TabsList className="mb-6 lg:mb-8 lg:w-1/4 flex whitespace-nowrap">
             <TabsTrigger 
               value="overview"
-              className="text-xl font-medium data-[state=active]:border-b-4 data-[state=active]:border-gray-900"
+              className="text-base lg:text-xl font-medium data-[state=active]:border-b-4 data-[state=active]:border-gray-900"
             >
               Overview
             </TabsTrigger>
             <TabsTrigger 
               value="cookie"
-              className="text-xl font-medium data-[state=active]:border-b-4 data-[state=active]:border-gray-900"
+              className="text-base lg:text-xl font-medium data-[state=active]:border-b-4 data-[state=active]:border-gray-900"
             >
               Cookie Dao
             </TabsTrigger>
             <TabsTrigger 
               value="moby"
-              className="text-xl font-medium data-[state=active]:border-b-4 data-[state=active]:border-gray-900"
+              className="text-base lg:text-xl font-medium data-[state=active]:border-b-4 data-[state=active]:border-gray-900"
             >
               Moby
             </TabsTrigger>
@@ -170,9 +195,25 @@ export default function TokenPage() {
       </div>
 
       {/* Chat sidebar */}
-      <div className="w-[480px] flex-shrink-0 border-l border-gray-200 p-6">
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-4 mb-6">
+      <div className={`
+        fixed inset-y-0 right-0 z-40 w-full md:w-[480px] bg-white transform transition-transform duration-200 ease-in-out
+        lg:relative lg:transform-none lg:border-l lg:border-gray-200
+        ${isMobileChatOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="flex flex-col h-full p-4 lg:p-6">
+          {/* Mobile chat header */}
+          <div className="lg:hidden flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Chat with Dora</h2>
+            <button
+              onClick={() => setIsMobileChatOpen(false)}
+              className="p-2"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Desktop chat header */}
+          <div className="hidden lg:flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
               <Bot className="w-8 h-8 text-gray-700" />
             </div>
@@ -228,23 +269,34 @@ export default function TokenPage() {
                 }
               }}
               placeholder="Message Dora"
-              className="w-full px-5 py-4 bg-gray-100 rounded-lg pr-14 text-lg text-gray-900 placeholder-gray-500 border-none focus:ring-1 focus:ring-gray-300"
+              className="w-full px-4 lg:px-5 py-3 lg:py-4 bg-gray-100 rounded-lg pr-12 text-base lg:text-lg text-gray-900 placeholder-gray-500 border-none focus:ring-1 focus:ring-gray-300"
             />
             <button 
               onClick={handleSendMessage}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#4ade80] p-3 rounded-lg"
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#4ade80] p-2 lg:p-3 rounded-lg"
             >
-              <Send className="w-5 h-5 text-white" />
+              <Send className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
             </button>
           </div>
 
           {/* Token Search button */}
-          <button className="mt-4 w-full py-3 px-5 rounded-lg bg-gray-100 text-gray-900 flex items-center justify-center gap-3 hover:bg-gray-200 text-lg font-medium">
-            <CircleDot className="w-5 h-5" />
+          <button className="mt-4 w-full py-2 lg:py-3 px-4 lg:px-5 rounded-lg bg-gray-100 text-gray-900 flex items-center justify-center gap-2 lg:gap-3 hover:bg-gray-200 text-base lg:text-lg font-medium">
+            <CircleDot className="w-4 h-4 lg:w-5 lg:h-5" />
             Token Search
           </button>
         </div>
       </div>
+
+      {/* Overlay for mobile menu and chat */}
+      {(isMobileMenuOpen || isMobileChatOpen) && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+          onClick={() => {
+            setIsMobileMenuOpen(false);
+            setIsMobileChatOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

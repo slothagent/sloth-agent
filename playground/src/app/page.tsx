@@ -86,78 +86,96 @@ const Playground: NextPage = () => {
     };
 
     return (
-        <div className={`w-full bg-white text-gray-800`}>
-            <div className="flex w-full h-screen">
-                <div className="w-1/5">
+        <div className="w-full bg-white text-gray-800">
+            <div className="flex flex-col lg:flex-row w-full min-h-screen">
+                {/* Sidebar - hidden on mobile, shown on desktop */}
+                <div className="hidden lg:block lg:w-[240px] flex-shrink-0">
                     <Sidebar />
                 </div>
-                <div className="flex-1 w-3/5 p-8">
-                    <div className="w-full mx-auto">
-                        <h1 className="text-center text-5xl font-mono text-green-500 mb-8">Memetrade Co.</h1>
-                        <div className="flex justify-center mb-8">
-                            <div className="relative flex items-center w-1/2">
+
+                {/* Main Content */}
+                <div className="flex-1 p-4 lg:p-8">
+                    <div className="w-full max-w-7xl mx-auto">
+                        {/* Header */}
+                        <h1 className="text-center text-3xl lg:text-5xl font-mono text-green-500 mb-4 lg:mb-8">
+                            Memetrade Co.
+                        </h1>
+
+                        {/* Search Bar */}
+                        <div className="flex justify-center mb-6 lg:mb-8">
+                            <div className="relative flex items-center w-full lg:w-1/2">
                                 <input 
                                     type="text"
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
-                                    placeholder="Tìm kiếm token..." 
-                                    className="w-full bg-white border-2 border-neutral-700 text-gray-700 px-4 py-3 pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400"
+                                    placeholder="Search for a token..." 
+                                    className="w-full bg-white border-2 border-neutral-700 text-gray-700 px-3 lg:px-4 py-2 lg:py-3 pr-12 focus:border-green-500 focus:ring-1 focus:ring-green-500 placeholder-gray-400 text-base lg:text-lg"
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && inputValue.trim()) {
                                             handleSendMessage(inputValue);
                                         }
                                     }}
                                 />
-                                <div className="absolute right-20 flex items-center gap-2">
-                                    <Search className="w-6 h-6 text-gray-400" />
+                                <div className="absolute right-16 lg:right-20 flex items-center">
+                                    <Search className="w-5 h-5 lg:w-6 lg:h-6 text-gray-400" />
                                 </div>
                                 <button 
-                                    className="ml-2 p-4 bg-[#93E905] hover:bg-[#93E905]/80 transition-colors"
+                                    className="ml-2 p-2 lg:p-4 bg-[#93E905] hover:bg-[#93E905]/80 transition-colors"
                                     onClick={() => handleSendMessage(inputValue)}
                                 >
-                                    <Search className="w-6 h-6 text-white" />
+                                    <Search className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
                                 </button>
                             </div>
                         </div>
-                        <div className="w-full mb-12">
+
+                        {/* List Token Section */}
+                        <div className="w-full mb-8 lg:mb-12 overflow-x-auto">
                             <ListToken />
                         </div>
-                        <div className="mb-8">
-                            <div className="flex items-center mb-6">
+
+                        {/* Featured Agents Section */}
+                        <div className="mb-6 lg:mb-8">
+                            <div className="flex items-center justify-between mb-4 lg:mb-6 px-2">
                                 <div className="flex items-center gap-2">
-                                    <Zap className="w-5 h-5 text-[#93E905]" />
-                                    <h2 className="text-xl font-semibold">Featured Agents</h2>
+                                    <Zap className="w-4 h-4 lg:w-5 lg:h-5 text-[#93E905]" />
+                                    <h2 className="text-lg lg:text-xl font-semibold">Featured Agents</h2>
                                 </div>
-                                <Link href="/store" className="ml-auto flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800">
+                                <Link 
+                                    href="/store" 
+                                    className="flex items-center gap-1 text-xs lg:text-sm text-gray-600 hover:text-gray-800"
+                                >
                                     The <span className="text-green-500">⚡</span> Store 
-                                    <ArrowUpRight className="w-4 h-4" />
+                                    <ArrowUpRight className="w-3 h-3 lg:w-4 lg:h-4" />
                                 </Link>
                             </div>
                             
-                            <div className="grid grid-cols-4 gap-4">
+                            {/* Agents Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                                 {mainAgents.map((agent) => (
                                     <Link
                                         key={agent.name}
                                         href={`/agents/${agent.name.toLowerCase()}`}
-                                        className="group bg-white border-2 border-neutral-700 p-4 hover:border-gray-700 transition-all"
+                                        className="group bg-white border-2 border-neutral-700 p-3 lg:p-4 hover:border-gray-700 transition-all"
                                     >
-                                        <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-start justify-between mb-2 lg:mb-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="p-1 rounded-lg bg-white border border-neutral-700">
                                                     {agent.icon}
                                                 </div>
-                                                <p className="text-neutral-700 font-semibold text-lg">{agent.name}</p>
+                                                <p className="text-neutral-700 font-semibold text-base lg:text-lg">{agent.name}</p>
                                             </div>
                                             <div className="flex gap-1">
-                                                <button className="p-1.5 border border-gray-800 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-300 transition-colors">
-                                                    <MessageSquare className="w-4 h-4" />
+                                                <button className="p-1 lg:p-1.5 border border-gray-800 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-300 transition-colors">
+                                                    <MessageSquare className="w-3 h-3 lg:w-4 lg:h-4" />
                                                 </button>
-                                                <button className="p-1.5 border border-gray-800 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-300 transition-colors">
-                                                    <Crown className="w-4 h-4" />
+                                                <button className="p-1 lg:p-1.5 border border-gray-800 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-gray-300 transition-colors">
+                                                    <Crown className="w-3 h-3 lg:w-4 lg:h-4" />
                                                 </button>
                                             </div>
                                         </div>
-                                        <p className="text-gray-600 text-lg line-clamp-2">{agent.description}</p>
+                                        <p className="text-gray-600 text-sm lg:text-lg line-clamp-2">
+                                            {agent.description}
+                                        </p>
                                     </Link>
                                 ))}
                             </div>
