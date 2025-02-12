@@ -154,14 +154,9 @@ const CreateAgent = () => {
             
             {/* Hero Section */}
             <div className="bg-gradient-to-b from-[#93E905]/10 to-white">
-                <div className="container mx-auto px-4 py-16">
+                <div className="container mx-auto px-4 py-8 pb-0">
                     <div className="max-w-4xl mx-auto text-center">
-                        <div className="flex justify-center mb-6">
-                            <div className="p-3 bg-[#93E905] rounded-full">
-                                <Bot className="w-8 h-8 text-black" />
-                            </div>
-                        </div>
-                        <h1 className="text-4xl md:text-5xl font-bold text-black mb-4">
+                        <h1 className="text-4xl md:text-5xl font-bold text-[#81c21a] mb-4">
                             Create Your Trading Agent
                         </h1>
                         <p className="text-lg text-gray-600 mb-8">
