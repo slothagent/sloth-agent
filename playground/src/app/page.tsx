@@ -98,7 +98,7 @@ const Playground: NextPage = () => {
                 >
                     <Menu className="w-6 h-6 text-gray-700" />
                 </button>
-                <h1 className="text-xl font-semibold text-green-500">Memetrade Co.</h1>
+                <h1 className="text-xl font-semibold text-green-500">Sloth Ai</h1>
                 <div className="w-10" /> {/* Spacer for alignment */}
             </div>
 
@@ -143,7 +143,7 @@ const Playground: NextPage = () => {
                     <div className="w-full max-w-7xl mx-auto">
                         {/* Remove duplicate header on mobile */}
                         <h1 className="hidden lg:block text-center text-5xl font-mono text-green-500 mb-8">
-                            Memetrade Co.
+                            Sloth Ai
                         </h1>
 
                         {/* Search Bar */}

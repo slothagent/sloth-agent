@@ -453,7 +453,7 @@ const Playground: NextPage = () => {
                         </div>
                     ) : (
                         // Chat Interface
-                        <div className="max-w-[1200px] h-full w-full mx-auto flex flex-col lg:flex-row items-start gap-4">
+                        <div className="max-w-[1200px] h-full w-full mx-auto flex flex-col lg:flex-row items-center justify-center gap-4">
                             {/* Chat Section */}
                             <div className="w-full lg:w-[calc(100%-320px)] flex flex-col h-full">
                                 {/* Chat Header */}
@@ -557,7 +557,7 @@ const Playground: NextPage = () => {
                                           type="text" 
                                           value={inputValue}
                                           onChange={(e) => setInputValue(e.target.value)}
-                                          placeholder="Tell me what to do..." 
+                                          placeholder="Tin nhắn ChatGPT" 
                                           className="w-full p-4 pr-12 rounded-full outline-none mb-2"
                                           onKeyDown={(e) => {
                                             if (e.key === 'Enter' && inputValue.trim()) {
@@ -577,44 +577,59 @@ const Playground: NextPage = () => {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Wallet Section - Hidden on mobile */}
-                            <div className="hidden lg:block w-[320px] sticky top-4">
-                                <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <Wallet className="w-5 h-5 text-gray-600" />
-                                            <div>
-                                                <h3 className="text-gray-800 font-medium">Wallet</h3>
-                                                <p className="text-gray-500 text-sm">DbK4bg</p>
-                                            </div>
-                                        </div>
-                                        <span className="text-gray-800 font-medium">21.62 <span className="text-gray-500">≈</span></span>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {walletTokens.map((token) => (
-                                            <div key={token.symbol} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-gray-50 rounded-lg">
-                                                        {token.icon}
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-gray-800 font-medium">{token.name}</h4>
-                                                        <p className="text-gray-500 text-sm">{token.balance} {token.symbol}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-gray-800">{token.value}</p>
-                                                    <p className="text-gray-500 text-sm">{token.price}</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                        </div>
+                    )}
+                </div>
+                 {/* Wallet Section - Hidden on mobile */}
+                <div className="hidden lg:block w-[320px] sticky top-4 border-l border-gray-200">
+                    <div className="bg-white p-6">
+                        {/* Wallet Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-gray-50 rounded-xl">
+                                    <Wallet className="w-5 h-5 text-gray-700" />
+                                </div>
+                                <div>
+                                    <h3 className="text-gray-900 font-semibold">My Wallet</h3>
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="text-gray-500 text-sm font-medium">DbK4bg</p>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
                                     </div>
                                 </div>
                             </div>
+                            <div className="text-right">
+                                <p className="text-gray-900 font-semibold">$21.62</p>
+                                <p className="text-gray-500 text-sm">Total Balance</p>
+                            </div>
                         </div>
-                    )}
+
+                        {/* Token List */}
+                        <div className="space-y-4">
+                            {walletTokens.map((token) => (
+                                <div 
+                                    key={token.symbol} 
+                                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors border border-gray-100 hover:border-gray-200"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-gray-50 rounded-xl">
+                                            {token.icon}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-gray-900 font-medium mb-0.5">{token.name}</h4>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-gray-500 text-sm">{token.balance}</span>
+                                                <span className="text-gray-400 text-sm font-medium">{token.symbol}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-gray-900 font-medium mb-0.5">{token.value}</p>
+                                        <p className="text-gray-500 text-sm">{token.price}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 

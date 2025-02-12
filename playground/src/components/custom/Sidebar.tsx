@@ -55,7 +55,7 @@ const Sidebar = () => {
                 <div className="space-y-4">
                     <Link href="/" className="flex items-center space-x-3 text-foreground hover:text-primary transition-colors">
                         <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">M</div>
-                        <span className="font-medium">Memetrade Co.</span>
+                        <span className="font-medium">Sloth Ai</span>
                     </Link>
                     <Link href="/home" className="flex items-center space-x-3 text-muted-foreground hover:text-primary transition-colors">
                         <Home className="w-5 h-5" />
