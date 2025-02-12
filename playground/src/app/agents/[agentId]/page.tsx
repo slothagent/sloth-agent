@@ -24,17 +24,12 @@ import {
     Rocket,
     Send,
     Wallet,
-    DollarSign,
     CircleDollarSign,
     BookOpen,
     Cat as CatIcon,
     BarChart,
-    Coins,
-    ArrowUpRight,
-    Sparkles,
-    Dog
 } from "lucide-react";
-
+import ListToken from "@/components/custom/ListToken";
 interface Message {
     type: 'user' | 'bot';
     content: string;
@@ -235,22 +230,6 @@ const Playground: NextPage = () => {
     const [newTitle, setNewTitle] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isAgentMenuOpen, setIsAgentMenuOpen] = useState(false);
-    const tokens = [
-        { icon: <Coins className="w-6 h-6" />, name: "BFC", color: "text-green-500", value: "58.82K%" },
-        { icon: <Rocket className="w-6 h-6" />, name: "JUP", color: "text-red-500", value: "-1.47%" },
-        { icon: <ArrowUpRight className="w-6 h-6" />, name: "ALPHA", color: "text-green-500", value: "28.25%" },
-        { icon: <Sparkles className="w-6 h-6" />, name: "GYAT", color: "text-green-500", value: "121.40%" },
-        { icon: <Cat className="w-6 h-6" />, name: "POPCAT", color: "text-green-500", value: "6.43%" },
-        { icon: <Dog className="w-6 h-6" />, name: "Bonk", color: "text-red-500", value: "-6.64%" },
-        { icon: <Dog className="w-6 h-6" />, name: "TRUMP", color: "text-red-500", value: "-7.65%" },
-        { icon: <Dog className="w-6 h-6" />, name: "Ai16z", color: "text-red-500", value: "-6.64%" },
-        { icon: <Dog className="w-6 h-6" />, name: "arc", color: "text-red-500", value: "-0.58%" },
-        { icon: <Dog className="w-6 h-6" />, name: "wiflove", color: "text-red-500", value: "46.96%" },
-        { icon: <Dog className="w-6 h-6" />, name: "GRIFFAIN", color: "text-red-500", value: "-6.64%" },
-        { icon: <Dog className="w-6 h-6" />, name: "1DOLAR", color: "text-red-500", value: "-6.64%" },
-        { icon: <Dog className="w-6 h-6" />, name: "Bonk", color: "text-red-500", value: "-6.64%" },
-        { icon: <Dog className="w-6 h-6" />, name: "Bonk", color: "text-red-500", value: "-6.64%" },
-    ];
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isLoading]);
@@ -375,7 +354,7 @@ const Playground: NextPage = () => {
                             </div>   
                         </div>
                     ) : (
-                        <div className="max-w-[1200px] w-full mx-auto flex items-start">
+                        <div className="max-w-[1200px] h-full w-full mx-auto flex items-start">
                             <div className="flex w-[calc(100%-320px)] flex-col h-full">
                                 <div className="flex items-center gap-4 mb-8 border-b border-gray-200 pb-4">
                                     <div className="p-2 bg-white border border-gray-200 rounded-lg">
@@ -397,8 +376,10 @@ const Playground: NextPage = () => {
                                     </div>
                                 </div>
                                 <div className="flex h-[calc(100vh-132px)]">
-                                    <div className="flex-1 flex flex-col w-full">
-                                        <div className="flex-grow overflow-y-auto flex flex-col px-4 py-8 min-h-0">
+                                    <div className="flex-1 flex flex-col w-full h-full">
+                                        <div 
+                                          className="flex-grow overflow-y-auto scrollbar-hide flex flex-col px-4 py-8 min-h-0"
+                                        >
                                             {messages.map((msg, index) => (
                                               <div 
                                                 key={index} 
@@ -476,7 +457,7 @@ const Playground: NextPage = () => {
                                               value={inputValue}
                                               onChange={(e) => setInputValue(e.target.value)}
                                               placeholder="Tin nhắn ChatGPT" 
-                                              className="w-full p-4 pr-12 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                              className="w-full p-4 pr-12 rounded-full outline-none mb-2"
                                               onKeyDown={(e) => {
                                                 if (e.key === 'Enter' && inputValue.trim()) {
                                                   handleSendMessage(inputValue);
@@ -485,29 +466,20 @@ const Playground: NextPage = () => {
                                             />
                                             <button 
                                               onClick={() => handleSendMessage(inputValue)}
-                                              className="absolute right-4 top-1/2 -translate-y-1/2 overflow-hidden cursor-pointer"
+                                              className="absolute right-4 bottom-1 border border-gray-200 rounded-lg p-2 bg-[#93E905] -translate-y-1/2 overflow-hidden cursor-pointer"
                                             >
-                                              <img width={25} src="/assets/icon/send.svg" alt="send" />
+                                              <Send className="w-6 h-6 text-white" />
                                             </button>
                                           </div>
                                           <div className="w-full flex gap-2 overflow-x-auto pb-4 mt-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                                                {tokens.map((token) => (
-                                                    <Link
-                                                        key={token.name}
-                                                        href={`/playground/agents/${token.name.toLowerCase()}`}
-                                                        className="whitespace-nowrap flex-shrink-0 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-2"
-                                                    >
-                                                        <div className="text-green-500">{token.icon}</div>
-                                                        <span>{token.name}</span>   
-                                                        <span className={parseFloat(token.value) >= 0 ? 'text-green-500' : 'text-red-500'}>{token.value}</span>
-                                                    </Link>
-                                                ))}
+                                               <ListToken />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="w-[300px] fixed right-40 top-24 ml-4">
+                            {/* wallet */}
+                            <div className="w-[400px] fixed right-20 top-24 ml-4">
                                 <div className="bg-white rounded-xl p-4 shadow-lg border border-gray-200">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-2">
