@@ -89,7 +89,7 @@ export default function RootLayout({
         <Header />
         <Providers>
           <Suspense fallback={ <Loading /> }>
-              {children}
+            {children}
           </Suspense>
         </Providers>
         <Toaster position="top-center" />

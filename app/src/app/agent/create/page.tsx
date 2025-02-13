@@ -150,9 +150,6 @@ const CreateAgent = () => {
 
     return (
         <main className="min-h-screen bg-white">
-            <Header />
-            
-            {/* Hero Section */}
             <div className="bg-gradient-to-b from-[#93E905]/10 to-white">
                 <div className="container mx-auto px-4 py-8 pb-0">
                     <div className="max-w-4xl mx-auto text-center">
