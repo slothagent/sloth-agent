@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import WalletButton from "./WalletButton";
+
 
 const Header = () => {
   return (
@@ -28,10 +30,7 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Connect Wallet Button */}
-          <button className="bg-sloth-light hover:bg-sloth-light text-black px-4 py-2 rounded-full transition-colors font-medium">
-            Connect wallet
-          </button>
+          <WalletButton />
         </div>
       </div>
     </header>
