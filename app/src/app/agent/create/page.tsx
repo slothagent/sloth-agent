@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Bot, Sparkles, Twitter } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import BasicInformation from '@/components/custom/agent/BasicInformation';
 import VisualSystem from '@/components/custom/agent/VisualSystem';
 import PersonalityBackground from '@/components/custom/agent/PersonalityBackground';
