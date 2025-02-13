@@ -28,4 +28,48 @@ model Agent {
   twitterUsername   String?
   twitterEmail      String?
   twitterPassword   String?  @db.Text
+  metrics          AgentMetrics?
+}
+
+model AgentMetrics {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  agentId         String   @unique
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  
+  // Liquidity metrics
+  liquidityAmount Float
+  liquidityValue  Float
+  
+  // Holdings and holders
+  blueChipHolding Float
+  holdersCount    Int
+  holdersChange24h Int
+  
+  // Smart money metrics
+  smartMoneyValue Float
+  smartMoneyKol   Int
+  
+  // Transaction metrics
+  totalTransactions Int
+  buyTransactions  Int
+  sellTransactions Int
+  
+  // Volume metrics
+  volumeLastHour  Float
+  totalVolume     Float
+  
+  // Price metrics
+  currentPrice    Float
+  priceChange1m   Float
+  
+  // Market metrics
+  marketCap       Float
+  
+  // Social metrics
+  followersCount  Int
+  topTweetsCount Int
+
+  @@index([agentId])
 }
