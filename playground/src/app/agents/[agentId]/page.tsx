@@ -277,7 +277,7 @@ const Playground: NextPage = () => {
     };
     
     return (
-        <div className="min-h-screen bg-white text-gray-800">
+        <div className="h-full bg-white text-gray-800">
             {/* Mobile Header */}
             <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
                 <button 
@@ -372,9 +372,9 @@ const Playground: NextPage = () => {
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
+                <div className="flex-1 p-4 lg:p-8 h-full">
                     {!isChatting ? (
-                        <div className="max-w-4xl mx-auto">
+                        <div className="max-w-4xl mx-auto h-full">
                             {/* Agent Header */}
                             <div className="flex items-center gap-3 lg:gap-4 mb-6 lg:mb-8">
                                 <div className="p-2 bg-white border border-gray-200 rounded-lg">

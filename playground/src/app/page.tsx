@@ -86,7 +86,7 @@ const Playground: NextPage = () => {
     };
 
     return (
-        <div className={`w-full bg-white text-gray-800 ${spaceGrotesk.className}`}>
+        <div className={`w-full h-full bg-white text-gray-800 ${spaceGrotesk.className}`}>
             {/* Mobile Header */}
             <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
                 <button 
@@ -129,14 +129,14 @@ const Playground: NextPage = () => {
                 />
             )}
 
-            <div className="flex flex-col lg:flex-row w-full min-h-screen">
+            <div className="flex flex-col lg:flex-row w-full h-full">
                 {/* Desktop Sidebar */}
                 <div className="hidden lg:block lg:w-[240px] flex-shrink-0">
                     <Sidebar />
                 </div>
 
                 {/* Main Content */}
-                <div className="flex-1 p-4 lg:p-8">
+                <div className="flex-1 h-full p-4 lg:p-8">
                     <div className="w-full max-w-7xl mx-auto">
                         {/* Remove duplicate header on mobile */}
                         <h1 className="hidden lg:block text-center text-5xl font-mono text-green-500 mb-8">
