@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError, PrismaClientValidationError, PrismaClientInitializationError } from '@prisma/client/runtime/library';
 import { getAllAgents, getPaginatedAgents, searchAgents } from '@/hooks/myAgent';
 
 export async function POST(req: Request) {
@@ -68,7 +68,7 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Error creating agent:', error);
     
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error instanceof PrismaClientKnownRequestError) {
       // Handle known Prisma errors
       switch (error.code) {
         case 'P2002':
@@ -87,13 +87,13 @@ export async function POST(req: Request) {
             { status: 500 }
           );
       }
-    } else if (error instanceof Prisma.PrismaClientValidationError) {
+    } else if (error instanceof PrismaClientValidationError) {
       // Handle validation errors
       return NextResponse.json(
         { error: 'Invalid data format provided' },
         { status: 400 }
       );
-    } else if (error instanceof Prisma.PrismaClientInitializationError) {
+    } else if (error instanceof PrismaClientInitializationError) {
       // Handle database connection errors
       console.error('Database connection error:', error);
       return NextResponse.json(
