@@ -14,6 +14,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParams } from 'next/navigation';
 import Chart from '@/components/chart';
+import Overview from '@/components/custom/Overview';
+import Social from '@/components/custom/Social';
 
 export default function AgentDetails() {
     const { id } = useParams();
@@ -136,8 +138,8 @@ export default function AgentDetails() {
                             </div>
                         </div>
                         <div className="ml-auto w-max hidden lg:block">
-                            <div className="grid grid-cols-2 max-h-[72px]">
-                                <div className="border px-4 py-3 w-52 h-[72px] justify-between flex flex-col">
+                            <div className="grid grid-cols-2 max-h-[86px]">
+                                <div className="border px-4 py-3 w-52 h-[86px] justify-between flex flex-col">
                                     <div className="flex flex-col h-full">
                                         <div className="text-sm mb-auto flex items-center gap-1.5 font-medium">
                                             <img alt="Solana" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="/chains/solana.svg" style={{ color: 'transparent' }} />
@@ -151,7 +153,7 @@ export default function AgentDetails() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="border border-l-0  px-4 py-3 w-52 h-[72px] justify-between flex flex-col">
+                                <div className="border border-l-0  px-4 py-3 w-52 h-[86px] justify-between flex flex-col">
                                     <div>
                                         <div className="text-sm flex items-center gap-1.5 font-medium">
                                             <Clock className="w-4 h-4" />
@@ -242,11 +244,11 @@ export default function AgentDetails() {
                         </TabsList>
                     </div>
                 {/* Mobile Buy Button */}
-                <div className="sm:hidden px-4 absolute -translate-y-[68px] w-full">
+                {/* <div className="sm:hidden px-4 absolute -translate-y-[68px] w-full">
                     <button className="flex items-center justify-center font-sans font-medium w-full h-12 text-base mt-2 bg-[#BCF8D0] rounded-full">
                         Buy $FARTCOIN
                     </button>
-                </div>
+                </div> */}
 
                     <TabsContent value="trade" className="mt-4">
                         <div className="sm:hidden flex px-4 justify-between">
@@ -313,9 +315,11 @@ export default function AgentDetails() {
                     </TabsContent>
                     <TabsContent value="overview" className="mt-4">
                     {/* Overview content */}
+                    <Overview />
                     </TabsContent>
                     <TabsContent value="social" className="mt-4">
                     {/* Social content */}
+                    <Social />
                     </TabsContent>
                 </Tabs>
                 </div>
