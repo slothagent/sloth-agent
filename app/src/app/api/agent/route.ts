@@ -5,8 +5,43 @@ import { getAllAgents, getPaginatedAgents, searchAgents } from '@/hooks/myAgent'
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    // Add validation for request body
+    if (!req.body) {
+      return NextResponse.json(
+        { error: 'Request body is required' },
+        { status: 400 }
+      );
+    }
+
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    // Validate required fields
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { error: 'Request body must be a valid JSON object' },
+        { status: 400 }
+      );
+    }
+
+    const requiredFields = ['name', 'ticker', 'address', 'curveAddress', 'owner'];
+    const missingFields = requiredFields.filter(field => !body[field]);
     
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
     const agent = await prisma.agent.create({
       data: {
         name: body.name,
@@ -23,6 +58,9 @@ export async function POST(req: Request) {
         twitterUsername: body.twitterUsername,
         twitterEmail: body.twitterEmail,
         twitterPassword: body.twitterPassword,
+        address: body.address,
+        curveAddress: body.curveAddress,
+        owner: body.owner
       },
     });
 

@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
     PINATA_JWT: process.env.PINATA_JWT,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    FACTORY_ADDRESS: process.env.FACTORY_ADDRESS
   },
   reactStrictMode: true,
   experimental: {
