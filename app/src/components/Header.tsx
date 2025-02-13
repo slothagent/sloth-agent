@@ -5,13 +5,13 @@ import Link from "next/link";
 
 const Header = () => {
   return (
-    <header className=" top-0 left-0 right-0 z-50 bg-white">
+    <header className=" top-0 left-0 right-0 z-50 bg-[#93E905]/10">
       <div className="container mx-auto ">
         <div className="h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-20">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-14 h-14 relative">
+              <div className="w-10 h-10 relative">
                 <Image
                   src="/assets/logo/sloth-ai-light.jpg"
                   alt="Sloth AI Logo"
@@ -19,7 +19,7 @@ const Header = () => {
                   className="object-contain"
                 />
               </div>
-              <span className="text-sloth-light font-bold text-3xl">Sloth AI</span>
+              <span className="text-sloth-light font-bold text-3xl">Sloth Agent</span>
             </Link>
             <div className="flex items-center gap-8">
               <Link href="/" className="font-semibold hover:text-sloth-light hover:underline text-lg">Home</Link>
