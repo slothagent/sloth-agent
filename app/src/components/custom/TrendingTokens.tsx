@@ -1,12 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { trendingTokens } from "@/data/tokens";
+import { getPaginatedTokens } from "@/data/tokens";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const TrendingTokens = () => {
   const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
+  const { data: tokens, metadata } = getPaginatedTokens(currentPage, pageSize);
 
   return (
     <div>
@@ -31,7 +35,7 @@ const TrendingTokens = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {trendingTokens.map((row) => (
+            {tokens.map((row) => (
               <TableRow key={row.id} className="border-b border-black text-black hover:bg-[#93E905]/10 cursor-pointer" onClick={() => router.push(`/agent/${row.token.symbol}`)}>
                 <TableCell className="font-mono">
                   <div className="flex items-center gap-2">
@@ -89,6 +93,35 @@ const TrendingTokens = () => {
             ))}
           </TableBody>
         </Table>
+        
+        <div className="flex items-center justify-between px-4 py-4 border-t border-black">
+          <div className="flex-1 text-sm text-black">
+            Page {metadata.currentPage} of {metadata.totalPages}
+          </div>
+          <div className="flex items-center space-x-6 lg:space-x-8">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0 border-2 border-black rounded-none font-mono"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                {'<'}
+              </Button>
+              <div className="flex w-[100px] justify-center font-mono text-black">
+                {currentPage} / {metadata.totalPages}
+              </div>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0 border-2 border-black rounded-none font-mono"
+                onClick={() => setCurrentPage(prev => Math.min(metadata.totalPages, prev + 1))}
+                disabled={currentPage === metadata.totalPages}
+              >
+                {'>'}
+              </Button>
+            </div>
+          </div>
+        </div>
       </Card>
     </div>
   );

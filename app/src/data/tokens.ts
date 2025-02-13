@@ -55,6 +55,16 @@ export interface TokenData {
   };
 }
 
+export interface PaginatedTokens {
+  data: TokenData[];
+  metadata: {
+    currentPage: number;
+    totalPages: number;
+    pageSize: number;
+    totalCount: number;
+  };
+}
+
 export const trendingTokens: TokenData[] = [
   {
     id: 1,
@@ -115,6 +125,118 @@ export const trendingTokens: TokenData[] = [
   {
     id: 2,
     token: {
+      name: "Fartcoin",
+      symbol: "fartcoin",
+      address: "0xCK3E...9po",
+      logo: "https://pbs.twimg.com/profile_images/1848028530099052545/urFxrFx__400x400.jpg",
+      network: "BSC"
+    },
+    age: "124d",
+    liquidity: {
+      amount: "137.2K",
+      value: "$11.7M",
+      change24h: "+15.8%"
+    },
+    marketCap: "$137.2M",
+    blueChipHolding: "12.3%",
+    holders: {
+      count: "15.2K",
+      change24h: "+234"
+    },
+    smartMoney: {
+      value: "$850.3K",
+      kol: "12"
+    },
+    transactions: {
+      total: "45,234",
+      buys: "28,123",
+      sells: "17,111",
+      unique: "3,234"
+    },
+    volume: {
+      h1: "$1.2M",
+      h24: "$11.7M",
+      d7: "$82.3M"
+    },
+    price: {
+      current: "$0.1572",
+      ath: "$0.4254",
+      atl: "$0.0892"
+    },
+    priceChanges: {
+      m1: { value: "+2.3%", isPositive: true },
+      m5: { value: "+8.9%", isPositive: true },
+      h1: { value: "+15.2%", isPositive: true },
+      h24: { value: "+42.3%", isPositive: true },
+      d7: { value: "-11.2%", isPositive: false }
+    },
+    audit: {
+      noMint: true,
+      blacklist: false,
+      burn: true,
+      kyc: true,
+      audit: true
+    }
+  },
+  {
+    id: 3,
+    token: {
+      name: "Bankr",
+      symbol: "bankr",
+      address: "0xFUN4...7kp",
+      logo: "https://pbs.twimg.com/profile_images/1867636732533125121/ml6EJHfa_400x400.jpg",
+      network: "BSC"
+    },
+    age: "892d",
+    liquidity: {
+      amount: "234.5K",
+      value: "$3.02M",
+      change24h: "-2.3%"
+    },
+    marketCap: "$15.8M",
+    blueChipHolding: "5.6%",
+    holders: {
+      count: "45.6K",
+      change24h: "+123"
+    },
+    smartMoney: {
+      value: "$234.5K",
+      kol: "8"
+    },
+    transactions: {
+      total: "234,567",
+      buys: "123,456",
+      sells: "111,111",
+      unique: "12,345"
+    },
+    volume: {
+      h1: "$234.5K",
+      h24: "$3.02M",
+      d7: "$25.8M"
+    },
+    price: {
+      current: "$0.003037",
+      ath: "$0.01234",
+      atl: "$0.00123"
+    },
+    priceChanges: {
+      m1: { value: "-1.2%", isPositive: false },
+      m5: { value: "-3.4%", isPositive: false },
+      h1: { value: "+2.3%", isPositive: true },
+      h24: { value: "-5.6%", isPositive: false },
+      d7: { value: "+15.8%", isPositive: true }
+    },
+    audit: {
+      noMint: true,
+      blacklist: false,
+      burn: true,
+      kyc: true,
+      audit: true
+    }
+  },
+  {
+    id: 4,
+    token: {
       name: "AIXBT",
       symbol: "AIXBT",
       address: "0xJ5Tq...ump",
@@ -169,7 +291,7 @@ export const trendingTokens: TokenData[] = [
     }
   },
   {
-    id: 3,
+    id: 5,
     token: {
       name: "ELIZA",
       symbol: "ELIZA",
@@ -225,7 +347,7 @@ export const trendingTokens: TokenData[] = [
     }
   },
   {
-    id: 4,
+    id: 6,
     token: {
       name: "VITURAL",
       symbol: "VIT",
@@ -280,4 +402,19 @@ export const trendingTokens: TokenData[] = [
       audit: true
     }
   }
-]; 
+];
+
+export const getPaginatedTokens = (page: number = 1, pageSize: number = 10): PaginatedTokens => {
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+  
+  return {
+    data: trendingTokens.slice(start, end),
+    metadata: {
+      currentPage: page,
+      totalPages: Math.ceil(trendingTokens.length / pageSize),
+      pageSize: pageSize,
+      totalCount: trendingTokens.length
+    }
+  };
+}; 

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Bot, Sparkles, Twitter } from 'lucide-react';
-import Header from '@/components/Header';
 import BasicInformation from '@/components/custom/agent/BasicInformation';
 import VisualSystem from '@/components/custom/agent/VisualSystem';
 import PersonalityBackground from '@/components/custom/agent/PersonalityBackground';
@@ -153,7 +152,7 @@ const CreateAgent = () => {
             <div className="bg-gradient-to-b from-[#93E905]/10 to-white">
                 <div className="container mx-auto px-4 py-8 pb-0">
                     <div className="max-w-4xl mx-auto text-center">
-                        <h1 className="text-4xl md:text-5xl font-bold text-[#81c21a] mb-4">
+                        <h1 className="text-2xl md:text-5xl font-bold text-black mb-4">
                             Create Your Trading Agent
                         </h1>
                         <p className="text-lg text-gray-600 mb-8">

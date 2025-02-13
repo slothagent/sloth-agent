@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'gateway.pinata.cloud',
         pathname: '/ipfs/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'pbs.twimg.com',
+        pathname: '/**'
       }
     ]
   }
