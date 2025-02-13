@@ -2,7 +2,6 @@
 
 import Hero from "@/components/custom/Hero";
 import TrendingTokens from "@/components/custom/TrendingTokens";
-import TrendingAgents from "@/components/custom/TrendingAgents";
 
 const Home: React.FC = () => {
   return (
@@ -11,7 +10,6 @@ const Home: React.FC = () => {
         <Hero />
         <div className="container mx-auto pt-10">
           <TrendingTokens />
-          <TrendingAgents />
         </div>
       </div>
     </main>

@@ -159,7 +159,7 @@ const CreateAgent = () => {
                         <p className="text-lg text-gray-600 mb-8">
                             Design a powerful AI agent that trades and interacts on your behalf. Customize its personality, knowledge, and capabilities.
                         </p>
-                        <div className="flex flex-wrap justify-center gap-4 mb-8">
+                        {/* <div className="flex flex-wrap justify-center gap-4 mb-8">
                             <div className="flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full">
                                 <Sparkles className="w-5 h-5 text-[#93E905]" />
                                 <span className="text-sm text-black">AI-Powered Trading</span>
@@ -168,7 +168,7 @@ const CreateAgent = () => {
                                 <Twitter className="w-5 h-5 text-[#93E905]" />
                                 <span className="text-sm text-black">Twitter Integration</span>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

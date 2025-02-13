@@ -14,8 +14,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "SlothAI | Intelligent Automation Platform",
-  description: "SlothAI is a pioneering platform that optimizes time and effort through cutting-edge artificial intelligence. Work smarter, not harder with our advanced AI-driven automation solutions.",
+  title: "Sloth Agent | Intelligent Automation Platform",
+  description: "Sloth Agent is a pioneering platform that optimizes time and effort through cutting-edge artificial intelligence. Work smarter, not harder with our advanced AI-driven automation solutions.",
   keywords: [
     "AI Platform",
     "Artificial Intelligence",
@@ -29,10 +29,10 @@ export const metadata: Metadata = {
     "Intelligent Automation"
   ],
   openGraph: {
-    title: "SlothAI | Intelligent Automation Platform",
-    description: "Transform your workflow with AI-powered automation. SlothAI integrates advanced AI models for social interactions, research, and intelligent decision-making.",
+    title: "Sloth Agent | Intelligent Automation Platform",
+    description: "Transform your workflow with AI-powered automation. Sloth Agent integrates advanced AI models for social interactions, research, and intelligent decision-making.",
     type: "website",
-    siteName: "SlothAI",
+    siteName: "Sloth Agent",
     locale: "en_US",
     images: [{
       url: "/og-image.jpg", // Make sure to add this image to your public folder
@@ -43,8 +43,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SlothAI | Intelligent Automation Platform",
-    description: "Transform your workflow with AI-powered automation. Work smarter, not harder with SlothAI.",
+    title: "Sloth Agent | Intelligent Automation Platform",
+    description: "Transform your workflow with AI-powered automation. Work smarter, not harder with Sloth Agent.",
     creator: "@slothai",
     images: ["/twitter-image.jpg"], // Make sure to add this image to your public folder
   },
