@@ -56,7 +56,7 @@ const Hero = () => {
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-10 bg-gradient-to-t from-[#93E905]/50 to-transparent">
                   <div className="flex flex-col">
-                    <h2 className="text-8xl font-bold text-white mb-1 font-mono">whispersai</h2>
+                    <h2 className="text-3xl font-bold text-white mb-1 font-mono">whispersai</h2>
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2 text-white text-lg font-mono">
                         <span>Total Market Cap</span>
