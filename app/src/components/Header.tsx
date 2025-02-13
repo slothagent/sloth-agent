@@ -9,17 +9,24 @@ const Header = () => {
       <div className="container mx-auto ">
         <div className="h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-14 h-14 relative">
-              <Image
-                src="/assets/logo/sloth-ai-light.jpg"
-                alt="Sloth AI Logo"
-                fill
-                className="object-contain"
-              />
+          <div className="flex items-center gap-20">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-14 h-14 relative">
+                <Image
+                  src="/assets/logo/sloth-ai-light.jpg"
+                  alt="Sloth AI Logo"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <span className="text-sloth-light font-bold text-3xl">Sloth AI</span>
+            </Link>
+            <div className="flex items-center gap-8">
+              <Link href="/" className="font-semibold hover:text-sloth-light hover:underline text-lg">Home</Link>
+              <Link href="/agent/create" className="font-semibold hover:text-sloth-light hover:underline text-lg">Create Agent</Link>
+              <Link href="#" className="font-semibold hover:text-sloth-light hover:underline text-lg">How to Launch Agent</Link> 
             </div>
-            <span className="text-sloth-light font-bold text-3xl">Sloth AI</span>
-          </Link>
+          </div>
 
           {/* Connect Wallet Button */}
           <button className="bg-sloth-light hover:bg-sloth-light text-black px-4 py-2 rounded-full transition-colors font-medium">
