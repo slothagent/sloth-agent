@@ -8,27 +8,96 @@ import PersonalityBackground from '@/components/custom/agent/PersonalityBackgrou
 import Capabilities from '@/components/custom/agent/Capabilities';
 import AgentPreview from '@/components/custom/agent/AgentPreview';
 import TwitterConfig from '@/components/custom/agent/TwitterConfig';
+import { uploadImageToPinata } from '@/utils/pinata';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 const CreateAgent = () => {
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState<number>(1);
     const totalSteps = 5;
 
     // Form state
-    const [agentName, setAgentName] = useState('');
-    const [description, setDescription] = useState('');
-    const [ticker, setTicker] = useState('');
-    const [systemType, setSystemType] = useState('');
-    const [imageUrl, setImageUrl] = useState('');
-    const [agentLore, setAgentLore] = useState('');
-    const [personality, setPersonality] = useState('');
-    const [communicationStyle, setCommunicationStyle] = useState('');
-    const [knowledgeAreas, setKnowledgeAreas] = useState('');
+    const [agentName, setAgentName] = useState<string|null>(null);
+    const [description, setDescription] = useState<string|null>(null);
+    const [ticker, setTicker] = useState<string|null>(null);
+    const [systemType, setSystemType] = useState<string|null>(null);
+    const [imageUrl, setImageUrl] = useState<string|null>(null);
+    const [agentLore, setAgentLore] = useState<string|null>(null);
+    const [personality, setPersonality] = useState<string|null>(null);
+    const [communicationStyle, setCommunicationStyle] = useState<string|null>(null);
+    const [knowledgeAreas, setKnowledgeAreas] = useState<string|null>(null);
     const [tools, setTools] = useState<string[]>([]);
-    const [examples, setExamples] = useState('');
+    const [examples, setExamples] = useState<string|null>(null);
     // Twitter config state
-    const [twitterUsername, setTwitterUsername] = useState('');
-    const [twitterPassword, setTwitterPassword] = useState('');
-    const [twitterEmail, setTwitterEmail] = useState('');
+    const [twitterUsername, setTwitterUsername] = useState<string|null>(null);
+    const [twitterPassword, setTwitterPassword] = useState<string|null>(null);
+    const [twitterEmail, setTwitterEmail] = useState<string|null>(null);
+    const router = useRouter();
+
+    
+    const handleSubmit = async () => {
+        try {
+            // Validate required fields
+            if (!agentName || !ticker) {
+                toast.error('Agent name and ticker are required');
+                return;
+            }
+
+            // Prepare the payload with default values for null fields
+            const payload = {
+                name: agentName,
+                description: description || '',
+                ticker: ticker,
+                systemType: systemType || '',
+                imageUrl: imageUrl || '',
+                agentLore: agentLore || '',
+                personality: personality || '',
+                communicationStyle: communicationStyle || '',
+                knowledgeAreas: knowledgeAreas || '',
+                tools: tools,
+                examples: examples || '',
+                twitterUsername: twitterUsername || '',
+                twitterEmail: twitterEmail || '',
+                twitterPassword: twitterPassword || '',
+            };
+
+            const response = await fetch('/api/agent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+
+            let errorMessage = 'Failed to create agent';
+            
+            if (!response.ok) {
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorMessage;
+                } catch (jsonError) {
+                    // If JSON parsing fails, use the response status text
+                    errorMessage = `${errorMessage}: ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
+            }
+
+            try {
+                const data = await response.json();
+                console.log('Agent created:', data.agent);
+                toast.success('Agent created successfully!');
+                router.push(`/agent/${data.agent.id}`);
+                // You can add a redirect here if needed
+            } catch (jsonError) {
+                console.error('Error parsing success response:', jsonError);
+                // Even if we can't parse the response, we know the request succeeded
+                toast.success('Agent created successfully!');
+            }
+        } catch (error) {
+            console.error('Error creating agent:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to create agent. Please try again.');
+        }
+    };
 
     const steps = [
         {
@@ -65,14 +134,67 @@ const CreateAgent = () => {
         }
     };
 
-    const handleUploadImage = () => {
-        // Implement image upload logic
-        console.log('Upload image');
+    const handleUploadImage = async (file: File) => {
+        try {
+            if (!agentName) {
+                toast.error('Please enter agent name first');
+                throw new Error('Agent name is required');
+            }
+            
+            const loadingToast = toast.loading('Uploading image...');
+            const ipfsUrl = await uploadImageToPinata(file, agentName);
+            setImageUrl(ipfsUrl);
+            toast.dismiss(loadingToast);
+            toast.success('Image uploaded successfully!');
+            return ipfsUrl;
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            toast.error('Failed to upload image. Please try again.');
+            throw error;
+        }
     };
 
-    const handleGenerateImage = () => {
-        // Implement AI image generation logic
-        console.log('Generate image with AI');
+    const handleGenerateImage = async () => {
+        try {
+            if (!agentName || !description) {
+                toast.error('Please enter agent name and description first');
+                return;
+            }
+
+            const loadingToast = toast.loading('Generating image with AI...');
+
+            // Generate image with DALL-E
+            const prompt = `Create a professional logo for an AI agent named "${agentName}". The agent's purpose is: ${description}. Style: Modern, minimalist, suitable for a tech company. The image should be clear, memorable, and work well at different sizes.`;
+            
+            const response = await fetch('/api/generate-image', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to generate image');
+            }
+
+            const { imageUrl } = await response.json();
+
+            // Download the image and convert to File object
+            const imageResponse = await fetch(imageUrl);
+            const blob = await imageResponse.blob();
+            const file = new File([blob], `${agentName}.png`, { type: 'image/png' });
+
+            // Upload to Pinata
+            const ipfsUrl = await uploadImageToPinata(file, agentName);
+            setImageUrl(ipfsUrl);
+            
+            toast.dismiss(loadingToast);
+            toast.success('Image generated and uploaded successfully!');
+        } catch (error) {
+            console.error('Error generating image:', error);
+            toast.error('Failed to generate image. Please try again.');
+        }
     };
 
     const handleStyleChange = (value: string) => {
@@ -92,9 +214,9 @@ const CreateAgent = () => {
             case 1:
                 return (
                     <BasicInformation
-                        agentName={agentName}
-                        description={description}
-                        ticker={ticker}
+                        agentName={agentName || ''}
+                        description={description || ''}
+                        ticker={ticker || ''}
                         onNameChange={setAgentName}
                         onDescriptionChange={setDescription}
                         onTickerChange={setTicker}
@@ -103,7 +225,8 @@ const CreateAgent = () => {
             case 2:
                 return (
                     <VisualSystem
-                        systemType={systemType}
+                        systemType={systemType || ''}
+                        imageUrl={imageUrl || ''}
                         onSystemTypeChange={setSystemType}
                         onUploadImage={handleUploadImage}
                         onGenerateImage={handleGenerateImage}
@@ -112,9 +235,9 @@ const CreateAgent = () => {
             case 3:
                 return (
                     <PersonalityBackground
-                        agentLore={agentLore}
-                        personality={personality}
-                        communicationStyle={communicationStyle}
+                        agentLore={agentLore || ''}
+                        personality={personality || ''}
+                        communicationStyle={communicationStyle || ''}
                         onLoreChange={setAgentLore}
                         onPersonalityChange={setPersonality}
                         onStyleChange={handleStyleChange}
@@ -123,9 +246,9 @@ const CreateAgent = () => {
             case 4:
                 return (
                     <Capabilities
-                        knowledgeAreas={knowledgeAreas}
+                        knowledgeAreas={knowledgeAreas || ''}
                         tools={tools}
-                        examples={examples}
+                        examples={examples || ''}
                         onKnowledgeChange={handleKnowledgeChange}
                         onToolChange={handleToolChange}
                         onExamplesChange={setExamples}
@@ -134,9 +257,9 @@ const CreateAgent = () => {
             case 5:
                 return (
                     <TwitterConfig
-                        username={twitterUsername}
-                        password={twitterPassword}
-                        email={twitterEmail}
+                        username={twitterUsername || ''}
+                        password={twitterPassword || ''}
+                        email={twitterEmail || ''}
                         onUsernameChange={setTwitterUsername}
                         onPasswordChange={setTwitterPassword}
                         onEmailChange={setTwitterEmail}
@@ -219,7 +342,7 @@ const CreateAgent = () => {
                                 Previous
                             </button>
                             <button
-                                onClick={handleNext}
+                                onClick={currentStep === totalSteps ? handleSubmit : handleNext}
                                 className="flex items-center gap-2 px-6 py-2 bg-black text-white rounded border-2 border-black hover:bg-[#93E905] hover:text-black hover:border-[#93E905]"
                             >
                                 {currentStep === totalSteps ? 'Create Agent' : 'Next'}
@@ -233,12 +356,12 @@ const CreateAgent = () => {
                         <div className="sticky top-8">
                             <h2 className="text-3xl font-semibold mb-4 text-black">Agent Preview</h2>
                             <AgentPreview
-                                name={agentName}
-                                description={description}
-                                ticker={ticker}
-                                systemType={systemType}
-                                imageUrl={imageUrl}
-                                personality={personality}
+                                name={agentName || ''}
+                                description={description || ''}
+                                ticker={ticker || ''}
+                                systemType={systemType || ''}
+                                imageUrl={imageUrl || ''}
+                                personality={personality || ''}
                             />
                         </div>
                     </div>

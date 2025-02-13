@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   env: {
-    MONGODB_URI: process.env.MONGODB_URI,
+    DATABASE_URL: process.env.DATABASE_URL,
+    PINATA_JWT: process.env.PINATA_JWT,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY
   },
   reactStrictMode: true,
   experimental: {
@@ -23,6 +25,11 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'pbs.twimg.com',
+        pathname: '/**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'oaidalleapiprodscus.blob.core.windows.net',
         pathname: '/**'
       }
     ]

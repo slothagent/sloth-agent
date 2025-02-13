@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Upload, Wand2 } from 'lucide-react';
 import {
     Select,
@@ -7,25 +7,45 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import Image from 'next/image';
 
 interface VisualSystemProps {
     systemType: string;
+    imageUrl: string;
     onSystemTypeChange: (value: string) => void;
-    onUploadImage: () => void;
+    onUploadImage: (file: File) => Promise<string>;
     onGenerateImage: () => void;
 }
 
 const VisualSystem: React.FC<VisualSystemProps> = ({
     systemType,
+    imageUrl,
     onSystemTypeChange,
     onUploadImage,
     onGenerateImage
 }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const systemTypes = [
         { value: 'ai_chatbot', label: 'AI Chatbot' },
         { value: 'trading_bot', label: 'Trading Bot' },
         { value: 'community_manager', label: 'Community Manager' }
     ];
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            try {
+                await onUploadImage(file);
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                // You might want to show an error toast here
+            }
+        }
+    };
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
 
     return (
         <div className="space-y-4">
@@ -33,9 +53,16 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
                 <label className="block text-sm font-medium text-black mb-2">
                     Agent Image
                 </label>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                />
                 <div className="flex gap-4">
                     <button 
-                        onClick={onUploadImage}
+                        onClick={handleUploadClick}
                         className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-black rounded hover:bg-[#93E905] hover:border-[#93E905] text-black transition-colors"
                     >
                         <Upload className="w-4 h-4" />
@@ -49,6 +76,17 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
                         Generate with AI
                     </button>
                 </div>
+                {imageUrl && (
+                    <div className="mt-4">
+                        <Image
+                            src={imageUrl}
+                            alt="Agent image"
+                            width={200}
+                            height={200}
+                            className="rounded-lg border-2 border-black"
+                        />
+                    </div>
+                )}
             </div>
             <div>
                 <label className="block text-sm font-medium text-black mb-2">

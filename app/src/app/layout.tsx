@@ -14,7 +14,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Sloth Agent | Intelligent Automation Platform",
+  title: "Sloth Agent - Intelligent Automation Platform",
   description: "Sloth Agent is a pioneering platform that optimizes time and effort through cutting-edge artificial intelligence. Work smarter, not harder with our advanced AI-driven automation solutions.",
   keywords: [
     "AI Platform",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     "Intelligent Automation"
   ],
   openGraph: {
-    title: "Sloth Agent | Intelligent Automation Platform",
+    title: "Sloth Agent - Intelligent Automation Platform",
     description: "Transform your workflow with AI-powered automation. Sloth Agent integrates advanced AI models for social interactions, research, and intelligent decision-making.",
     type: "website",
     siteName: "Sloth Agent",
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sloth Agent | Intelligent Automation Platform",
+    title: "Sloth Agent - Intelligent Automation Platform",
     description: "Transform your workflow with AI-powered automation. Work smarter, not harder with Sloth Agent.",
     creator: "@slothai",
     images: ["/twitter-image.jpg"], // Make sure to add this image to your public folder

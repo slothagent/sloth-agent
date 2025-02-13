@@ -13,7 +13,6 @@ export interface TokenData {
     value: string;
     change24h: string;
   };
-  marketCap: string;
   blueChipHolding: string;
   holders: {
     count: string;
@@ -33,6 +32,11 @@ export interface TokenData {
     h1: string;
     h24: string;
     d7: string;
+    total: string;
+  };
+  marketCap: {
+    current: string;
+    total: string;
   };
   price: {
     current: string;
@@ -46,12 +50,12 @@ export interface TokenData {
     h24: { value: string; isPositive: boolean };
     d7: { value: string; isPositive: boolean };
   };
-  audit: {
-    noMint: boolean;
-    blacklist: boolean;
-    burn: boolean;
-    kyc: boolean;
-    audit: boolean;
+  followers: {
+    count: string;
+    change24h: string;
+  };
+  topTweets: {
+    count: string;
   };
 }
 
@@ -81,7 +85,10 @@ export const trendingTokens: TokenData[] = [
       value: "$3.6K",
       change24h: "+5.2%"
     },
-    marketCap: "$42.8K",
+    marketCap: {
+      current: "$42.8K",
+      total: "$50.2K"
+    },
     blueChipHolding: "8.6%",
     holders: {
       count: "58",
@@ -100,7 +107,8 @@ export const trendingTokens: TokenData[] = [
     volume: {
       h1: "$100.1K",
       h24: "$450.3K",
-      d7: "$2.1M"
+      d7: "$2.1M",
+      total: "$3.2M"
     },
     price: {
       current: "$0.03648",
@@ -114,12 +122,12 @@ export const trendingTokens: TokenData[] = [
       h24: { value: "+15.2%", isPositive: true },
       d7: { value: "-8.5%", isPositive: false }
     },
-    audit: {
-      noMint: true,
-      blacklist: false,
-      burn: true,
-      kyc: true,
-      audit: true
+    followers: {
+      count: "1.2K",
+      change24h: "+123"
+    },
+    topTweets: {
+      count: "15"
     }
   },
   {
@@ -137,7 +145,10 @@ export const trendingTokens: TokenData[] = [
       value: "$11.7M",
       change24h: "+15.8%"
     },
-    marketCap: "$137.2M",
+    marketCap: {
+      current: "$137.2M",
+      total: "$150.5M"
+    },
     blueChipHolding: "12.3%",
     holders: {
       count: "15.2K",
@@ -156,7 +167,8 @@ export const trendingTokens: TokenData[] = [
     volume: {
       h1: "$1.2M",
       h24: "$11.7M",
-      d7: "$82.3M"
+      d7: "$82.3M",
+      total: "$95.2M"
     },
     price: {
       current: "$0.1572",
@@ -170,12 +182,12 @@ export const trendingTokens: TokenData[] = [
       h24: { value: "+42.3%", isPositive: true },
       d7: { value: "-11.2%", isPositive: false }
     },
-    audit: {
-      noMint: true,
-      blacklist: false,
-      burn: true,
-      kyc: true,
-      audit: true
+    followers: {
+      count: "5.6K",
+      change24h: "+892"
+    },
+    topTweets: {
+      count: "45"
     }
   },
   {
@@ -193,7 +205,10 @@ export const trendingTokens: TokenData[] = [
       value: "$3.02M",
       change24h: "-2.3%"
     },
-    marketCap: "$15.8M",
+    marketCap: {
+      current: "$15.8M",
+      total: "$18.3M"
+    },
     blueChipHolding: "5.6%",
     holders: {
       count: "45.6K",
@@ -212,7 +227,8 @@ export const trendingTokens: TokenData[] = [
     volume: {
       h1: "$234.5K",
       h24: "$3.02M",
-      d7: "$25.8M"
+      d7: "$25.8M",
+      total: "$29.1M"
     },
     price: {
       current: "$0.003037",
@@ -226,12 +242,12 @@ export const trendingTokens: TokenData[] = [
       h24: { value: "-5.6%", isPositive: false },
       d7: { value: "+15.8%", isPositive: true }
     },
-    audit: {
-      noMint: true,
-      blacklist: false,
-      burn: true,
-      kyc: true,
-      audit: true
+    followers: {
+      count: "12.3K",
+      change24h: "+234"
+    },
+    topTweets: {
+      count: "78"
     }
   },
   {
@@ -249,7 +265,10 @@ export const trendingTokens: TokenData[] = [
       value: "$596.9K",
       change24h: "+1.8%"
     },
-    marketCap: "$892.5K",
+    marketCap: {
+      current: "$892.5K",
+      total: "$1.2M"
+    },
     blueChipHolding: "2.1%",
     holders: {
       count: "5.6K",
@@ -268,7 +287,8 @@ export const trendingTokens: TokenData[] = [
     volume: {
       h1: "$3.7K",
       h24: "$52.8K",
-      d7: "$412.3K"
+      d7: "$412.3K",
+      total: "$468.8K"
     },
     price: {
       current: "$0.0003",
@@ -282,12 +302,12 @@ export const trendingTokens: TokenData[] = [
       h24: { value: "-5.2%", isPositive: false },
       d7: { value: "+32.1%", isPositive: true }
     },
-    audit: {
-      noMint: true,
-      blacklist: false,
-      burn: true,
-      kyc: false,
-      audit: true
+    followers: {
+      count: "892",
+      change24h: "+45"
+    },
+    topTweets: {
+      count: "12"
     }
   },
   {
@@ -305,7 +325,10 @@ export const trendingTokens: TokenData[] = [
       value: "$65.2K",
       change24h: "+8.9%"
     },
-    marketCap: "$128.7K",
+    marketCap: {
+      current: "$128.7K",
+      total: "$150.3K"
+    },
     blueChipHolding: "0.3%",
     holders: {
       count: "1.1K",
@@ -324,7 +347,8 @@ export const trendingTokens: TokenData[] = [
     volume: {
       h1: "$3.2M",
       h24: "$8.5M",
-      d7: "$42.1M"
+      d7: "$42.1M",
+      total: "$53.8M"
     },
     price: {
       current: "$0.06637",
@@ -338,12 +362,12 @@ export const trendingTokens: TokenData[] = [
       h24: { value: "+125.3%", isPositive: true },
       d7: { value: "-15.8%", isPositive: false }
     },
-    audit: {
-      noMint: true,
-      blacklist: false,
-      burn: true,
-      kyc: true,
-      audit: false
+    followers: {
+      count: "456",
+      change24h: "+23"
+    },
+    topTweets: {
+      count: "8"
     }
   },
   {
@@ -361,7 +385,10 @@ export const trendingTokens: TokenData[] = [
       value: "$9.5K",
       change24h: "-2.3%"
     },
-    marketCap: "$85.2K",
+    marketCap: {
+      current: "$85.2K",
+      total: "$92.7K"
+    },
     blueChipHolding: "1.7%",
     holders: {
       count: "402",
@@ -380,7 +407,8 @@ export const trendingTokens: TokenData[] = [
     volume: {
       h1: "$668.1K",
       h24: "$1.2M",
-      d7: "$8.5M"
+      d7: "$8.5M",
+      total: "$10.4M"
     },
     price: {
       current: "$0.09542",
@@ -394,12 +422,12 @@ export const trendingTokens: TokenData[] = [
       h24: { value: "+82.3%", isPositive: true },
       d7: { value: "-23.5%", isPositive: false }
     },
-    audit: {
-      noMint: true,
-      blacklist: false,
-      burn: true,
-      kyc: true,
-      audit: true
+    followers: {
+      count: "234",
+      change24h: "+12"
+    },
+    topTweets: {
+      count: "5"
     }
   }
 ];

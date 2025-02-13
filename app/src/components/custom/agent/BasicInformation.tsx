@@ -49,9 +49,10 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
                 <input
                     type="text"
                     value={ticker}
-                    onChange={(e) => onTickerChange(e.target.value)}
+                    onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
+                    maxLength={5}
                     className="w-full px-4 py-2 bg-white border-2 border-black rounded focus:ring-2 focus:ring-[#93E905] focus:border-[#93E905] text-black placeholder-gray-500"
-                    placeholder="Enter token ticker (e.g., BTC, ETH)"
+                    placeholder="Enter token ticker (max 5 chars)"
                 />
             </div>
         </div>
