@@ -15,6 +15,13 @@ import ChartContentpage from "@/components/custom/ChartContentpage";
 import CookieContent from "@/components/custom/CookieContent";
 import MobyContentpage from "@/components/custom/MobyContentpage";
 import { useState, useEffect, useRef } from "react";
+import { Space_Grotesk } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  weight: ["300", "400", "500", "600", "700"],
+});
 
 interface ChatMessage {
   id: string;
@@ -105,7 +112,7 @@ export default function TokenPage() {
   );
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-white">
+    <div className={`flex flex-col lg:flex-row h-screen bg-white ${spaceGrotesk.className}`}>
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
         <button

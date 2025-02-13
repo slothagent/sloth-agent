@@ -425,7 +425,7 @@ const Playground: NextPage = () => {
                                 {agents.map((agent) => (
                                     <Link
                                         key={agent.name}
-                                        href={`/playground/agents/${agent.name.toLowerCase()}`}
+                                        href={`/agents/${agent.name.toLowerCase()}`}
                                         className="px-3 lg:px-4 py-2 lg:py-3 bg-white border-2 border-neutral-700 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
                                     >
                                         {agent.icon}

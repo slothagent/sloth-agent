@@ -3,7 +3,6 @@ import { NextPage } from "next";
 import Sidebar from "@/components/custom/Sidebar";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import TypewriterEffect from "@/components/custom/TypewriterEffect";
 import Link from "next/link";   
 import { 
     Target, 
@@ -19,6 +18,14 @@ import {
     X,
 } from "lucide-react";
 import ListToken from "@/components/custom/ListToken";
+import { Space_Grotesk } from "next/font/google";
+
+const spaceGrotesk = Space_Grotesk({
+    subsets: ["latin"],
+    variable: "--font-space-grotesk",
+    weight: ["300", "400", "500", "600", "700"],
+});
+
 interface Message {
     type: 'user' | 'bot';
     content: string;
@@ -61,18 +68,8 @@ const mainAgents = [
 ];
 
 const Playground: NextPage = () => {
-    const [isChatting, setIsChatting] = useState(false);
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
-    const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-    const router = useRouter();
-    const [editingChatId, setEditingChatId] = useState<string | null>(null);
-    const [newTitle, setNewTitle] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     const handleSearch = (value: string) => {
@@ -89,7 +86,7 @@ const Playground: NextPage = () => {
     };
 
     return (
-        <div className="w-full bg-white text-gray-800">
+        <div className={`w-full bg-white text-gray-800 ${spaceGrotesk.className}`}>
             {/* Mobile Header */}
             <div className="lg:hidden flex items-center justify-between p-4 border-b border-gray-200">
                 <button 

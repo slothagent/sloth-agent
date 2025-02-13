@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, Inbox, HelpCircle, FileText, History, Plus } from 'lucide-react';
+import { Home, Inbox, HelpCircle, FileText, History, Plus, Settings, Feather } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -66,7 +66,13 @@ const Sidebar = () => {
                         <span>Inbox</span>
                     </Link>
                 </div>
-
+                <div className='flex flex-col gap-2'>
+                    <p className="font-medium text-xl">Agents</p>
+                    <Link href="/studio" className="flex items-center space-x-3 text-muted-foreground hover:text-primary transition-colors">
+                        <Feather className="w-5 h-5" />
+                        <p>Studio</p>
+                    </Link>
+                </div>
                 <div className="space-y-4">
                     <h2 className="text-lg font-medium text-muted-foreground">Recent Threads</h2>
                     {recentThreads.slice(0, 5).map((thread) => (
