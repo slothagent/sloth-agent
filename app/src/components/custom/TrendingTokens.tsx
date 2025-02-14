@@ -42,32 +42,32 @@ const fetchAgents = async (page: number, pageSize: number): Promise<PaginatedRes
 
 const TableSkeleton = () => {
   return (
-    <Card className="border-2 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0)]">
+    <Card className="border-2 border-[#8b7355] rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-b-2 border-black hover:bg-[#93E905]/10">
-            <TableHead className="font-mono">Token</TableHead>
-            <TableHead className="font-mono">Age</TableHead>
-            <TableHead className="text-right font-mono">Liq $/MC</TableHead>
-            <TableHead className="text-right font-mono">MindShare</TableHead>
-            <TableHead className="text-right font-mono">Holders</TableHead>
-            <TableHead className="text-right font-mono">Smart $/KOL</TableHead>
-            <TableHead className="text-right font-mono">1h TXs</TableHead>
-            <TableHead className="text-right font-mono">1h Vol</TableHead>
-            <TableHead className="text-right font-mono">Price</TableHead>
-            <TableHead className="text-right font-mono">Δ7D</TableHead>
-            <TableHead className="text-right font-mono">Market Cap</TableHead>
-            <TableHead className="text-right font-mono">Volume</TableHead>
-            <TableHead className="text-right font-mono">Followers</TableHead>
-            <TableHead className="text-right font-mono">Top Tweets</TableHead>
+          <TableRow className="border-b-2 border-[#8b7355] hover:bg-[#8b7355]/5">
+            <TableHead className="font-mono text-[#8b7355]">Token</TableHead>
+            <TableHead className="font-mono text-[#8b7355]">Age</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Liq $/MC</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">MindShare</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Holders</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Smart $/KOL</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">1h TXs</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">1h Vol</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Price</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Δ7D</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Market Cap</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Volume</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Followers</TableHead>
+            <TableHead className="text-right font-mono text-[#8b7355]">Top Tweets</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {[...Array(5)].map((_, index) => (
-            <TableRow key={index} className="border-b border-black">
+            <TableRow key={index} className="border-b border-[#8b7355]/20">
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <Skeleton className="h-8 w-8 rounded-none" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
                   <div className="flex flex-col gap-1">
                     <Skeleton className="h-4 w-24" />
                     <Skeleton className="h-3 w-16" />
@@ -161,33 +161,37 @@ const TrendingTokens: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-black">AI Agent Index</h2>
+      <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-[#8b7355]">AI Agent Index</h2>
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <Card className="border-2 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0)]">
+        <Card className="border-2 border-[#8b7355] rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="border-b-2 border-black hover:bg-[#93E905]/10">
-                <TableHead className="font-mono">Token</TableHead>
-                <TableHead className="font-mono">Age</TableHead>
-                <TableHead className="text-right font-mono">Liq $/MC</TableHead>
-                <TableHead className="text-right font-mono">MindShare</TableHead>
-                <TableHead className="text-right font-mono">Holders</TableHead>
-                <TableHead className="text-right font-mono">Smart $/KOL</TableHead>
-                <TableHead className="text-right font-mono">1h TXs</TableHead>
-                <TableHead className="text-right font-mono">1h Vol</TableHead>
-                <TableHead className="text-right font-mono">Price</TableHead>
-                <TableHead className="text-right font-mono">Δ7D</TableHead>
-                <TableHead className="text-right font-mono">Market Cap</TableHead>
-                <TableHead className="text-right font-mono">Volume</TableHead>
-                <TableHead className="text-right font-mono">Followers</TableHead>
-                <TableHead className="text-right font-mono">Top Tweets</TableHead>
+              <TableRow className="border-b-2 border-[#8b7355] hover:bg-[#8b7355]/5">
+                <TableHead className="font-mono text-[#8b7355]">Token</TableHead>
+                <TableHead className="font-mono text-[#8b7355]">Age</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Liq $/MC</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">MindShare</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Holders</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Smart $/KOL</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">1h TXs</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">1h Vol</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Price</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Δ7D</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Market Cap</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Volume</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Followers</TableHead>
+                <TableHead className="text-right font-mono text-[#8b7355]">Top Tweets</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {agents.map((agent) => (
-                <TableRow key={agent.id} className="border-b border-black text-black hover:bg-[#93E905]/10 cursor-pointer" onClick={() => router.push(`/agent/${agent.ticker.toLowerCase()}`)}>
+                <TableRow 
+                  key={agent.id} 
+                  className="border-b border-[#8b7355]/20 text-[#8b7355] hover:bg-[#8b7355]/5 cursor-pointer transition-colors duration-200" 
+                  onClick={() => router.push(`/agent/${agent.ticker.toLowerCase()}`)}
+                >
                   <TableCell className="font-mono">
                     <div className="flex items-center gap-2">
                       <Image 
@@ -195,35 +199,35 @@ const TrendingTokens: React.FC = () => {
                         alt={agent.name} 
                         width={32} 
                         height={32} 
-                        className="rounded-none"
+                        className="rounded-lg border border-[#8b7355]/20"
                       />
                       <div className="flex flex-col min-w-0">
-                        <span className="font-medium truncate text-black">{agent.name}</span>
-                        <span className="text-sm text-black/60 truncate">{agent.address.slice(0, 6)}...{agent.address.slice(-4)}</span>
+                        <span className="font-medium truncate text-[#8b7355]">{agent.name}</span>
+                        <span className="text-sm text-[#8b7355]/60 truncate">{agent.address.slice(0, 6)}...{agent.address.slice(-4)}</span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="font-mono">{timeAgo(agent.createdAt)}</TableCell>
                   <TableCell className="text-right font-mono">
                     <div>{agent.metrics?.liquidityAmount||"-"} 🔥</div>
-                    <div className="text-sm text-black/60">{agent.metrics?.liquidityValue||"-"}</div>
+                    <div className="text-sm text-[#8b7355]/60">{agent.metrics?.liquidityValue||"-"}</div>
                   </TableCell>
-                  <TableCell className="text-right text-black font-mono">{agent.metrics?.blueChipHolding||"-"}</TableCell>
+                  <TableCell className="text-right text-[#8b7355] font-mono">{agent.metrics?.blueChipHolding||"-"}</TableCell>
                   <TableCell className="text-right font-mono">
                     <div>{agent.metrics?.holdersCount||"-"}</div>
-                    <div className="text-sm text-black/60">+{agent.metrics?.holdersChange24h||"-"}</div>
+                    <div className="text-sm text-[#8b7355]/60">+{agent.metrics?.holdersChange24h||"-"}</div>
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     <div>{agent.metrics?.smartMoneyValue||"-"}</div>
-                    <div className="text-sm text-black/60">{agent.metrics?.smartMoneyKol||"-"} KOL</div>
+                    <div className="text-sm text-[#8b7355]/60">{agent.metrics?.smartMoneyKol||"-"} KOL</div>
                   </TableCell>
                   <TableCell className="text-right font-mono">
                     <div>{agent.metrics?.totalTransactions||"-"}</div>
-                    <div className="text-sm text-black/60">{agent.metrics?.buyTransactions||"-"}/{agent.metrics?.sellTransactions||"-"}</div>
+                    <div className="text-sm text-[#8b7355]/60">{agent.metrics?.buyTransactions||"-"}/{agent.metrics?.sellTransactions||"-"}</div>
                   </TableCell>
                   <TableCell className="text-right font-mono">{agent.metrics?.volumeLastHour||"-"}</TableCell>
                   <TableCell className="text-right font-mono">{agent.metrics?.currentPrice||"-"}</TableCell>
-                  <TableCell className={`text-right font-mono text-[#93E905]`}>
+                  <TableCell className="text-right font-mono text-[#8b7355]">
                     {agent.metrics?.priceChange1m||"-"}
                   </TableCell>
                   <TableCell className="text-right font-mono">
@@ -243,32 +247,27 @@ const TrendingTokens: React.FC = () => {
             </TableBody>
           </Table>
           
-          <div className="flex items-center justify-between px-4 py-4 border-t border-black">
-            <div className="flex-1 text-sm text-black">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[#8b7355]/20">
+            <div className="flex-1 text-sm text-[#8b7355]">
               Page {metadata.currentPage} of {metadata.totalPages}
             </div>
-            <div className="flex items-center space-x-6 lg:space-x-8">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0 border-2 border-black rounded-none font-mono"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  {'<'}
-                </Button>
-                <div className="flex w-[100px] justify-center font-mono text-black">
-                  {currentPage} / {metadata.totalPages}
-                </div>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0 border-2 border-black rounded-none font-mono"
-                  onClick={() => setCurrentPage(prev => Math.min(metadata.totalPages, prev + 1))}
-                  disabled={currentPage === metadata.totalPages}
-                >
-                  {'>'}
-                </Button>
-              </div>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                className="border-2 border-[#8b7355] text-[#8b7355] hover:bg-[#8b7355]/10 rounded-lg font-mono transition-all duration-200"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || isFetching}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                className="border-2 border-[#8b7355] text-[#8b7355] hover:bg-[#8b7355]/10 rounded-lg font-mono transition-all duration-200"
+                onClick={() => setCurrentPage(prev => Math.min(metadata.totalPages, prev + 1))}
+                disabled={currentPage === metadata.totalPages || isFetching}
+              >
+                Next
+              </Button>
             </div>
           </div>
         </Card>

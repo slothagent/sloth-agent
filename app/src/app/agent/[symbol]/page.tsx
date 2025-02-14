@@ -495,11 +495,9 @@ const AgentDetails: NextPage = () => {
                         </div>
                     </TabsContent>
                     <TabsContent value="overview" className="mt-4">
-                        {/* Overview content */}
                         <Overview />
                     </TabsContent>
                     <TabsContent value="social" className="mt-4">
-                        {/* Social content */}
                         <Social />
                     </TabsContent>
                 </Tabs>

@@ -3,10 +3,39 @@ import { prisma } from '@/lib/prisma';
 import { PrismaClientKnownRequestError, PrismaClientValidationError, PrismaClientInitializationError } from '@prisma/client/runtime/library';
 import { getAgentBySymbol, getAllAgents, getPaginatedAgents, searchAgents } from '@/hooks/myAgent';
 
+interface TwitterAuthData {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: string;
+}
+
+interface AgentData {
+  name: string;
+  ticker: string;
+  address: string;
+  curveAddress: string;
+  owner: string;
+  description: string | null;
+  systemType: string | null;
+  imageUrl: string | null;
+  agentLore: string | null;
+  personality: string | null;
+  communicationStyle: string | null;
+  knowledgeAreas: string | null;
+  tools: string[];
+  examples: string | null;
+  twitterAuth?: {
+    create: {
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: Date;
+    }
+  };
+}
 
 export async function POST(req: Request) {
   try {
-    // Add validation for request body
+    // Check if request body exists
     if (!req.body) {
       return NextResponse.json(
         { error: 'Request body is required' },
@@ -25,14 +54,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate required fields
-    if (!body || typeof body !== 'object') {
+    // Validate body is not null and is an object
+    if (!body || typeof body !== 'object' || body === null) {
       return NextResponse.json(
         { error: 'Request body must be a valid JSON object' },
         { status: 400 }
       );
     }
 
+    // Validate required fields
     const requiredFields = ['name', 'ticker', 'address', 'curveAddress', 'owner'];
     const missingFields = requiredFields.filter(field => !body[field]);
     
@@ -43,30 +73,62 @@ export async function POST(req: Request) {
       );
     }
 
+    // Validate field types
+    if (typeof body.name !== 'string' || 
+        typeof body.ticker !== 'string' || 
+        typeof body.address !== 'string' || 
+        typeof body.curveAddress !== 'string' || 
+        typeof body.owner !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid field types. All required fields must be strings.' },
+        { status: 400 }
+      );
+    }
+
+    // Prepare the data object with required fields
+    const agentData: AgentData = {
+      name: body.name,
+      ticker: body.ticker,
+      address: body.address,
+      curveAddress: body.curveAddress,
+      owner: body.owner,
+      // Optional fields with null checks
+      description: body.description || null,
+      systemType: body.systemType || null,
+      imageUrl: body.imageUrl || null,
+      agentLore: body.agentLore || null,
+      personality: body.personality || null,
+      communicationStyle: body.communicationStyle || null,
+      knowledgeAreas: body.knowledgeAreas || null,
+      tools: Array.isArray(body.tools) ? body.tools : [],
+      examples: body.examples || null,
+    };
+
+    // If twitterAuth is provided, include it in the create operation
+    if (body.twitterAuth) {
+      const { accessToken, refreshToken, expiresAt } = body.twitterAuth as TwitterAuthData;
+      agentData.twitterAuth = {
+        create: {
+          accessToken,
+          refreshToken,
+          expiresAt: new Date(expiresAt),
+        }
+      };
+    }
+
     const agent = await prisma.agent.create({
-      data: {
-        name: body.name,
-        description: body.description,
-        ticker: body.ticker,
-        systemType: body.systemType,
-        imageUrl: body.imageUrl,
-        agentLore: body.agentLore,
-        personality: body.personality,
-        communicationStyle: body.communicationStyle,
-        knowledgeAreas: body.knowledgeAreas,
-        tools: body.tools || [],
-        examples: body.examples,
-        twitterUsername: body.twitterUsername,
-        twitterEmail: body.twitterEmail,
-        twitterPassword: body.twitterPassword,
-        address: body.address,
-        curveAddress: body.curveAddress,
-        owner: body.owner
-      },
+      data: agentData,
+      include: {
+        twitterAuth: true
+      }
     });
 
+    if (!agent) {
+      throw new Error('Failed to create agent');
+    }
+
     return NextResponse.json({ agent }, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error creating agent:', error);
     
     if (error instanceof PrismaClientKnownRequestError) {
@@ -104,8 +166,9 @@ export async function POST(req: Request) {
     }
     
     // Handle any other errors
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+      { error: 'An unexpected error occurred', details: errorMessage },
       { status: 500 }
     );
   }

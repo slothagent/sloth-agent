@@ -33,7 +33,7 @@ const WalletButton = () => {
                 return (
                   <button
                     onClick={openConnectModal}
-                    className="bg-sloth-light hover:bg-sloth-light text-black px-4 py-2 border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition-colors font-medium"
+                    className="bg-[#8b7355] hover:bg-[#8b7355]/90 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 border-2 border-[#8b7355]/20"
                   >
                     Connect Wallet
                   </button>
@@ -41,19 +41,20 @@ const WalletButton = () => {
               }
 
               return (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={openChainModal}
-                    className="flex w-[180px] text-center justify-center items-center gap-2 px-3 py-2 text-sm font-medium transition-all border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0)] bg-[#93E905]/10 rounded-lg hover:bg-[#93E905]/20"
+                    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#8b7355] transition-all duration-200 border-2 border-[#8b7355]/20 rounded-lg hover:bg-[#8b7355]/10 bg-white/50 backdrop-blur-sm"
                   >
                     {chain.hasIcon && (
-                      <div className="w-5 h-5">
+                      <div className="w-5 h-5 relative">
                         {chain.iconUrl && (
                           <Image
                             alt={chain.name ?? 'Chain icon'}
                             src={chain.iconUrl}
                             width={20}
                             height={20}
+                            className="object-contain"
                           />
                         )}
                       </div>
@@ -63,14 +64,14 @@ const WalletButton = () => {
 
                   <button
                     onClick={openAccountModal}
-                    className="flex w-[210px] text-center justify-center items-center gap-2 px-3 py-2 text-sm font-medium transition-all border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0)] bg-[#93E905]/10 rounded-lg hover:bg-[#93E905]/20"
+                    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#8b7355] transition-all duration-200 border-2 border-[#8b7355]/20 rounded-lg hover:bg-[#8b7355]/10 bg-white/50 backdrop-blur-sm"
                   >
                     {account.displayName}
-                    <span className="px-2 text-xs font-medium text-black bg-white rounded-full">
-                      {account.displayBalance
-                        ? `${account.displayBalance}`
-                        : ''}
-                    </span>
+                    {account.displayBalance && (
+                      <span className="px-3 py-1 text-xs font-medium text-[#8b7355] bg-[#8b7355]/10 rounded-full border border-[#8b7355]/20">
+                        {account.displayBalance}
+                      </span>
+                    )}
                   </button>
                 </div>
               );

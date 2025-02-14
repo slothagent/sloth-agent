@@ -37,6 +37,9 @@ export async function getAgentBySymbol(symbol: string): Promise<Agent | null> {
     const agent = await prisma.agent.findFirst({
       where: {
         ticker: symbol
+      },
+      include: {
+        twitterAuth: true
       }
     });
     return agent;
