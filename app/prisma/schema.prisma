@@ -25,10 +25,8 @@ model Agent {
   knowledgeAreas    String?  @db.Text
   tools             String[] @default([])
   examples          String?  @db.Text
-  twitterUsername   String?
-  twitterEmail      String?
-  twitterPassword   String?  @db.Text
-  metrics          AgentMetrics?
+  metrics           AgentMetrics?
+  twitterAuth       TwitterAuth?
 }
 
 model AgentMetrics {
@@ -70,6 +68,19 @@ model AgentMetrics {
   // Social metrics
   followersCount  Int
   topTweetsCount Int
+
+  @@index([agentId])
+}
+
+model TwitterAuth {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  agentId         String   @unique
+  agent           Agent    @relation(fields: [agentId], references: [id])
+  accessToken     String   @db.Text
+  refreshToken    String?  @db.Text
+  expiresAt       DateTime
 
   @@index([agentId])
 }

@@ -5,55 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-
-type Agent = {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  name: string;
-  description?: string | null;
-  ticker: string;
-  address: string;
-  curveAddress: string;
-  owner: string;
-  systemType?: string | null;
-  imageUrl?: string | null;
-  agentLore?: string | null;
-  personality?: string | null;
-  communicationStyle?: string | null;
-  knowledgeAreas?: string | null;
-  tools: string[];
-  examples?: string | null;
-  twitterUsername?: string | null;
-  twitterEmail?: string | null;
-  twitterPassword?: string | null;
-};
-
-type AgentMetrics = {
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  agentId: string;
-  liquidityAmount: number;
-  liquidityValue: number;
-  blueChipHolding: number;
-  holdersCount: number;
-  holdersChange24h: number;
-  smartMoneyValue: number;
-  smartMoneyKol: number;
-  totalTransactions: number;
-  buyTransactions: number;
-  sellTransactions: number;
-  volumeLastHour: number;
-  totalVolume: number;
-  currentPrice: number;
-  priceChange1m: number;
-  marketCap: number;
-  followersCount: number;
-  topTweetsCount: number;
-};
+import { Agent, AgentMetrics } from "@/types/agent";
+import { useQuery } from "@tanstack/react-query";
 
 type AgentWithMetrics = Agent & {
   metrics: AgentMetrics | null;
@@ -71,29 +26,18 @@ type PaginatedResponse<T> = {
   metadata: PaginationMetadata;
 };
 
-const getPaginatedAgents = async (
-  page: number,
-  pageSize: number
-): Promise<PaginatedResponse<AgentWithMetrics>> => {
-  try {
-    const response = await fetch(`/api/agent?page=${page}&pageSize=${pageSize}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch agents');
+const fetchAgents = async (page: number, pageSize: number): Promise<PaginatedResponse<AgentWithMetrics>> => {
+  const response = await fetch(`/api/agent?page=${page}&pageSize=${pageSize}`, {
+    next: { revalidate: 60 }, // Cache for 60 seconds
+    headers: {
+      'Cache-Control': 'no-cache',
+      'Pragma': 'no-cache'
     }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching paginated agents:', error);
-    return {
-      data: [],
-      metadata: {
-        currentPage: page,
-        totalPages: 1,
-        totalItems: 0,
-        pageSize: pageSize
-      }
-    };
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch agents');
   }
+  return response.json();
 };
 
 const TableSkeleton = () => {
@@ -174,15 +118,25 @@ const TableSkeleton = () => {
 const TrendingTokens: React.FC = () => {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
-  const [loading, setLoading] = useState(true);
   const pageSize = 5;
-  const [agents, setAgents] = useState<AgentWithMetrics[]>([]);
-  const [metadata, setMetadata] = useState<PaginationMetadata>({
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['agents', currentPage, pageSize],
+    queryFn: () => fetchAgents(currentPage, pageSize),
+    staleTime: 60 * 1000, // Consider data fresh for 60 seconds
+    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
+  });
+
+  const agents = data?.data || [];
+  const metadata = data?.metadata || {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
     pageSize: pageSize
-  });
+  };
 
   const timeAgo = (date: string | Date) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
@@ -205,26 +159,10 @@ const TrendingTokens: React.FC = () => {
     return Math.floor(seconds) + 's ago';
   };
 
-  useEffect(() => {
-    const fetchAgents = async () => {
-      setLoading(true);
-      try {
-        const result = await getPaginatedAgents(currentPage, pageSize);
-        setAgents(result.data);
-        setMetadata(result.metadata);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAgents();
-  }, [currentPage, pageSize]);
-
   return (
     <div>
       <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-black">AI Agent Index</h2>
-      {loading ? (
+      {isLoading ? (
         <TableSkeleton />
       ) : (
         <Card className="border-2 border-black bg-white rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0)]">

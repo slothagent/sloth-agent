@@ -5,7 +5,12 @@ const nextConfig: NextConfig = {
     DATABASE_URL: process.env.DATABASE_URL,
     PINATA_JWT: process.env.PINATA_JWT,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    FACTORY_ADDRESS: process.env.FACTORY_ADDRESS
+    FACTORY_ADDRESS: process.env.FACTORY_ADDRESS,
+    TWITTER_CLIENT_ID: process.env.TWITTER_CLIENT_ID,
+    TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
+    NEXT_PUBLIC_TWITTER_CLIENT_ID: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID,
+    NEXT_PUBLIC_REDIRECT_URI: process.env.NEXT_PUBLIC_REDIRECT_URI,
+    REDIRECT_URI: process.env.REDIRECT_URI
   },
   reactStrictMode: true,
   experimental: {

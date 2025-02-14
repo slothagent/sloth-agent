@@ -7,13 +7,14 @@ import VisualSystem from '@/components/custom/agent/VisualSystem';
 import PersonalityBackground from '@/components/custom/agent/PersonalityBackground';
 import Capabilities from '@/components/custom/agent/Capabilities';
 import AgentPreview from '@/components/custom/agent/AgentPreview';
-import TwitterConfig from '@/components/custom/agent/TwitterConfig';
 import { uploadImageToPinata } from '@/utils/pinata';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
-import { zeroAddress } from 'viem';
+import { initiateTwitterAuth } from '@/utils/twitter';
+import { Button } from '../ui/button';
+
 
 const CreateAgent: React.FC = () => {
 
@@ -32,9 +33,14 @@ const CreateAgent: React.FC = () => {
     const [tools, setTools] = useState<string[]>([]);
     const [examples, setExamples] = useState<string|null>(null);
     // Twitter config state
-    const [twitterUsername, setTwitterUsername] = useState<string|null>(null);
-    const [twitterPassword, setTwitterPassword] = useState<string|null>(null);
-    const [twitterEmail, setTwitterEmail] = useState<string|null>(null);
+    const [twitterAuth, setTwitterAuth] = useState<{
+        accessToken: string | null;
+        refreshToken: string | null;
+        expiresAt: string | null;
+        tokenType: string | null;
+        scope: string | null;
+    } | null>(null);
+
     const router = useRouter();
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
@@ -192,6 +198,29 @@ const CreateAgent: React.FC = () => {
         setTools([tool]); // Now we only store one selected tool
     };
 
+    const handleTwitterConnect = async () => {
+        try {
+            const tokenData = await initiateTwitterAuth();
+            console.log('Twitter auth successful:', tokenData);
+            setTwitterAuth(tokenData as {
+                accessToken: string | null;
+                refreshToken: string | null;
+                expiresAt: string | null;
+                tokenType: string | null;
+                scope: string | null;
+            });
+            // Here you can use the tokenData which contains:
+            // - accessToken
+            // - refreshToken
+            // - expiresAt
+            // - tokenType
+            // - scope
+            toast.success('Successfully connected to Twitter');
+        } catch (error) {
+            console.error('Error connecting to Twitter:', error);
+            toast.error('Failed to connect to Twitter');
+        }
+    };
 
     const createAgent = async (address: string, curveAddress: string) => {
         const loadingToast = toast.loading('Creating agent...');
@@ -225,12 +254,17 @@ const CreateAgent: React.FC = () => {
                 knowledgeAreas: knowledgeAreas || '',
                 tools: tools || [],
                 examples: examples || '',
-                twitterUsername: twitterUsername || '',
-                twitterEmail: twitterEmail || '',
-                twitterPassword: twitterPassword || '',
                 address: address,
                 curveAddress: curveAddress,
-                owner: OwnerAddress
+                owner: OwnerAddress,
+                twitterAuth: {
+                    accessToken: twitterAuth?.accessToken || null,
+                    refreshToken: twitterAuth?.refreshToken || null,
+                    expiresAt: twitterAuth?.expiresAt || null,
+                    tokenType: twitterAuth?.tokenType || null,
+                    scope: twitterAuth?.scope || null,
+                    agentId: agentName
+                }
             };
 
             // console.log('Sending payload:', payload); // Debug log
@@ -316,14 +350,20 @@ const CreateAgent: React.FC = () => {
                 );
             case 5:
                 return (
-                    <TwitterConfig
-                        username={twitterUsername || ''}
-                        password={twitterPassword || ''}
-                        email={twitterEmail || ''}
-                        onUsernameChange={setTwitterUsername}
-                        onPasswordChange={setTwitterPassword}
-                        onEmailChange={setTwitterEmail}
-                    />
+                    <div className="space-y-4">
+                        <div className="flex flex-col space-y-2">
+                            <label className="text-sm font-medium text-gray-700">Twitter Integration</label>
+                            <Button
+                                onClick={handleTwitterConnect}
+                                className="inline-flex items-center max-w-fit px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                </svg>
+                                Connect Twitter
+                            </Button>
+                        </div>
+                    </div>
                 );
             default:
                 return null;

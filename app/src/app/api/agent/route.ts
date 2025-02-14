@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { PrismaClientKnownRequestError, PrismaClientValidationError, PrismaClientInitializationError } from '@prisma/client/runtime/library';
-import { getAllAgents, getPaginatedAgents, searchAgents } from '@/hooks/myAgent';
+import { getAgentBySymbol, getAllAgents, getPaginatedAgents, searchAgents } from '@/hooks/myAgent';
+
 
 export async function POST(req: Request) {
   try {
@@ -117,6 +118,13 @@ export async function GET(request: Request) {
     
     // Handle search query
     const searchTerm = searchParams.get('search');
+    const symbol = searchParams.get('symbol');
+
+    if (symbol) {
+      const agent = await getAgentBySymbol(symbol);
+      return NextResponse.json({ success: true, data: agent });
+    }
+
     if (searchTerm) {
       const agents = await searchAgents(searchTerm);
       return NextResponse.json({ success: true, data: agents });
@@ -128,7 +136,7 @@ export async function GET(request: Request) {
     
     if (searchParams.has('page') || searchParams.has('pageSize')) {
       const { agents, total } = await getPaginatedAgents(page, pageSize);
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         success: true, 
         data: agents, 
         metadata: {
@@ -138,6 +146,11 @@ export async function GET(request: Request) {
           totalPages: Math.ceil(total / pageSize)
         }
       });
+      
+      // Cache for 1 minute on client side
+      response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
+      
+      return response;
     }
 
     // Get all agents if no query parameters

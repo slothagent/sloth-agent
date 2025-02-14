@@ -1,6 +1,8 @@
 import CreateAgent from "@/components/pages/CreateAgent"
+import { NextPage } from "next"
 
-const CreateAgentPage = () => {
+
+const CreateAgentPage:NextPage = () => {
     return (
         <CreateAgent />
     )

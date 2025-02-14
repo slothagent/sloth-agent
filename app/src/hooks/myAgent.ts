@@ -1,5 +1,5 @@
-import { Agent } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { Agent } from '@/types/agent';
 
 // Function to fetch all agents
 export async function getAllAgents(): Promise<Agent[]> {
@@ -27,6 +27,21 @@ export async function getAgentById(id: string): Promise<Agent | null> {
     return agent;
   } catch (error) {
     console.error('Error fetching agent:', error);
+    throw error;
+  }
+}
+
+// Function to fetch a single agent by symbol
+export async function getAgentBySymbol(symbol: string): Promise<Agent | null> {
+  try {
+    const agent = await prisma.agent.findFirst({
+      where: {
+        ticker: symbol
+      }
+    });
+    return agent;
+  } catch (error) {
+    console.error('Error fetching agent by symbol:', error);
     throw error;
   }
 }
