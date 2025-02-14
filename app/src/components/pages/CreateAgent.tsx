@@ -368,11 +368,11 @@ const CreateAgent: React.FC = () => {
                 return (
                     <div className="space-y-4">
                         <div className="flex flex-col space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Twitter Integration</label>
+                            <label className="text-sm font-medium text-[#8b7355]">Twitter Integration</label>
                             {!twitterAuth ? (
                                 <Button
                                     onClick={handleTwitterConnect}
-                                    className="inline-flex items-center max-w-fit px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="inline-flex items-center max-w-fit px-4 py-2 border-2 border-[#8b7355] text-sm font-medium rounded font-serif text-[#8b7355] bg-[#f5f0e8] hover:bg-[#8b7355] hover:text-[#f5f0e8] shadow-[2px_2px_0px_0px_rgba(139,115,85,1)] transition-colors"
                                 >
                                     <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
@@ -380,7 +380,7 @@ const CreateAgent: React.FC = () => {
                                     Connect Twitter
                                 </Button>
                             ) : (
-                                <div className="bg-white p-4 rounded-lg border-2 border-[#93E905]">
+                                <div className="bg-[#f5f0e8] p-4 rounded border-2 border-[#8b7355] shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]">
                                     {twitterUserInfo ? (
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center space-x-3">
@@ -388,24 +388,24 @@ const CreateAgent: React.FC = () => {
                                                     <img 
                                                         src={twitterUserInfo.profileImageUrl} 
                                                         alt="Profile" 
-                                                        className="w-10 h-10 rounded-full"
+                                                        className="w-10 h-10 rounded-full border-2 border-[#8b7355]"
                                                     />
                                                 )}
                                                 <div>
-                                                    <p className="font-medium text-black">{twitterUserInfo.name}</p>
-                                                    <p className="text-sm text-gray-500">@{twitterUserInfo.username}</p>
+                                                    <p className="font-medium text-[#8b7355] font-serif">{twitterUserInfo.name}</p>
+                                                    <p className="text-sm text-[#8b7355]/80 font-serif">@{twitterUserInfo.username}</p>
                                                 </div>
                                             </div>
                                             <div className="ml-auto">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#8b7355] text-[#f5f0e8] font-serif">
                                                     Connected
                                                 </span>
                                             </div>
                                         </div>
                                     ) : (
                                         <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-500">Twitter Connected</span>
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <span className="text-sm text-[#8b7355]/80 font-serif">Twitter Connected</span>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#8b7355] text-[#f5f0e8] font-serif">
                                                 Connected
                                             </span>
                                         </div>
@@ -421,26 +421,16 @@ const CreateAgent: React.FC = () => {
     };
 
     return (
-        <main className="min-h-screen bg-white">
-            <div className="bg-gradient-to-b from-[#93E905]/10 to-white">
+        <main className="min-h-screen">
+            <div className="">
                 <div className="container mx-auto px-4 py-8 pb-0">
                     <div className="max-w-4xl mx-auto text-center">
-                        <h1 className="text-2xl md:text-5xl font-bold text-black mb-4">
+                        <h1 className="text-2xl md:text-4xl font-bold text-[#8b7355] mb-4">
                             Create Your Trading Agent
                         </h1>
-                        <p className="text-lg text-gray-600 mb-8">
+                        <p className="text-lg text-[#8b7355]/80 mb-8">
                             Design a powerful AI agent that trades and interacts on your behalf. Customize its personality, knowledge, and capabilities.
                         </p>
-                        {/* <div className="flex flex-wrap justify-center gap-4 mb-8">
-                            <div className="flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full">
-                                <Sparkles className="w-5 h-5 text-[#93E905]" />
-                                <span className="text-sm text-black">AI-Powered Trading</span>
-                            </div>
-                            <div className="flex items-center gap-2 px-4 py-2 bg-black/5 rounded-full">
-                                <Twitter className="w-5 h-5 text-[#93E905]" />
-                                <span className="text-sm text-black">Twitter Integration</span>
-                            </div>
-                        </div> */}
                     </div>
                 </div>
             </div>
@@ -454,19 +444,19 @@ const CreateAgent: React.FC = () => {
                                 {steps.map((step, index) => (
                                     <div key={index} className="flex flex-col items-center">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 border-2
-                                            ${currentStep > index + 1 ? 'bg-[#93E905] border-[#93E905] text-black' :
-                                            currentStep === index + 1 ? 'bg-black border-black text-white' :
-                                            'bg-white border-black text-black'}`}>
+                                            ${currentStep > index + 1 ? 'bg-[#8b7355] border-[#8b7355] text-[#f5f0e8]' :
+                                            currentStep === index + 1 ? 'bg-[#8b7355] border-[#8b7355] text-[#f5f0e8]' :
+                                            'bg-[#f5f0e8] border-[#8b7355] text-[#8b7355]'}`}>
                                             {index + 1}
                                         </div>
-                                        <div className="text-sm text-black">{step.title}</div>
+                                        <div className="text-sm text-[#8b7355]">{step.title}</div>
                                     </div>
                                 ))}
                             </div>
                             <div className="relative mt-2">
-                                <div className="absolute top-0 left-0 h-1 bg-black w-full rounded">
+                                <div className="absolute top-0 left-0 h-1 bg-[#8b7355]/30 w-full rounded">
                                     <div
-                                        className="absolute top-0 left-0 h-full bg-[#93E905] rounded transition-all duration-300"
+                                        className="absolute top-0 left-0 h-full bg-[#8b7355] rounded transition-all duration-300"
                                         style={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
                                     />
                                 </div>
@@ -474,8 +464,8 @@ const CreateAgent: React.FC = () => {
                         </div>
 
                         {/* Form Content */}
-                        <div className="bg-white rounded border-2 border-black p-6 mb-6">
-                            <h2 className="text-xl font-semibold mb-6 text-black">{steps[currentStep - 1].title}</h2>
+                        <div className="bg-[#f5f0e8] rounded border-2 border-[#8b7355] p-6 mb-6">
+                            <h2 className="text-xl font-semibold mb-6 text-[#8b7355]">{steps[currentStep - 1].title}</h2>
                             {renderStepContent()}
                         </div>
 
@@ -483,17 +473,17 @@ const CreateAgent: React.FC = () => {
                         <div className="flex justify-between">
                             <button
                                 onClick={handlePrevious}
-                                className={`flex items-center gap-2 px-6 py-2 rounded border-2
+                                className={`flex items-center gap-2 px-6 py-2 rounded border-2 font-serif
                                     ${currentStep === 1 
                                         ? 'invisible' 
-                                        : 'bg-white border-black text-black hover:bg-[#93E905] hover:border-[#93E905]'}`}
+                                        : 'bg-[#f5f0e8] border-[#8b7355] text-[#8b7355] hover:bg-[#8b7355] hover:text-[#f5f0e8] shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]'}`}
                             >
                                 <ArrowLeft className="w-4 h-4" />
                                 Previous
                             </button>
                             <button
                                 onClick={currentStep === totalSteps ? handleSubmit : handleNext}
-                                className="flex items-center gap-2 px-6 py-2 bg-black text-white rounded border-2 border-black hover:bg-[#93E905] hover:text-black hover:border-[#93E905]"
+                                className="flex items-center gap-2 px-6 py-2 bg-[#8b7355] text-[#f5f0e8] rounded border-2 border-[#8b7355] hover:bg-[#f5f0e8] hover:text-[#8b7355] font-serif shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]"
                             >
                                 {currentStep === totalSteps ? 'Create Agent' : 'Next'}
                                 {currentStep !== totalSteps && <ArrowRight className="w-4 h-4" />}
@@ -504,7 +494,7 @@ const CreateAgent: React.FC = () => {
                     {/* Preview Section */}
                     <div className="w-full mt-10">
                         <div className="sticky top-8">
-                            <h2 className="text-3xl font-semibold mb-4 text-black">Agent Preview</h2>
+                            <h2 className="text-3xl font-semibold mb-4 text-[#8b7355]">Agent Preview</h2>
                             <AgentPreview
                                 name={agentName || ''}
                                 description={description || ''}

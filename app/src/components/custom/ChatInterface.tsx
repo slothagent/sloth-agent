@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 
 const ChatInterface: React.FC = () => {
     return (
-        <Card className="h-full p-6 border-2 border-[#8b7355] rounded-lg">
+        <Card className="h-full p-6 border-2 border-[#8b7355] rounded-lg bg-transparent">
             <div className="flex flex-col h-full">
                 <div className="flex items-center justify-between mb-4 border-b-2 border-[#8b7355]/20 pb-2">
                     <h2 className="text-xl font-bold text-[#8b7355] font-mono tracking-tight">Chat Console</h2>

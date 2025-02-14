@@ -26,8 +26,6 @@ const AgentDetails: NextPage = () => {
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
 
-    const { address: OwnerAddress, isConnected } = useAccount();
-
 
     const handleAmountClick = (value: number) => {
         setAmount(value.toString());
@@ -498,7 +496,7 @@ const AgentDetails: NextPage = () => {
                         <Overview />
                     </TabsContent>
                     <TabsContent value="social" className="mt-4">
-                        <Social />
+                        <Social agentData={agentData} />
                     </TabsContent>
                 </Tabs>
                 </div>

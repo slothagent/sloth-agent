@@ -16,9 +16,14 @@ type Agent = {
     knowledgeAreas?: string | null;
     tools: string[];
     examples?: string | null;
-    twitterUsername?: string | null;
-    twitterEmail?: string | null;
-    twitterPassword?: string | null;
+    twitterAuth?: {
+        accessToken: string;
+        refreshToken: string;
+        expiresIn: number;
+        scope: string;
+        tokenType: string;
+    };
+    metrics?: AgentMetrics;
 };
 
 
