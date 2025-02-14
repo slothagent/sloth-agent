@@ -15,6 +15,19 @@ import { factoryAbi } from '@/abi/factoryAbi';
 import { initiateTwitterAuth } from '@/utils/twitter';
 import { Button } from '../ui/button';
 
+interface TwitterAuthData {
+    accessToken: string | null;
+    refreshToken: string | null;
+    expiresAt: string | null;
+    tokenType: string | null;
+    scope: string | null;
+}
+
+interface TwitterUserInfo {
+    username: string | null;
+    name: string | null;
+    profileImageUrl: string | null;
+}
 
 const CreateAgent: React.FC = () => {
 
@@ -33,13 +46,8 @@ const CreateAgent: React.FC = () => {
     const [tools, setTools] = useState<string[]>([]);
     const [examples, setExamples] = useState<string|null>(null);
     // Twitter config state
-    const [twitterAuth, setTwitterAuth] = useState<{
-        accessToken: string | null;
-        refreshToken: string | null;
-        expiresAt: string | null;
-        tokenType: string | null;
-        scope: string | null;
-    } | null>(null);
+    const [twitterAuth, setTwitterAuth] = useState<TwitterAuthData | null>(null);
+    const [twitterUserInfo, setTwitterUserInfo] = useState<TwitterUserInfo | null>(null);
 
     const router = useRouter();
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
@@ -200,21 +208,29 @@ const CreateAgent: React.FC = () => {
 
     const handleTwitterConnect = async () => {
         try {
-            const tokenData = await initiateTwitterAuth();
-            console.log('Twitter auth successful:', tokenData);
-            setTwitterAuth(tokenData as {
-                accessToken: string | null;
-                refreshToken: string | null;
-                expiresAt: string | null;
-                tokenType: string | null;
-                scope: string | null;
-            });
-            // Here you can use the tokenData which contains:
-            // - accessToken
-            // - refreshToken
-            // - expiresAt
-            // - tokenType
-            // - scope
+            const tokenData = await initiateTwitterAuth() as TwitterAuthData;
+            setTwitterAuth(tokenData);
+
+            // // Fetch user information after successful authentication
+            if (tokenData?.accessToken) {
+                const response = await fetch('/api/twitter/user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ accessToken: tokenData.accessToken }),
+                });
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    setTwitterUserInfo({
+                        username: userData.data.username,
+                        name: userData.data.name,
+                        profileImageUrl: userData.data.profile_image_url,
+                    });
+                }
+            }
+
             toast.success('Successfully connected to Twitter');
         } catch (error) {
             console.error('Error connecting to Twitter:', error);
@@ -353,15 +369,49 @@ const CreateAgent: React.FC = () => {
                     <div className="space-y-4">
                         <div className="flex flex-col space-y-2">
                             <label className="text-sm font-medium text-gray-700">Twitter Integration</label>
-                            <Button
-                                onClick={handleTwitterConnect}
-                                className="inline-flex items-center max-w-fit px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                                </svg>
-                                Connect Twitter
-                            </Button>
+                            {!twitterAuth ? (
+                                <Button
+                                    onClick={handleTwitterConnect}
+                                    className="inline-flex items-center max-w-fit px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                    </svg>
+                                    Connect Twitter
+                                </Button>
+                            ) : (
+                                <div className="bg-white p-4 rounded-lg border-2 border-[#93E905]">
+                                    {twitterUserInfo ? (
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-3">
+                                                {twitterUserInfo.profileImageUrl && (
+                                                    <img 
+                                                        src={twitterUserInfo.profileImageUrl} 
+                                                        alt="Profile" 
+                                                        className="w-10 h-10 rounded-full"
+                                                    />
+                                                )}
+                                                <div>
+                                                    <p className="font-medium text-black">{twitterUserInfo.name}</p>
+                                                    <p className="text-sm text-gray-500">@{twitterUserInfo.username}</p>
+                                                </div>
+                                            </div>
+                                            <div className="ml-auto">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    Connected
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-500">Twitter Connected</span>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Connected
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
