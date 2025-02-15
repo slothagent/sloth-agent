@@ -27,6 +27,9 @@ contract BondingCurve is Ownable, ReentrancyGuard {
     event Sell(address indexed seller, uint256 tokenAmount, uint256 paymentAmount);
     event SlopeUpdated(uint256 newSlope);
     event BasePriceUpdated(uint256 newBasePrice);
+    event PreTransferCheck(address buyer, uint256 amount, uint256 contractBalance);
+    event TransferAttempt(address buyer, uint256 amount);
+    event TransferSuccess(address buyer, uint256 amount);
 
     constructor(
         address _token,
@@ -38,10 +41,10 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         require(_basePrice > 0, "Base price must be positive");
         
         token = IERC20(_token);
-        // Slope determines how quickly price changes with supply
-        slope = 1e15;  // 0.001 * PRECISION - gentle slope
-        // Base price 0.000000001 ETH (1 Gwei)
-        basePrice = 1e9;
+        // Slope determines how quickly price increases with supply
+        slope = _slope;
+        // Base price is the minimum price of the token
+        basePrice = _basePrice;
     }
 
     /**
@@ -52,40 +55,59 @@ contract BondingCurve is Ownable, ReentrancyGuard {
     function calculatePrice(uint256 amount) public view returns (uint256) {
         uint256 supply = totalSupply;
         
-        // Price increases quadratically with supply
-        // P(s) = slope * s^2 + basePrice
-        uint256 startPrice = (slope * supply * supply) / PRECISION + basePrice;
-        uint256 endPrice = (slope * (supply + amount) * (supply + amount)) / PRECISION + basePrice;
+        // For initial purchases or when supply is very low, use base price
+        if (supply == 0 || (slope * supply) / PRECISION < basePrice / 100) {
+            // Simple multiplication of amount with base price
+            return (amount * basePrice) / PRECISION;
+        }
         
-        // Average price over the range
-        uint256 averagePrice = (startPrice + endPrice) / 2;
-        
-        // Total cost is average price * amount
-        return (averagePrice * amount) / PRECISION;
+        // Calculate price using linear formula
+        // Total price = amount * (basePrice + slope * current_supply)
+        uint256 currentPrice = basePrice + (slope * supply) / PRECISION;
+        return (amount * currentPrice) / PRECISION;
     }
 
     /**
      * @dev Buy tokens using ETH
      * @param minTokens Minimum amount of tokens to receive
+     * @param buyer Address of the token buyer
      */
-    function buy(uint256 minTokens) external payable nonReentrant {
+    function buy(uint256 minTokens, address buyer) external payable nonReentrant {
         require(msg.value > 0, "Must send ETH");
         require(minTokens > 0, "Amount must be positive");
+        require(buyer != address(0), "Invalid buyer address");
         
         uint256 price = calculatePrice(minTokens);
         require(msg.value >= price, "Insufficient payment");
         
-        // Transfer tokens to buyer
-        token.safeTransfer(msg.sender, minTokens);
+        // Check token balance before transfer
+        uint256 contractBalance = token.balanceOf(address(this));
+        require(contractBalance >= minTokens, "Insufficient token balance");
+
+        // Emit pre-transfer check event
+        emit PreTransferCheck(buyer, minTokens, contractBalance);
+
+        // Emit transfer attempt event
+        emit TransferAttempt(buyer, minTokens);
+
+        // Transfer tokens to buyer using safeTransfer
+        token.safeTransfer(buyer, minTokens);
+        
+        // Emit transfer success event
+        emit TransferSuccess(buyer, minTokens);
+        
+        // Update total supply after transfer
         totalSupply += minTokens;
         
+        // Emit event before refund to ensure correct payment amount
+        emit Buy(buyer, minTokens, price);
+        
         // Refund excess ETH if any
-        if (msg.value > price) {
-            (bool success, ) = msg.sender.call{value: msg.value - price}("");
+        uint256 excess = msg.value - price;
+        if (excess > 0) {
+            (bool success, ) = msg.sender.call{value: excess}("");
             require(success, "ETH refund failed");
         }
-        
-        emit Buy(msg.sender, minTokens, price);
     }
 
     /**
@@ -116,9 +138,29 @@ contract BondingCurve is Ownable, ReentrancyGuard {
      * @return Current price in wei
      */
     function getCurrentPrice() external view returns (uint256) {
-        // P = slope * totalSupply^2 + basePrice
-        uint256 quadraticComponent = (slope * totalSupply * totalSupply) / PRECISION;
-        return quadraticComponent + basePrice;
+        // P = slope * totalSupply + basePrice
+        return (slope * totalSupply) / PRECISION + basePrice;
+    }
+
+    /**
+     * @dev Calculate how many tokens can be bought with a specific amount of ETH
+     * @param ethAmount Amount of ETH in wei
+     * @return tokenAmount Approximate number of tokens that can be bought
+     */
+    function calculateTokensForEth(uint256 ethAmount) public view returns (uint256) {
+        uint256 supply = totalSupply;
+        
+        // For initial purchases or when supply is very low, use simple division
+        if (supply == 0 || (slope * supply) / PRECISION < basePrice / 100) {
+            // Simple division of ETH amount by base price
+            return (ethAmount * PRECISION) / basePrice;
+        }
+        
+        // Calculate current price per token
+        uint256 currentPrice = basePrice + (slope * supply) / PRECISION;
+        
+        // Calculate tokens = ETH amount / current price
+        return (ethAmount * PRECISION) / currentPrice;
     }
 
     /**
@@ -143,15 +185,13 @@ contract BondingCurve is Ownable, ReentrancyGuard {
 
     /**
      * @dev Get total market capitalization in ETH
-     * @return Total market cap in wei (current_price * total_supply)
+     * @return Total market cap in wei
      */
     function getTotalMarketCap() external view returns (uint256) {
         if (totalSupply == 0) return 0;
         
-        // Current price = slope * totalSupply^2 + basePrice
-        uint256 currentPrice = (slope * totalSupply * totalSupply) / PRECISION + basePrice;
-        
         // Market cap = current price * total supply
+        uint256 currentPrice = (slope * totalSupply) / PRECISION + basePrice;
         return (currentPrice * totalSupply) / PRECISION;
     }
 

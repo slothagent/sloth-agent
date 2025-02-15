@@ -14,6 +14,7 @@ import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } 
 import { factoryAbi } from '@/abi/factoryAbi';
 import { initiateTwitterAuth } from '@/utils/twitter';
 import { Button } from '../ui/button';
+import { parseEther,parseUnits } from 'viem';
 
 interface TwitterAuthData {
     accessToken: string | null;
@@ -53,6 +54,9 @@ const CreateAgent: React.FC = () => {
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
 
+
+    console.log(process.env.FACTORY_ADDRESS);
+
     const handleSubmit = async () => {
         const loadingToast = toast.loading('Creating agent...');
         try {
@@ -69,8 +73,8 @@ const CreateAgent: React.FC = () => {
                         address: process.env.FACTORY_ADDRESS as `0x${string}`,
                         abi: factoryAbi,
                         functionName: 'createTokenAndCurve',
-                        value: BigInt(1129664128081000),
-                        args: [agentName, ticker, BigInt(1000000000)*BigInt(10**18), BigInt(1137000), BigInt(1137000)]
+                        value: BigInt(1137000000000000),
+                        args: [agentName, ticker, parseUnits('1000000', 18), parseUnits('0.0001', 18), parseUnits('0.0000001', 18)]
                     });
                     toast.success('Please wait for the agent to be created!', { id: loadingToast });
                 } catch (error: any) {

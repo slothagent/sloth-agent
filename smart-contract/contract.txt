@@ -1,20 +1,2 @@
-Compiled 19 Solidity files successfully (evm target: paris).
-Deploying contracts...
-FactoryLib deployed to: 0x3106b243211f597BfADeD2E2EcE00927a6ab45c0
-Factory deployed to: 0x5aF21C160f120D0fF9672b703A031Cdfd7ecA15F
-Verifying contracts...
-Successfully submitted source code for contract
-contracts/FactoryLib.sol:FactoryLib at 0x3106b243211f597BfADeD2E2EcE00927a6ab45c0
-for verification on the block explorer. Waiting for verification result...
-
-Successfully verified contract FactoryLib on the block explorer.
-https://explorer-ancient-8-celestia-wib77nnwsq.t.conduit.xyz:443/address/0x3106b243211f597BfADeD2E2EcE00927a6ab45c0#code
-
-Successfully submitted source code for contract
-contracts/Factory.sol:Factory at 0x5aF21C160f120D0fF9672b703A031Cdfd7ecA15F
-for verification on the block explorer. Waiting for verification result...
-
-Successfully verified contract Factory on the block explorer.
-https://explorer-ancient-8-celestia-wib77nnwsq.t.conduit.xyz:443/address/0x5aF21C160f120D0fF9672b703A031Cdfd7ecA15F#code
-
-Contracts verified successfully
+FactoryLib deployed to: 0x02CD2feC4a6C81d8f8DFF1e79BB83E6513AA0FAf
+Factory deployed to: 0x0909d70742416879c621Ee4650f422f23B985002

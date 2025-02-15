@@ -8,13 +8,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 // Helper interface for BondingCurve
 interface IBondingCurve {
-    function buy(uint256 minTokens) external payable;
+    function buy(uint256 minTokens, address buyer) external payable;
     function sell(uint256 tokenAmount, uint256 minEth) external;
     function calculatePrice(uint256 amount) external view returns (uint256);
     function getCurrentPrice() external view returns (uint256);
     function updateSlope(uint256 newSlope) external;
     function updateBasePrice(uint256 newBasePrice) external;
     function getTotalMarketCap() external view returns (uint256);
+    function calculateTokensForEth(uint256 ethAmount) external view returns (uint256);
 }
 
 contract Factory is Ownable {
@@ -219,12 +220,13 @@ contract Factory is Ownable {
         uint256 price = curve.calculatePrice(amount);
         require(msg.value >= price, "Insufficient payment");
         
-        // Forward the call to bonding curve
-        curve.buy{value: msg.value}(amount);
+        // Forward only the required price to bonding curve, passing the buyer's address
+        curve.buy{value: price}(amount, msg.sender);
         
         // Refund excess ETH if any
-        if (msg.value > price) {
-            (bool success, ) = msg.sender.call{value: msg.value - price}("");
+        uint256 excess = msg.value - price;
+        if (excess > 0) {
+            (bool success, ) = msg.sender.call{value: excess}("");
             require(success, "ETH refund failed");
         }
     }
@@ -304,6 +306,20 @@ contract Factory is Ownable {
         
         IBondingCurve curve = IBondingCurve(curveAddress);
         return curve.getTotalMarketCap();
+    }
+
+    /**
+     * @dev Calculate how many tokens can be bought with a specific amount of ETH
+     * @param token Token address to buy
+     * @param ethAmount Amount of ETH in wei
+     * @return tokenAmount Approximate number of tokens that can be bought
+     */
+    function calculateTokensForEth(address token, uint256 ethAmount) external view returns (uint256) {
+        require(isTokenRegistered[token], "Token not registered");
+        address curveAddress = tokenToCurve[token];
+        
+        IBondingCurve curve = IBondingCurve(curveAddress);
+        return curve.calculateTokensForEth(ethAmount);
     }
 
     // Function to receive ETH

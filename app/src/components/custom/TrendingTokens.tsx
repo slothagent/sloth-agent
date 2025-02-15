@@ -11,13 +11,14 @@ import { Agent, AgentMetrics } from "@/types/agent";
 import { useQuery } from "@tanstack/react-query";
 
 type AgentWithMetrics = Agent & {
+  _id: string;
   metrics: AgentMetrics | null;
 };
 
 type PaginationMetadata = {
   currentPage: number;
   totalPages: number;
-  totalItems: number;
+  totalCount: number;
   pageSize: number;
 };
 
@@ -26,18 +27,72 @@ type PaginatedResponse<T> = {
   metadata: PaginationMetadata;
 };
 
+type ApiResponse = {
+  data: AgentWithMetrics[];
+  metadata: PaginationMetadata;
+};
+
 const fetchAgents = async (page: number, pageSize: number): Promise<PaginatedResponse<AgentWithMetrics>> => {
-  const response = await fetch(`/api/agent?page=${page}&pageSize=${pageSize}`, {
-    next: { revalidate: 60 }, // Cache for 60 seconds
-    headers: {
-      'Cache-Control': 'no-cache',
-      'Pragma': 'no-cache'
+  try {
+    const response = await fetch(`/api/agent?page=${page}&pageSize=${pageSize}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error('Failed to fetch agents:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      throw new Error(`Failed to fetch agents: ${response.statusText}`);
     }
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch agents');
+
+    const data: ApiResponse = await response.json();
+
+
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      console.error('Invalid response format: not an object', data);
+      throw new Error('Invalid response format from server');
+    }
+
+    if (!data.data || !Array.isArray(data.data)) {
+      console.error('Invalid response format: data is not an array', data);
+      throw new Error('Invalid response format from server');
+    }
+
+    if (!data.metadata || typeof data.metadata !== 'object') {
+      console.error('Invalid response format: missing metadata', data);
+      throw new Error('Invalid response format from server');
+    }
+
+    const { currentPage, pageSize: responsePageSize, totalPages, totalCount } = data.metadata;
+    
+    if (typeof currentPage !== 'number' || 
+        typeof responsePageSize !== 'number' || 
+        typeof totalPages !== 'number' || 
+        typeof totalCount !== 'number') {
+      console.error('Invalid metadata format', data.metadata);
+      throw new Error('Invalid metadata format from server');
+    }
+
+    return {
+      data: data.data,
+      metadata: {
+        currentPage,
+        pageSize: responsePageSize,
+        totalPages,
+        totalCount
+      }
+    };
+  } catch (error) {
+    console.error('Error in fetchAgents:', error);
+    throw error;
   }
-  return response.json();
 };
 
 const TableSkeleton = () => {
@@ -120,7 +175,7 @@ const TrendingTokens: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ['agents', currentPage, pageSize],
     queryFn: () => fetchAgents(currentPage, pageSize),
     staleTime: 60 * 1000, // Consider data fresh for 60 seconds
@@ -134,7 +189,7 @@ const TrendingTokens: React.FC = () => {
   const metadata = data?.metadata || {
     currentPage: 1,
     totalPages: 1,
-    totalItems: 0,
+    totalCount: 0,
     pageSize: pageSize
   };
 
@@ -158,6 +213,22 @@ const TrendingTokens: React.FC = () => {
     
     return Math.floor(seconds) + 's ago';
   };
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-[#8b7355]">Error Loading Agents</h2>
+        <p className="text-[#8b7355] mb-4">{error instanceof Error ? error.message : 'An error occurred while loading agents'}</p>
+        <Button
+          variant="outline"
+          className="border-2 border-[#8b7355] text-[#8b7355] hover:bg-[#8b7355]/10 rounded-lg font-mono transition-all duration-200"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -188,7 +259,7 @@ const TrendingTokens: React.FC = () => {
             <TableBody>
               {agents.map((agent) => (
                 <TableRow 
-                  key={agent.id} 
+                  key={agent._id.toString()} 
                   className="border-b border-[#8b7355]/20 text-[#8b7355] hover:bg-[#8b7355]/5 cursor-pointer transition-colors duration-200" 
                   onClick={() => router.push(`/agent/${agent.ticker.toLowerCase()}`)}
                 >

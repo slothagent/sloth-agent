@@ -10,7 +10,9 @@ const nextConfig: NextConfig = {
     TWITTER_CLIENT_SECRET: process.env.TWITTER_CLIENT_SECRET,
     NEXT_PUBLIC_TWITTER_CLIENT_ID: process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID,
     NEXT_PUBLIC_REDIRECT_URI: process.env.NEXT_PUBLIC_REDIRECT_URI,
-    REDIRECT_URI: process.env.REDIRECT_URI
+    REDIRECT_URI: process.env.REDIRECT_URI,
+    MONGODB_URI: process.env.MONGODB_URI,
+    MONGODB_DB: process.env.MONGODB_DB
   },
   reactStrictMode: true,
   experimental: {

@@ -20,12 +20,28 @@ import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } 
 import { factoryAbi } from '@/abi/factoryAbi';
 import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
+import { parseEther, formatUnits } from "ethers";
 
 const AgentDetails: NextPage = () => {
     const { symbol } = useParams();
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
 
+    const formatNumber = (num: string): string => {
+        const n = parseFloat(num);
+        if (isNaN(n)) return '0';
+        
+        const trillion = 1e12;
+        const billion = 1e9;
+        const million = 1e6;
+        const thousand = 1e3;
+
+        if (n >= trillion) return (n / trillion).toFixed(2) + 'T';
+        if (n >= billion) return (n / billion).toFixed(2) + 'B';
+        if (n >= million) return (n / million).toFixed(2) + 'M';
+        if (n >= thousand) return (n / thousand).toFixed(2) + 'k';
+        return n.toFixed(2);
+    };
 
     const handleAmountClick = (value: number) => {
         setAmount(value.toString());
@@ -66,38 +82,29 @@ const AgentDetails: NextPage = () => {
         };
     }, [agent]);
 
-    const { data: currentTokenPrice, isLoading: isLoadingTokenPrice } = useReadContract({
+    const { data: tokensToReceive, isLoading: isLoadingTokenPrice } = useReadContract({
         address: process.env.FACTORY_ADDRESS as `0x${string}`,
         abi: factoryAbi,
-        functionName: 'getCurrentTokenPrice',
-        args: [agentData?.address]
+        functionName: 'calculateTokensForEth',
+        args: [agentData?.address, parseEther(amount||"0")]
     });
 
-    if (isLoading || !agentData || isLoadingTokenPrice) {
+
+    if (isLoading || !agentData) {
         return <div>Loading...</div>;
     }
 
-    const priceInEth = currentTokenPrice;
-    const calculateTokenAmount = (ethAmount: string | null) => {
-        if (!ethAmount || !priceInEth) return "0";
-        const tokens = (BigInt(parseFloat(ethAmount) * (10**18)) / priceInEth).toString();
-        return tokens;
-    };
+    console.log(process.env.FACTORY_ADDRESS);
 
-    const tokensToReceive = calculateTokenAmount(amount);
-
-    console.log(tokensToReceive);
-    
     const handleBuy = async () => {
         const loadingToast = toast.loading('Buying...');
-        const amountToBuy = BigInt(parseFloat(amount||'0')*10**18);
         try {
             await writeContractAsync({
                 address: process.env.FACTORY_ADDRESS as `0x${string}`,
                 abi: factoryAbi,
                 functionName: 'buyTokens',
-                value: amountToBuy,
-                args: [agentData?.address, BigInt(1)*BigInt(10**18)]
+                value: parseEther(amount||"0"),
+                args: [agentData?.address, tokensToReceive||BigInt(0)]
             });
             toast.success('Buy successful!', { id: loadingToast });
         } catch (error: any) {
@@ -426,7 +433,7 @@ const AgentDetails: NextPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <span>You will receive: {tokensToReceive} {agentData?.ticker}</span>
+                                                    <span>You will receive: {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {agentData?.ticker}</span>
                                                 </div>
                                                 <Button onClick={handleBuy} className="w-full mt-2 bg-[#93E905]/20 text-black py-3 rounded-md font-medium hover:bg-[#93E905]/50 transition-colors">
                                                     Buy
@@ -477,7 +484,7 @@ const AgentDetails: NextPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                    <span>1 ETH = {currentTokenPrice} {agentData?.ticker}</span>
+                                                    <span>1 ETH = {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {agentData?.ticker}</span>
                                                 </div>
                                                 <button className="w-full mt-2 bg-gray-200 text-gray-800 py-3 rounded-md font-medium hover:bg-gray-300 transition-colors">
                                                     Sell

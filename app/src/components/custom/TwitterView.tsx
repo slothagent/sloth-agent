@@ -14,114 +14,70 @@ interface TwitterError {
 }
 
 interface Tweet {
-    id: string;
+    _id: string;
+    tweetId: string;
     text: string;
-    created_at: string;
+    tweetCreatedAt: string;
+    metrics?: {
+        retweets: number;
+        replies: number;
+        likes: number;
+        views: number;
+    };
 }
 
-const fetchTweets = async (accessToken: string | undefined): Promise<Tweet[] | null> => {
-    if (!accessToken) return null;
-    
-    const response = await fetch('/api/twitter/tweets', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ accessToken }),
-    });
+const fetchTweets = async (agentId: string): Promise<Tweet[] | null> => {
+    try {
+        const response = await fetch(`/api/twitter/tweets?agentId=${agentId}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            const error: TwitterError = {
+                error: data.error,
+                code: data.code,
+                details: data.details,
+            };
+            throw error;
+        }
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-        const error: TwitterError = {
-            error: data.error,
-            code: data.code,
-            details: data.details,
-        };
+        return data.data || [];
+    } catch (error) {
+        console.error('Error fetching tweets:', error);
         throw error;
     }
-
-    return data.data || [];
 };
 
 const TwitterView: React.FC<{ agentData: Agent }> = ({ agentData }) => {
     if(!agentData) return null;
 
     const { data: tweets, isLoading, error, refetch } = useQuery<Tweet[] | null, TwitterError>({
-        queryKey: ['tweets', agentData.twitterAuth?.accessToken],
-        queryFn: () => fetchTweets(agentData.twitterAuth?.accessToken),
-        enabled: !!agentData.twitterAuth?.accessToken,
+        queryKey: ['tweets', agentData._id],
+        queryFn: () => fetchTweets(agentData._id.toString()),
+        enabled: !!agentData._id,
+        staleTime: 30 * 1000, // Refetch after 30 seconds
         retry: (failureCount, error) => {
-            // Don't retry for auth errors
             if (error.code === 'TWITTER_AUTH_FAILED') {
                 toast.error('Twitter authentication failed. Please reconnect your account.', {
                     duration: 5000,
                 });
                 return false;
             }
-            // Retry up to 3 times for other errors
             return failureCount < 3;
         },
         retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 30000),
     });
 
-    const handleRetry = async () => {
-        if (error?.code === 'TWITTER_AUTH_FAILED') {
-            try {
-                // Check if we have a refresh token
-                if (agentData.twitterAuth?.refreshToken) {
-                    const response = await fetch('/api/twitter/refresh', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            refreshToken: agentData.twitterAuth.refreshToken
-                        }),
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        // Update the agent's Twitter auth data in the database
-                        await fetch('/api/agent/twitter/update', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                agentId: agentData.id,
-                                twitterAuth: data.data
-                            }),
-                        });
-
-                        // Refetch tweets with new token
-                        refetch();
-                        toast.success('Successfully refreshed Twitter connection');
-                    } else {
-                        // If refresh failed, we need to reconnect
-                        toast.error('Please reconnect your Twitter account');
-                    }
-                } else {
-                    // No refresh token, need to reconnect
-                    toast.error('Please reconnect your Twitter account');
-                }
-            } catch (error) {
-                console.error('Error refreshing token:', error);
-                toast.error('Failed to refresh Twitter connection');
-            }
-        } else {
-            refetch();
-        }
+    const handleRetry = () => {
+        refetch();
     };
 
     return (
-        <Card className="h-full p-6 border-2 border-[#8b7355] rounded-lg bg-transparent">
+        <Card className="h-[500px] p-6 border-2 border-[#8b7355] rounded-lg bg-transparent">
             <div className="flex items-center gap-3 mb-4 border-b-2 border-[#8b7355]/20 pb-2">
                 <Twitter className="w-5 h-5 text-[#8b7355]" />
                 <h2 className="text-xl font-bold text-[#8b7355] font-mono tracking-tight">Twitter Feed</h2>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="h-[400px] overflow-y-auto">
                 {isLoading && (
                     <p className="text-muted-foreground">Loading tweets...</p>
                 )}
@@ -132,27 +88,31 @@ const TwitterView: React.FC<{ agentData: Agent }> = ({ agentData }) => {
                             onClick={handleRetry} 
                             className="mt-2 px-4 py-2 bg-[#8b7355] text-white rounded-md hover:bg-[#8b7355]/80"
                         >
-                            {error.code === 'TWITTER_AUTH_FAILED' 
-                                ? 'Reconnect Twitter' 
-                                : 'Retry'}
+                            Retry
                         </button>
                     </div>
                 )}
                 {!isLoading && !error && (!tweets || tweets.length === 0) && (
                     <p className="text-muted-foreground">
-                        {agentData.twitterAuth?.accessToken 
-                            ? 'No tweets found' 
-                            : 'Connect your Twitter account to view your feed'}
+                        No tweets found
                     </p>
                 )}
                 {!isLoading && !error && tweets && tweets.length > 0 && (
                     <div className="space-y-4">
                         {tweets.map((tweet) => (
-                            <div key={tweet.id} className="p-4 border border-[#8b7355]/20 rounded-lg">
+                            <div key={tweet._id} className="p-4 border border-[#8b7355]/20 rounded-lg">
                                 <p className="text-sm text-[#8b7355]">{tweet.text}</p>
                                 <div className="mt-2 text-xs text-muted-foreground">
-                                    {new Date(tweet.created_at).toLocaleDateString()}
+                                    {new Date(tweet.tweetCreatedAt).toLocaleDateString()}
                                 </div>
+                                {tweet.metrics && (
+                                    <div className="mt-2 flex gap-4 text-xs text-muted-foreground">
+                                        <span>{tweet.metrics.retweets} retweets</span>
+                                        <span>{tweet.metrics.replies} replies</span>
+                                        <span>{tweet.metrics.likes} likes</span>
+                                        <span>{tweet.metrics.views} views</span>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

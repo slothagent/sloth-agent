@@ -1,4 +1,29 @@
 import { NextResponse } from 'next/server';
+import { TweetModel } from '@/models/tweets';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const agentId = searchParams.get('agentId');
+
+    if (!agentId) {
+      return NextResponse.json({ error: 'Agent ID is required' }, { status: 400 });
+    }
+
+    const tweets = await TweetModel.findByAgentId(agentId);
+
+    return NextResponse.json({
+      success: true,
+      data: tweets,
+    });
+  } catch (error) {
+    console.error('Error getting tweets:', error);
+    return NextResponse.json(
+      { error: 'Failed to get tweets' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { PrismaClientKnownRequestError, PrismaClientValidationError, PrismaClientInitializationError } from '@prisma/client/runtime/library';
-import { getAgentBySymbol, getAllAgents, getPaginatedAgents, searchAgents } from '@/hooks/myAgent';
+import { AgentModel } from '@/models/agent';
+import { TwitterAuthModel } from '@/models/twitterAuth';
 
 interface TwitterAuthData {
   accessToken: string;
@@ -9,220 +8,231 @@ interface TwitterAuthData {
   expiresAt: string;
 }
 
-interface AgentData {
+interface CreateAgentData {
   name: string;
   ticker: string;
   address: string;
   curveAddress: string;
   owner: string;
-  description: string | null;
-  systemType: string | null;
-  imageUrl: string | null;
-  agentLore: string | null;
-  personality: string | null;
-  communicationStyle: string | null;
-  knowledgeAreas: string | null;
+  description?: string;
+  systemType?: string;
+  imageUrl?: string;
+  agentLore?: string;
+  personality?: string;
+  communicationStyle?: string;
+  knowledgeAreas?: string;
   tools: string[];
-  examples: string | null;
-  twitterAuth?: {
-    create: {
-      accessToken: string;
-      refreshToken: string;
-      expiresAt: Date;
-    }
-  };
+  examples?: string;
 }
 
 export async function POST(req: Request) {
   try {
-    // Check if request body exists
-    if (!req.body) {
-      return NextResponse.json(
-        { error: 'Request body is required' },
-        { status: 400 }
-      );
-    }
-
-    let body;
-    try {
-      body = await req.json();
-    } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
-      return NextResponse.json(
-        { error: 'Invalid JSON in request body' },
-        { status: 400 }
-      );
-    }
-
-    // Validate body is not null and is an object
-    if (!body || typeof body !== 'object' || body === null) {
-      return NextResponse.json(
-        { error: 'Request body must be a valid JSON object' },
-        { status: 400 }
-      );
-    }
+    const body = await req.json();
 
     // Validate required fields
     const requiredFields = ['name', 'ticker', 'address', 'curveAddress', 'owner'];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    // Validate field types
-    if (typeof body.name !== 'string' || 
-        typeof body.ticker !== 'string' || 
-        typeof body.address !== 'string' || 
-        typeof body.curveAddress !== 'string' || 
-        typeof body.owner !== 'string') {
-      return NextResponse.json(
-        { error: 'Invalid field types. All required fields must be strings.' },
-        { status: 400 }
-      );
+    for (const field of requiredFields) {
+      if (!body[field]) {
+        return NextResponse.json(
+          { error: `Missing required field: ${field}` },
+          { status: 400 }
+        );
+      }
     }
 
     // Prepare the data object with required fields
-    const agentData: AgentData = {
+    const agentData: CreateAgentData = {
       name: body.name,
       ticker: body.ticker,
       address: body.address,
       curveAddress: body.curveAddress,
       owner: body.owner,
-      // Optional fields with null checks
-      description: body.description || null,
-      systemType: body.systemType || null,
-      imageUrl: body.imageUrl || null,
-      agentLore: body.agentLore || null,
-      personality: body.personality || null,
-      communicationStyle: body.communicationStyle || null,
-      knowledgeAreas: body.knowledgeAreas || null,
+      // Optional fields
+      description: body.description || undefined,
+      systemType: body.systemType || undefined,
+      imageUrl: body.imageUrl || undefined,
+      agentLore: body.agentLore || undefined,
+      personality: body.personality || undefined,
+      communicationStyle: body.communicationStyle || undefined,
+      knowledgeAreas: body.knowledgeAreas || undefined,
       tools: Array.isArray(body.tools) ? body.tools : [],
-      examples: body.examples || null,
+      examples: body.examples || undefined,
     };
 
-    // If twitterAuth is provided, include it in the create operation
+    // Create the agent
+    const agentResult = await AgentModel.create(agentData);
+
+    // If twitterAuth is provided, create it
     if (body.twitterAuth) {
       const { accessToken, refreshToken, expiresAt } = body.twitterAuth as TwitterAuthData;
-      agentData.twitterAuth = {
-        create: {
-          accessToken,
-          refreshToken,
-          expiresAt: new Date(expiresAt),
-        }
-      };
+      await TwitterAuthModel.create({
+        agentId: agentResult.insertedId.toString(),
+        accessToken,
+        refreshToken,
+        expiresAt: new Date(expiresAt),
+      });
     }
 
-    const agent = await prisma.agent.create({
-      data: agentData,
-      include: {
-        twitterAuth: true
-      }
-    });
+    // Get the created agent with its Twitter auth
+    const agent = await AgentModel.findById(agentResult.insertedId.toString());
 
     if (!agent) {
       throw new Error('Failed to create agent');
     }
 
     return NextResponse.json({ agent }, { status: 201 });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Error creating agent:', error);
     
-    if (error instanceof PrismaClientKnownRequestError) {
-      // Handle known Prisma errors
-      switch (error.code) {
-        case 'P2002':
-          return NextResponse.json(
-            { error: 'An agent with this ticker already exists' },
-            { status: 400 }
-          );
-        case 'P2003':
-          return NextResponse.json(
-            { error: 'Invalid data provided' },
-            { status: 400 }
-          );
-        default:
-          return NextResponse.json(
-            { error: `Database error: ${error.code}` },
-            { status: 500 }
-          );
+    // Handle MongoDB errors
+    if (error instanceof Error) {
+      if (error.message.includes('duplicate key error')) {
+        return NextResponse.json(
+          { error: 'An agent with this ticker already exists' },
+          { status: 400 }
+        );
       }
-    } else if (error instanceof PrismaClientValidationError) {
-      // Handle validation errors
+      
       return NextResponse.json(
-        { error: 'Invalid data format provided' },
-        { status: 400 }
-      );
-    } else if (error instanceof PrismaClientInitializationError) {
-      // Handle database connection errors
-      console.error('Database connection error:', error);
-      return NextResponse.json(
-        { error: 'Database connection error' },
+        { error: error.message },
         { status: 500 }
       );
     }
     
-    // Handle any other errors
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json(
-      { error: 'An unexpected error occurred', details: errorMessage },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     );
   }
 }
 
-// GET /api/agent - Get all agents or search agents
-export async function GET(request: Request) {
+export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    
-    // Handle search query
-    const searchTerm = searchParams.get('search');
+    const { searchParams } = new URL(req.url);
     const symbol = searchParams.get('symbol');
-
-    if (symbol) {
-      const agent = await getAgentBySymbol(symbol);
-      return NextResponse.json({ success: true, data: agent });
-    }
-
-    if (searchTerm) {
-      const agents = await searchAgents(searchTerm);
-      return NextResponse.json({ success: true, data: agents });
-    }
-
-    // Handle pagination
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
+    const search = searchParams.get('search');
+
+    console.log('Fetching agents with params:', { symbol, page, pageSize, search });
+
+    const collection = await AgentModel.getCollection();
     
-    if (searchParams.has('page') || searchParams.has('pageSize')) {
-      const { agents, total } = await getPaginatedAgents(page, pageSize);
-      const response = NextResponse.json({ 
-        success: true, 
-        data: agents, 
+    // First check if we have any agents at all
+    const totalCount = await collection.countDocuments();
+    console.log('Total agents in database:', totalCount);
+
+    if (totalCount === 0) {
+      return NextResponse.json({
+        data: [],
+        metadata: {
+          currentPage: 1,
+          pageSize,
+          totalPages: 0,
+          totalCount: 0
+        }
+      });
+    }
+
+    if (symbol) {
+      // Get agent by symbol/ticker
+      const agent = await collection.findOne({ ticker: symbol.toUpperCase() });
+      console.log('Found agent by symbol:', agent ? 'yes' : 'no');
+      
+      if (!agent) {
+        return NextResponse.json(
+          { error: 'Agent not found' },
+          { status: 404 }
+        );
+      }
+      // Get Twitter auth information
+      const twitterAuth = await TwitterAuthModel.findByAgentId(agent._id.toString());
+      return NextResponse.json({ 
+        data: { ...agent, twitterAuth },
+        metadata: {
+          currentPage: 1,
+          pageSize: 1,
+          totalPages: 1,
+          totalCount: 1
+        }
+      });
+    }
+
+    if (search) {
+      // Search agents by name or ticker
+      const agents = await collection.find({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { ticker: { $regex: search, $options: 'i' } }
+        ]
+      }).sort({ createdAt: -1 }).toArray();
+
+      console.log('Found agents by search:', agents.length);
+
+      // Get Twitter auth for each agent
+      const agentsWithTwitterAuth = await Promise.all(
+        agents.map(async (agent) => {
+          const twitterAuth = await TwitterAuthModel.findByAgentId(agent._id.toString());
+          return { ...agent, twitterAuth };
+        })
+      );
+
+      return NextResponse.json({ 
+        data: agentsWithTwitterAuth,
+        metadata: {
+          currentPage: 1,
+          pageSize: agents.length,
+          totalPages: 1,
+          totalCount: agents.length
+        }
+      });
+    }
+
+    // Get paginated agents
+    const skip = (page - 1) * pageSize;
+    
+    // Validate pagination
+    if (skip >= totalCount) {
+      return NextResponse.json({
+        data: [],
         metadata: {
           currentPage: page,
           pageSize,
-          totalItems: total,
-          totalPages: Math.ceil(total / pageSize)
+          totalPages: Math.ceil(totalCount / pageSize),
+          totalCount: totalCount
         }
       });
-      
-      // Cache for 1 minute on client side
-      response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30');
-      
-      return response;
     }
 
-    // Get all agents if no query parameters
-    const agents = await getAllAgents();
-    return NextResponse.json({ success: true, data: agents });
+    const agents = await collection.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(pageSize)
+      .toArray();
+
+    console.log('Found paginated agents:', agents.length);
+
+    // Get Twitter auth for each agent
+    const agentsWithTwitterAuth = await Promise.all(
+      agents.map(async (agent) => {
+        const twitterAuth = await TwitterAuthModel.findByAgentId(agent._id.toString());
+        return { ...agent, twitterAuth };
+      })
+    );
+
+    return NextResponse.json({
+      data: agentsWithTwitterAuth,
+      metadata: {
+        currentPage: page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        totalCount: totalCount
+      }
+    });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('Error fetching agents:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch agents' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch agents' },
       { status: 500 }
     );
   }

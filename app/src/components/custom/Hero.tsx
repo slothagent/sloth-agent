@@ -23,9 +23,7 @@ const Hero: React.FC = () => {
       setLoading(true);
       const response = await fetch('/api/agent');
       const result = await response.json();
-      if (result.success) {
-        setAgents(result.data);
-      }
+      setAgents(result.data);
     } catch (error) {
       console.error('Error fetching agents:', error);
     } finally {
@@ -84,7 +82,7 @@ const Hero: React.FC = () => {
         {loading ? (
           <MainCardSkeleton />
         ) : (
-          <Card className="w-full md:w-[400px] max-h-[700px] border-2 border-[#8b7355] rounded-lg bg-[#f5f5dc] overflow-hidden">
+          <Card onClick={() => router.push(`/agent/${agents[0]?.ticker.toLowerCase()}`)} className="w-full md:w-[400px] max-h-[700px] border-2 border-[#8b7355] rounded-lg bg-[#f5f5dc] overflow-hidden">
             <CardContent className="p-0">
               <div className="w-full h-[600px] relative">
                 <div className="w-full h-full relative overflow-hidden">

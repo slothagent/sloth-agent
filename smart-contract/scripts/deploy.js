@@ -8,8 +8,8 @@ async function main() {
   await FactoryLib.waitForDeployment();
   console.log("FactoryLib deployed to:", FactoryLib.target);
 
-  // Deploy Factory with creation fee of 0.01 ETH
-  const creationFee = hre.ethers.parseEther("0.01");
+  // Deploy Factory with creation fee of 3$
+  const creationFee = hre.ethers.parseEther("0.001137");
   const Factory = await hre.ethers.deployContract("Factory", [creationFee], {
     libraries: {
       FactoryLib: FactoryLib.target
