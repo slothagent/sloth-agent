@@ -4,14 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface Agent {
-  id: string;
-  name: string;
-  imageUrl: string;
-  systemType: string;
-  ticker: string;
-}
+import { Agent } from '@/types/agent';
 
 const Hero: React.FC = () => {
   const router = useRouter();
@@ -165,13 +158,13 @@ const Hero: React.FC = () => {
               ) : (
                 agents.map((agent) => (
                   <Card 
-                    key={agent.id} 
+                    key={agent._id.toString()} 
                     className="bg-[#f5f5dc] hover:bg-[#8b7355]/10 transition-all duration-200 cursor-pointer border-2 border-[#8b7355] rounded-lg overflow-hidden"
                   >
                     <CardContent className="p-1">
                       <div className="aspect-square relative">
                         <Image
-                          src={agent.imageUrl}
+                          src={agent.imageUrl || 'https://pbs.twimg.com/profile_images/1881065252776767488/IeGmkIiT_400x400.jpg'}
                           alt={agent.name}
                           fill
                           className="object-cover"

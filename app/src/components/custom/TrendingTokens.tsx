@@ -7,12 +7,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Agent, AgentMetrics } from "@/types/agent";
+import { Agent } from "@/types/agent";
+import { AgentMetrics } from "@/models/agentMetrics";
 import { useQuery } from "@tanstack/react-query";
 
 type AgentWithMetrics = Agent & {
   _id: string;
   metrics: AgentMetrics | null;
+  createdAt: string | Date;
 };
 
 type PaginationMetadata = {

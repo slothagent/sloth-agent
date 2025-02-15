@@ -6,7 +6,7 @@ import { Twitter } from 'lucide-react';
 import { Agent } from '@/types/agent';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-
+import { ObjectId } from 'mongodb';
 interface TwitterError {
     error: string;
     code?: string;
@@ -14,7 +14,7 @@ interface TwitterError {
 }
 
 interface Tweet {
-    _id: string;
+    _id: ObjectId;
     tweetId: string;
     text: string;
     tweetCreatedAt: string;
@@ -71,6 +71,8 @@ const TwitterView: React.FC<{ agentData: Agent }> = ({ agentData }) => {
         refetch();
     };
 
+    console.log(tweets);
+
     return (
         <Card className="h-[500px] p-6 border-2 border-[#8b7355] rounded-lg bg-transparent">
             <div className="flex items-center gap-3 mb-4 border-b-2 border-[#8b7355]/20 pb-2">
@@ -100,7 +102,7 @@ const TwitterView: React.FC<{ agentData: Agent }> = ({ agentData }) => {
                 {!isLoading && !error && tweets && tweets.length > 0 && (
                     <div className="space-y-4">
                         {tweets.map((tweet) => (
-                            <div key={tweet._id} className="p-4 border border-[#8b7355]/20 rounded-lg">
+                            <div key={tweet._id.toString()} className="p-4 border border-[#8b7355]/20 rounded-lg">
                                 <p className="text-sm text-[#8b7355]">{tweet.text}</p>
                                 <div className="mt-2 text-xs text-muted-foreground">
                                     {new Date(tweet.tweetCreatedAt).toLocaleDateString()}
