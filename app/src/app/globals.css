@@ -25,6 +25,11 @@
     --ring: 240 4.9% 83.9%;
   }
 }
+@layer components {
+  .button-default {
+    @apply border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground;
+  }
+}
 
 @layer base {
   * {

@@ -33,7 +33,7 @@ const WalletButton = () => {
                 return (
                   <button
                     onClick={openConnectModal}
-                    className="bg-sloth-light hover:bg-sloth-light text-black px-4 py-2 border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0)] transition-colors font-medium"
+                    className="hover:underline text-white px-4 py-2 transition-colors font-medium button-default"
                   >
                     Connect Wallet
                   </button>
@@ -44,7 +44,7 @@ const WalletButton = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={openChainModal}
-                    className="flex w-[180px] text-center justify-center items-center gap-2 px-3 py-2 text-sm font-medium transition-all border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0)] bg-[#93E905]/10 rounded-lg hover:bg-[#93E905]/20"
+                    className="flex w-[180px] text-center justify-center items-center gap-2 px-3 py-2 text-sm font-medium transition-all border border-black shadow-[#F7F7F7] bg-[#FFB22C]/10 rounded-lg hover:bg-[#FFB22C]/20"
                   >
                     {chain.hasIcon && (
                       <div className="w-5 h-5">
