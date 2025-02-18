@@ -34,23 +34,23 @@ export default function AgentDetails() {
     };
 
     return (
-    <div className="min-h-screen bg-white container mx-auto">
+    <div className="min-h-screen bg-[#0A0D16] container mx-auto">
       {/* Top Navigation Bar */}
-        <div className="bg-primary top-0 sm:top-12 border-border-primary border-b sm:border-b-0">
-            <div className="py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8 mx-auto ">
+        <div className="top-0 border-b sm:border-b-0">
+            <div className="py-2 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mx-auto ">
                 <div className="flex items-center gap-3 justify-between sm:justify-start">
                 <div className="flex items-center gap-4">
                     <Link href="/" className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="flex items-center gap-2">
-                            <div className="w-6 h-6 bg-gray-200 rounded-full border-2 border-black px-4 py-2 "></div>
+                        <Button variant="outline" size="icon" className="flex items-center gap-2 rounded-full">
+                            <div className="w-6 h-6 "></div>
                         </Button>
-                        <div className="hidden sm:flex items-center gap-2  border-2 border-black px-4 py-2 ">
+                        <div className="hidden sm:flex items-center gap-2 button-default px-4 py-2 ">
                             <p className="text-text-primary text-sm font-medium">cookie.fun</p>
                         </div>
                     </Link>
                     <div className="hidden sm:block">
-                        <Button  className="flex items-center gap-2 border-2 border-black px-4 py-2 h-[40px]">
-                            <img className="size-5 rounded-xs" alt="F" src="https://pbs.twimg.com/profile_images/1848028530099052545/urFxrFx__400x400.jpg" loading="lazy" />
+                        <Button  variant="outline" className="flex items-center gap-2 text-white px-4 py-2 h-[40px]">
+                            <img className="size-5 rounded-xs " alt="F" src="https://pbs.twimg.com/profile_images/1848028530099052545/urFxrFx__400x400.jpg" loading="lazy" />
                             {agent.name}
                         </Button>
                     </div>
@@ -61,25 +61,25 @@ export default function AgentDetails() {
                         {agent.name}
                     </Button>
                 </div>
-                <Button variant="ghost" className="group/star">
+                <Button variant="outline" className="group/star">
                     <Star className="w-4 h-4" />
-                    <span className="sm:block hidden border-2 border-black px-4 py-2 h-[40px]">Add to watchlist</span>
+                    <span className="sm:block hidden text-white px-4 py-2 h-[40px]">Add to watchlist</span>
                 </Button>
                 </div>
                 <div className="hidden md:block">
-                <div role="list" dir="ltr" className="flex items-center justify-center border-border-primary shadow-sm rounded-lg p-[1px] gap-0 !w-full md:!w-max md:!mx-0 border-2 border-black py-2  h-[40px]">
-                    <Button variant="ghost" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-black">24h</Button>
-                    <Button variant="ghost" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-black">3D</Button>
-                    <Button variant="ghost" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-black">7D</Button>
-                    <Button variant="ghost" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-black">14D</Button>
-                    <Button variant="ghost" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-black">30D</Button>
+                <div role="list" dir="ltr" className="flex items-center justify-center text-white shadow-sm rounded-lg p-[1px] gap-0 !w-full md:!w-max md:!mx-0 py-2  h-[40px]">
+                    <Button variant="outline" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-white">24h</Button>
+                    <Button variant="outline" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-white">3D</Button>
+                    <Button variant="outline" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-white">7D</Button>
+                    <Button variant="outline" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-white">14D</Button>
+                    <Button variant="outline" size="sm" className="data-[state=on]:bg-green-200 data-[state=on]:text-white">30D</Button>
                 </div>
                 </div>
             </div>
         </div>
 
         {/* Main Content */}
-        <div className = "flex flex-col sm:mt-4 mb-6 lg:px-4 lg:mb-12">
+        <div className = "flex flex-col sm:mt-4 lg:px-4 pb-4">
             <div className="lg:mb-10 hidden sm:block">
                 <div className="flex max-lg:p-2 h-full w-full lg:justify-between relative">
                     <div className="hidden lg:grid lg:grid-cols-[1fr,_420px] gap-4 w-full">
@@ -89,16 +89,16 @@ export default function AgentDetails() {
                                     <img 
                                         src="https://pbs.twimg.com/profile_images/1848028530099052545/urFxrFx__400x400.jpg"
                                         alt="Token Logo"
-                                        className="w-16 h-16 rounded-lg"
+                                        className="w-16 h-16 rounded-lg border-2 border-white"
                                         loading="lazy"
                                     />
-                                    <div className="lg:flex flex-col justify-center h-full">
+                                    <div className="lg:flex flex-col justify-center h-full text-white">
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h1 className="text-3xl font-medium mb-1">Fartcoin</h1>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <a href="/d/categories/meme">
-                                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 text-xs text-text-tertiary border-2 border-black p-1  ">
+                                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 text-xs text-text-tertiary p-1  ">
                                                             Meme
                                                         </div>
                                                     </a>
@@ -109,18 +109,18 @@ export default function AgentDetails() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex-col gap-2 mt-4 max-lg:mt-6">
+                            <div className="flex-col gap-2 mt-4 max-lg:mt-6 text-white">
                                 <div className="text-text-primary text-sm">
                                     Tokenising farts with the help of bots. Fartcoin dev orphaned it, we adopted $Fartcoin No TG, No cabal, Fart freely! 💨
                                 </div>
                                 <div className="mt-4">
                                     <div className="flex items-center gap-2 ">
                                         <Button variant="ghost" asChild>
-                                            <a href="https://x.com/FartCoinOfSOL" target="_blank" className="border-2 border-black  ">
+                                            <a href="https://x.com/FartCoinOfSOL" target="_blank" className="border-2 border-white ">
                                                 𝕏
                                             </a>
                                         </Button>
-                                        <Button variant="ghost" asChild className="flex items-center gap-1 border-2 border-black px-4 py-2 ">
+                                        <Button variant="ghost" asChild className="flex items-center gap-1 border-2 border-white px-4 py-2 ">
                                             <a href="https://www.geckoterminal.com/solana/tokens/9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump" target="_blank">
                                                 <img height="16" width="16" className="rounded-full mr-0.5 " src="/geckoterminal.png" />
                                                 GeckoTerminal
@@ -130,9 +130,9 @@ export default function AgentDetails() {
                                 </div>
                             </div>
                         </div>
-                        <div className="ml-auto w-max hidden lg:block">
+                        <div className="ml-auto w-max hidden lg:block text-white">
                             <div className="grid grid-cols-2 max-h-[86px]">
-                                <div className=" w-52 h-[86px] justify-between flex flex-col border-2 border-black px-4 py-2  ">
+                                <div className=" w-52 h-[86px] justify-between flex flex-col border-2 border-white px-4 py-2  ">
                                     <div className="flex flex-col h-full">
                                         <div className="text-sm mb-auto flex items-center gap-1.5 font-medium">
                                             <img alt="Solana" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="/chains/solana.svg" style={{ color: 'transparent' }} />
@@ -146,7 +146,7 @@ export default function AgentDetails() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className=" border-l-0 w-52 h-[86px] justify-between flex flex-col border-2 border-black px-4 py-2  ">
+                                <div className=" border-l-0 w-52 h-[86px] justify-between flex flex-col border-2 border-white px-4 py-2  ">
                                     <div>
                                         <div className="text-sm flex items-center gap-1.5 font-medium">
                                             <Clock className="w-4 h-4" />
@@ -211,10 +211,10 @@ export default function AgentDetails() {
             </div>
 
             {/* Navigation Tabs */}
-            <div className=" border-border-primary">
+            <div className=" border-border-primary text-white">
                 <div className="">
                 <Tabs defaultValue="trade" className="w-full">
-                    <div className="flex items-center justify-between mb-4 border-b">
+                    <div className="flex items-center justify-between mb-4 border-b border-white">
                         <TabsList className="h-[62px] w-full justify-start gap-6 bg-transparent">
                         <TabsTrigger 
                             value="trade"
@@ -258,7 +258,7 @@ export default function AgentDetails() {
                         </div>
                         <div className="flex flex-col gap-4">
                             <div className="md:grid grid-cols-1 md:grid-cols-[1fr,_400px] gap-4 ">
-                                <div className="h-[400px] md:h-[550px] md:border-2 md:rounded-lg relative flex flex-col border-2 border-black px-4 py-2 ">
+                                <div className="h-[400px] md:h-[550px] md:border-2 md:rounded-lg relative flex flex-col border-2 border-white px-4 py-2 ">
                                     <div className="h-[100px] hidden md:flex justify-between p-4 border-b">
                                         <div>
                                             <p className="text-4xl font-medium">$0.51033</p>
@@ -276,14 +276,14 @@ export default function AgentDetails() {
                                 </div>
 
                                 {/* Desktop Swap */}
-                                <div className="hidden md:block p-2 overflow-hidden h-[550px]  rounded-lg border-2 border-black px-4 py-2 ">
+                                <div className="hidden md:block p-2 overflow-hidden h-[550px]  rounded-lg border-2 border-white px-4 py-2 text-white">
                                     <div className="flex flex-col gap-4">
-                                        <div className="border-b border-border-primary pb-2 flex justify-between items-center">
+                                        <div className="border-b border-white pb-2 flex justify-between items-center">
                                             <span className="text-lg font-medium">Swap</span>
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <div className="flex flex-col p-4 border bg-primary ">
-                                                <div className="text-xs text-text-tertiary mb-1">From</div>
+                                            <div className="flex flex-col p-4 border-2 border-white ">
+                                                <div className="text-xs text-white mb-1">From</div>
                                                 <div className="flex items-center gap-2">
                                                     <img src="/chains/solana.svg" className="w-6 h-6" />
                                                     <span className="font-medium">SOL</span>
@@ -291,13 +291,13 @@ export default function AgentDetails() {
                                                 <div className="text-2xl font-medium mt-2">0.0</div>
                                             </div>
                                             <div className="flex justify-center -my-2 z-10">
-                                                <div className="bg-primary p-2 rounded-lg">
+                                                <div className="p-2 rounded-lg">
                                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                                                         <path d="M8 3L8 13M8 13L13 8M8 13L3 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                                     </svg>
                                                 </div>
                                             </div>
-                                            <div className="flex flex-col p-4 border bg-primary ">
+                                            <div className="flex flex-col p-4 border-2 border-white ">
                                                 <div className="text-xs text-text-tertiary mb-1">To</div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-6 h-6 rounded-full bg-gray-700"></div>
@@ -306,7 +306,7 @@ export default function AgentDetails() {
                                                 <div className="text-2xl font-medium mt-2">0.0</div>
                                             </div>
                                         </div>
-                                        <Button  className="mt-4 border-2 border-black px-4 py-2 ">
+                                        <Button variant="outline" className="mt-4 border-2 border-white  px-4 py-2 ">
                                             Connect wallet 
                                         </Button>
                                     </div>

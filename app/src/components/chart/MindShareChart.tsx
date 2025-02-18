@@ -47,7 +47,7 @@ const MindShareChart: React.FC = () => {
 
     const options = {
       chart: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#0A0D16',
         height: 400,
         style: {
           fontFamily: '-apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -65,11 +65,11 @@ const MindShareChart: React.FC = () => {
         labels: {
           step: 24,
           style: {
-            color: '#666666',
+            color: '#ffffff',
             fontSize: '12px'
           }
         },
-        lineColor: '#e6e6e6',
+        lineColor: '#404040',
         tickLength: 0
       },
       yAxis: [{
@@ -81,11 +81,11 @@ const MindShareChart: React.FC = () => {
           align: 'left',
           x: 0,
           style: {
-            color: '#666666',
+            color: '#ffffff',
             fontSize: '12px'
           }
         },
-        gridLineColor: '#e6e6e6',
+        gridLineColor: '#404040',
         min: 0.48,
         max: 0.96,
         tickAmount: 5
@@ -97,7 +97,7 @@ const MindShareChart: React.FC = () => {
           format: '{value}%',
           align: 'right',
           style: {
-            color: '#666666',
+            color: '#ffffff',
             fontSize: '12px'
           }
         },
@@ -111,7 +111,7 @@ const MindShareChart: React.FC = () => {
         verticalAlign: 'top',
         symbolRadius: 0,
         itemStyle: {
-          color: '#333333',
+          color: '#ffffff',
           fontSize: '12px',
           fontWeight: 'normal'
         },
@@ -184,21 +184,21 @@ const MindShareChart: React.FC = () => {
   }
 
   return (
-    <Card key="analytics-chart" className="bg-white rounded-lg">
+    <Card key="analytics-chart" className="rounded-lg">
       <CardHeader className='p-2 px-4 border-b border-gray-200'>
         <div className="space-y-2">
           <div className="flex items-center gap-10">
             <div>
-              <div className="text-sm text-black text-sidebar-foreground">Mindshare</div>
+              <div className="text-sm text-white text-sidebar-foreground">Mindshare</div>
               <div className="flex items-center gap-2">
-                <span className="text-lg md:text-xl text-black font-semibold text-sidebar-foreground">9.57%</span>
+                <span className="text-lg md:text-xl text-white font-semibold text-sidebar-foreground">9.57%</span>
                 <span className="text-xs md:text-sm text-red-500">-1.76 7D</span>
               </div>
             </div>
             <div>
-              <div className="text-sm text-black text-sidebar-foreground">Price</div>
+              <div className="text-sm text-white text-sidebar-foreground">Price</div>
               <div className="flex items-center gap-2">
-                <span className="text-lg md:text-xl text-black font-semibold text-sidebar-foreground">$0.86</span>
+                <span className="text-lg md:text-xl text-white font-semibold text-sidebar-foreground">$0.86</span>
                 <span className="text-xs md:text-sm text-green-500">+28.44% 7D</span>
               </div>
             </div>

@@ -43,14 +43,14 @@ const UniqueHolderChart: React.FC = () => {
     });
 
     return (
-        <Card className="bg-white rounded-lg shadow-none">
+        <Card className="rounded-lg shadow-none">
             <CardContent className="p-4">
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                            <span className="text-sm text-black text-sidebar-foreground">Unique Holder</span>
+                            <span className="text-sm text-white">Unique Holder</span>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-lg md:text-2xl text-black font-semibold text-sidebar-foreground">51.73K</span>
+                                <span className="text-lg md:text-2xl text-white font-semibold text-sidebar-foreground">51.73K</span>
                                 <span className="text-sm text-green-500">+35% 7D</span>
                             </div>
                         </div>
@@ -61,7 +61,7 @@ const UniqueHolderChart: React.FC = () => {
                         options={chartOptions}
                     />
                     
-                    <div className="text-sm text-black text-sidebar-foreground">
+                    <div className="text-sm text-white">
                         <span className="text-red-500">-22.87%</span> holders vs agents with a similar MC
                     </div>
                 </div>

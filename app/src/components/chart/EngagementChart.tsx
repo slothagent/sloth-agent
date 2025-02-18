@@ -126,7 +126,7 @@ const EngagementChart: React.FC<EngagementChartProps> = ({
   };
 
   return (
-    <Card className='bg-white text-black rounded-lg shadow-none'>
+    <Card className="rounded-lg shadow-none">
       <CardHeader className='pb-2 p-3'>
         <CardTitle className='text-sidebar-foreground'>Engagement</CardTitle>
         <div className="grid grid-cols-2 gap-4 mb-4">

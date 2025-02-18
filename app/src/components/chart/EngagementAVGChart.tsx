@@ -61,14 +61,14 @@ const EngagementChart: React.FC<EngagementChartProps> = ({
     };
 
     return (
-        <Card className="bg-white rounded-lg shadow-none">
+        <Card className="rounded-lg shadow-none">
             <CardContent className="p-4">
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col">
-                            <span className="text-sm text-black text-sidebar-foreground">{title}</span>
+                            <span className="text-sm text-white">{title}</span>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-lg md:text-2xl text-black font-semibold text-sidebar-foreground">{currentValue}</span>
+                                <span className="text-lg md:text-2xl text-white font-semibold text-sidebar-foreground">{currentValue}</span>
                                 <span className="text-sm text-red-500">{percentageChange}% {timeFrame}</span>
                             </div>
                         </div>
@@ -81,7 +81,7 @@ const EngagementChart: React.FC<EngagementChartProps> = ({
                         />
                     </div>
                     
-                    <div className="text-sm text-black text-sidebar-foreground">
+                    <div className="text-sm text-white">
                         <span className="text-red-500">{comparisonPercen}</span> engagements vs agents with a similar MC
                     </div>
                 </div>

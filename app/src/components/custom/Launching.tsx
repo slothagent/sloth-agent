@@ -24,7 +24,7 @@ const Launching = () => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Market Cap Stats */}
-            <div className="bg-black text-white rounded-lg p-6">
+            <div className=" text-white rounded-lg p-6 border-2 border-gray-400">
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-gray-400 text-sm mb-1">Current Target MarketCap</h3>
@@ -47,7 +47,7 @@ const Launching = () => {
             </div>
 
             {/* Bonding Curve Holders */}
-            <div className="bg-black text-white rounded-lg p-6">
+            <div className=" text-white rounded-lg p-6 border-2 border-gray-400">
                 <div className="space-y-4">
                     {mockBondingCurveHolders.map((holder, index) => (
                         <div key={holder.address} className="flex items-center justify-between">
@@ -55,7 +55,7 @@ const Launching = () => {
                                 <span className="text-gray-400">{index + 1}.</span>
                                 <span className="font-mono">{holder.address}</span>
                                 {holder.tag && (
-                                    <Badge variant="outline" className="bg-[#93E905]/10 text-[#93E905] border-[#93E905]">
+                                    <Badge variant="outline" className=" text-[#93E905] border-[#93E905]">
                                         {holder.tag}
                                     </Badge>
                                 )}

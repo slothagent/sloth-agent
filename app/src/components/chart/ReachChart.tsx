@@ -148,12 +148,12 @@ const ReachChart: React.FC = () => {
   };
 
   return (
-    <Card className="bg-white text-black rounded-lg shadow-none">
+    <Card className="text-white rounded-lg shadow-none">
       <CardHeader className="pb-2 p-3">
-        <CardTitle className='text-black text-sidebar-foreground'>Reach</CardTitle>
+        <CardTitle className='text-white text-sidebar-foreground'>Reach</CardTitle>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <p className="text-sm text-black text-sidebar-foreground">
+            <p className="text-sm text-white">
               Impressions (7-day)
             </p>
             <div className="flex items-center gap-2">
@@ -164,7 +164,7 @@ const ReachChart: React.FC = () => {
             </div>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-black text-sidebar-foreground">
+            <p className="text-sm text-white">
               Smart reach (7-day)
             </p>
             <div className="flex items-center gap-2">
