@@ -241,21 +241,21 @@ const TrendingTokens: React.FC = () => {
         <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-gray-800 hover:bg-transparent">
+              <TableRow className="border-b w-auto border-gray-800 hover:bg-transparent">
                 <TableHead className="text-gray-400">Token</TableHead>
                 <TableHead className="text-gray-400">Age</TableHead>
-                <TableHead className="text-right text-gray-400">Liq $/MC</TableHead>
-                <TableHead className="text-right text-gray-400">MindShare</TableHead>
-                <TableHead className="text-right text-gray-400">Holders</TableHead>
-                <TableHead className="text-right text-gray-400">Smart $/KOL</TableHead>
-                <TableHead className="text-right text-gray-400">1h TXs</TableHead>
-                <TableHead className="text-right text-gray-400">1h Vol</TableHead>
-                <TableHead className="text-right text-gray-400">Price</TableHead>
-                <TableHead className="text-right text-gray-400">Δ7D</TableHead>
-                <TableHead className="text-right text-gray-400">Market Cap</TableHead>
-                <TableHead className="text-right text-gray-400">Volume</TableHead>
-                <TableHead className="text-right text-gray-400">Followers</TableHead>
-                <TableHead className="text-right text-gray-400">Top Tweets</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Liq $/MC</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">MindShare</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Holders</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Smart $/KOL</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">1h TXs</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">1h Vol</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Price</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Δ7D</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Market Cap</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Volume</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Followers</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">Top Tweets</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -315,7 +315,7 @@ const TrendingTokens: React.FC = () => {
           </Table>
           
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
-            <div className="flex-1 text-sm text-gray-400">
+            <div className="flex-1 text-xs md:text-sm text-gray-400">
               Page {metadata.currentPage} of {metadata.totalPages}
             </div>
             <div className="flex items-center gap-4">

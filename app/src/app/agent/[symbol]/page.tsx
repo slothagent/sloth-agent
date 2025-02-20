@@ -5,7 +5,9 @@ import Link from 'next/link';
 import {  
     Star,
     Clock,
-    Copy
+    Copy,
+    ArrowLeft,
+    ChevronRight
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParams } from 'next/navigation';
@@ -123,31 +125,51 @@ const AgentDetails: NextPage = () => {
     }
 
     return (
-    <div className="min-h-screen bg-[#0B0E17]">
+    <div className="min-h-screen bg-[#0B0E17] pb-[60px] sm:pb-0">
       {/* Top Navigation Bar */}
         <div className="bg-[#0B0E17] top-0 sm:top-12 border-[#1F2937] border-b sm:border-b-0">
             <div className="container mx-auto py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8">
-                <div className="flex items-center gap-3 justify-between sm:justify-start">
-                <div className="flex items-center gap-4">
-                    <Link href="/" className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="flex items-center gap-2 text-gray-400 hover:text-white">
-                            <div className="w-6 h-6 bg-[#161B28] rounded-full border border-[#1F2937]"></div>
+                <div className="flex items-center gap-4 justify-between sm:justify-start">
+                    <Link href="/" className="flex items-center gap-3">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200"
+                        >
+                            <div className="w-7 h-7 bg-[#161B28] flex items-center justify-center rounded-full border border-[#1F2937] hover:border-gray-600">
+                                <ArrowLeft className="w-4 h-4" />
+                            </div>
                         </Button>
-                        <div className="hidden sm:flex items-center gap-2 border border-[#1F2937] px-4 py-2">
+                        <div className="hidden sm:flex items-center gap-2 border border-[#1F2937] px-3 py-1 rounded-full hover:border-gray-600 transition-colors duration-200">
                             <p className="text-gray-400 text-sm font-medium">{agentData?.ticker}</p>
                         </div>
                     </Link>
+                    
+                    <ChevronRight className="w-4 h-4 text-gray-500 hidden sm:block" />
+                    
                     <div className="hidden sm:block">
-                    <button className="flex items-center justify-center w-max font-sans antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary [&>svg]:w-[1em] [&>svg]:h-[1em] disabled:bg-transparent hover:bg-[#1C2333] group-hover:bg-[#1C2333] active:bg-button-bg-pressed px-2 py-1.5 h-8 gap-2 text-sm font-medium text-gray-400 border border-[#1F2937] rounded-lg">
-                        <img className="size-5 rounded-xs" alt="F" src={agentData?.imageUrl} loading="lazy" />
-                        {agentData?.name}
-                    </button>
+                        <button className="flex items-center justify-center gap-3 px-3 py-0.5 text-sm font-medium text-gray-400 border border-[#1F2937] rounded-xl hover:bg-[#1C2333] hover:border-gray-600 transition-all duration-200">
+                            <img 
+                                className="w-6 h-6 rounded-md" 
+                                alt={agentData?.name} 
+                                src={agentData?.imageUrl} 
+                                loading="lazy" 
+                            />
+                            {agentData?.name}
+                        </button>
                     </div>
-                </div>
-                <Button variant="ghost" className="group/star text-gray-400 hover:text-white">
-                    <Star className="w-4 h-4" />
-                    <span className="sm:block hidden border border-[#1F2937] px-4 py-2 h-[40px]">Add to watchlist</span>
-                </Button>
+                    
+                    <ChevronRight className="w-4 h-4 text-gray-500 hidden sm:block" />
+                    
+                    <Button 
+                        variant="ghost" 
+                        className="group/star text-gray-400 hover:text-white p-0 transition-colors duration-200"
+                    >
+                        <span className="flex items-center gap-3 border border-[#1F2937] px-4 py-2 rounded-full hover:border-gray-600">
+                            <Star className="w-4 h-4" />
+                            Add to watchlist
+                        </span>
+                    </Button>
                 </div>
                 <div className="hidden md:block">
                 <div role="list" dir="ltr" className="flex items-center justify-center border-[#1F2937] shadow-sm rounded-lg p-[1px] gap-0 !w-full md:!w-max md:!mx-0 border py-2 h-[40px]">
@@ -172,7 +194,7 @@ const AgentDetails: NextPage = () => {
                                     <Image 
                                         src={agentData?.imageUrl}
                                         alt="Token Logo"
-                                        className="w-16 h-16 rounded-lg"
+                                        className="w-32 h-32 rounded-xl"
                                         loading="lazy"
                                         width={64}
                                         height={64}
@@ -189,7 +211,7 @@ const AgentDetails: NextPage = () => {
                                                     </a>
                                                 </div>
                                             </div>
-                                            <p className="text-sm text-gray-400">{agentData?.ticker}</p>
+                                            <p className="text-xs text-gray-400">@{agentData?.ticker}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -278,68 +300,63 @@ const AgentDetails: NextPage = () => {
             <div className="border-[#1F2937]">
                 <div className="">
                 <Tabs defaultValue="trade" className="w-full">
-                    <div className="flex items-center justify-between mb-4 border-b border-[#1F2937]">
-                        <TabsList className="h-[62px] w-full justify-start gap-6 bg-transparent">
-                        <TabsTrigger 
-                            value="trade"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
-                        >
-                            <div className="flex items-center gap-1 text-base font-medium">Trade</div>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="overview"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
-                        >
-                            <div className="flex text-base font-medium">Overview</div>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="social"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
-                        >
-                            <div className="flex items-center gap-1 text-base font-medium">Social</div>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="message"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
-                        >
-                            <div className="flex items-center gap-1 text-base font-medium">Message</div>
-                        </TabsTrigger>
-                        <TabsTrigger 
-                            value="launching"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
-                        >
-                            <div className="flex items-center gap-1 text-base font-medium">Launching</div>
-                        </TabsTrigger>
-                        </TabsList>
+                    <div className="flex-wrap">
+                        <div className="flex items-center justify-between mb-4 border-b border-[#1F2937]">
+                            <TabsList className="h-[62px] w-full justify-start gap-6 bg-transparent">
+                                <TabsTrigger 
+                                    value="trade"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                >
+                                    <div className="flex items-center gap-1">Trade</div>
+                                </TabsTrigger>      
+                                <TabsTrigger 
+                                    value="overview"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                >
+                                    <div className="flex items-center gap-1 text-xs md:text-base">Overview</div>
+                                </TabsTrigger>
+                                <TabsTrigger 
+                                    value="social"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                >
+                                    <div className="flex items-center gap-1">Social</div>
+                                </TabsTrigger>
+                                <TabsTrigger 
+                                    value="message"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                >
+                                    <div className="flex items-center gap-1 ">Message</div>
+                                </TabsTrigger>
+                                <TabsTrigger 
+                                    value="launching"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                >
+                                    <div className="flex items-center gap-1 ">Launching</div>
+                                </TabsTrigger>
+                            </TabsList>
+                        </div>
                     </div>
 
                     <TabsContent value="trade" className="mt-4">
-                        <div className="sm:hidden flex px-4 justify-between">
-                            <div className="flex items-center gap-2">
-                                <span className="text-2xl font-medium text-white">$0.60282</span>
-                            </div>
-                        </div>
                         <div className="flex flex-col gap-4">
-                            <div className="md:grid grid-cols-1 md:grid-cols-[1fr,_400px] gap-4">
-                                <div className="h-[400px] md:h-[550px] md:border md:rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
-                                    <div className="h-[100px] hidden md:flex justify-between p-4 border-b border-[#1F2937]">
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr,_400px] gap-4">
+                                <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
+                                    <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-4xl font-medium text-white">$0.51033</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">$0.51033</p>
                                             <span className="text-sm flex gap-1 items-center text-red-400">
-                                                -20.15%
-                                            <span>(7D)</span>
+                                                -20.15% <span>(7D)</span>
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="h-[450px] w-full p-4 relative hidden md:block">
+                                    <div className="flex-1 w-full p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
                                             {/* <Chart height="full" /> */}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Desktop Swap */}
-                                <div className="hidden md:block border border-[#1F2937] p-2 overflow-hidden h-[550px] rounded-lg bg-[#161B28]">
+                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[550px] rounded-lg bg-[#161B28]">
                                     <Tabs defaultValue="buy" className="flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
                                             <div className="w-[200px]">
@@ -494,21 +511,6 @@ const AgentDetails: NextPage = () => {
                     </TabsContent>
                 </Tabs>
                 </div>
-
-            {/* Mobile Navigation */}
-            <div className="sm:hidden">
-                <div className="border-t border-[#1F2937] grid grid-cols-3 h-[52px] bg-[#0B0E17] justify-evenly z-[999] w-full fixed bottom-0 gap-[1px]">
-                    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-[#161B28] text-white">
-                    <div className="flex items-center gap-1">Trade</div>
-                    </Button>
-                    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-[#161B28] text-gray-400">
-                    <div className="flex">Overview</div>
-                    </Button>
-                    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-[#161B28] text-gray-400">
-                    <div className="flex items-center gap-1">Social</div>
-                    </Button>
-                </div>
-            </div>
             </div>
             
         </div>      

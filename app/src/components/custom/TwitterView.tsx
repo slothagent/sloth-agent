@@ -74,7 +74,7 @@ const TwitterView: React.FC<{ agentData: Agent }> = ({ agentData }) => {
     console.log(tweets);
 
     return (
-        <Card className="h-[500px] p-6 border-2 border-[#8b7355] rounded-lg bg-transparent">
+        <Card className="h-[500px] p-6 border-2 border-[#8b7355] rounded-lg bg-[#161B28] text-gray-300">
             <div className="flex items-center gap-3 mb-4 border-b-2 border-[#8b7355]/20 pb-2">
                 <Twitter className="w-5 h-5 text-[#8b7355]" />
                 <h2 className="text-xl font-bold text-[#8b7355] font-mono tracking-tight">Twitter Feed</h2>

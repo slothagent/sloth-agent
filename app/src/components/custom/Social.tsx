@@ -5,11 +5,15 @@ import ChatInterface from './ChatInterface';
 import TwitterView from './TwitterView';
 import { Agent } from '@/types/agent';
 
-const Social: React.FC<{ agentData: Agent }> = ({ agentData }) => {
+const Social = ({ agentData }: { agentData: any }) => {
     return (
-        <div className="grid grid-cols-4 gap-4 h-[calc(100vh-4rem)]">
-            <div className="col-span-1">
-                <TwitterView agentData={agentData} />
+        <div className="w-full h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-max">
+                {Array(4).fill(null).map((_, index) => (
+                    <div key={index} className="w-full">
+                        <TwitterView agentData={agentData} />
+                    </div>
+                ))}
             </div>
         </div>
     );

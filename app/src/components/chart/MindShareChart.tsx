@@ -47,7 +47,7 @@ const MindShareChart: React.FC = () => {
 
     const options = {
       chart: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#161B28',
         height: 400,
         style: {
           fontFamily: '-apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
@@ -65,11 +65,11 @@ const MindShareChart: React.FC = () => {
         labels: {
           step: 24,
           style: {
-            color: '#666666',
+            color: '#9CA3AF',
             fontSize: '12px'
           }
         },
-        lineColor: '#e6e6e6',
+        lineColor: '#1F2937',
         tickLength: 0
       },
       yAxis: [{
@@ -81,11 +81,11 @@ const MindShareChart: React.FC = () => {
           align: 'left',
           x: 0,
           style: {
-            color: '#666666',
+            color: '#9CA3AF',
             fontSize: '12px'
           }
         },
-        gridLineColor: '#e6e6e6',
+        gridLineColor: '#1F2937',
         min: 0.48,
         max: 0.96,
         tickAmount: 5
@@ -97,38 +97,40 @@ const MindShareChart: React.FC = () => {
           format: '{value}%',
           align: 'right',
           style: {
-            color: '#666666',
+            color: '#9CA3AF',
             fontSize: '12px'
           }
         },
         opposite: true,
         min: 7.5,
         max: 9.8,
-        tickAmount: 5
+        tickAmount: 5,
+        gridLineColor: '#1F2937'
       }],
       legend: {
         align: 'left',
         verticalAlign: 'top',
         symbolRadius: 0,
         itemStyle: {
-          color: '#333333',
+          color: '#9CA3AF',
           fontSize: '12px',
           fontWeight: 'normal'
         },
-        itemDistance: 40
+        itemDistance: 40,
+        backgroundColor: 'transparent'
       },
       series: [{
         name: 'Mindshare',
         type: 'column',
         yAxis: 1,
         data: mindshareData,
-        color: 'rgba(33, 150, 243, 0.5)',
+        color: 'rgba(37, 99, 235, 0.5)',
         borderWidth: 0,
       }, {
         name: 'Price',
         type: 'line',
         data: priceData,
-        color: '#2196f3',
+        color: '#3B82F6',
         lineWidth: 2,
         marker: {
           enabled: true,
@@ -142,15 +144,15 @@ const MindShareChart: React.FC = () => {
       }],
       tooltip: {
         shared: true,
-        backgroundColor: '#ffffff',
-        borderColor: '#e6e6e6',
+        backgroundColor: '#1F2937',
+        borderColor: '#374151',
         borderRadius: 8,
         shadow: false,
         useHTML: true,
-        headerFormat: '<div style="font-size: 12px">{point.key}</div>',
+        headerFormat: '<div style="font-size: 12px; color: #9CA3AF">{point.key}</div>',
         pointFormat: '<div style="color: {series.color}">{series.name}: <b>{point.y:.2f}</b></div>',
         style: {
-          color: '#333333'
+          color: '#E5E7EB'
         }
       },
       plotOptions: {
@@ -161,6 +163,9 @@ const MindShareChart: React.FC = () => {
           states: {
             inactive: {
               opacity: 1
+            },
+            hover: {
+              brightness: 0.2
             }
           }
         },
@@ -180,25 +185,25 @@ const MindShareChart: React.FC = () => {
   }, []);
 
   if (!chartOptions) {
-    return <div>Loading...</div>;
+    return <div className="text-gray-300">Loading...</div>;
   }
 
   return (
-    <Card key="analytics-chart" className="bg-white rounded-lg">
-      <CardHeader className='p-2 px-4 border-b border-gray-200'>
+    <Card className="bg-[#161B28] rounded-lg shadow-none border-none">
+      <CardHeader className='p-2 px-4 border-b border-[#1F2937]'>
         <div className="space-y-2">
           <div className="flex items-center gap-10">
             <div>
-              <div className="text-sm text-black text-sidebar-foreground">Mindshare</div>
+              <div className="text-sm text-gray-300">Mindshare</div>
               <div className="flex items-center gap-2">
-                <span className="text-lg md:text-xl text-black font-semibold text-sidebar-foreground">9.57%</span>
+                <span className="text-lg md:text-xl text-gray-300 font-semibold">9.57%</span>
                 <span className="text-xs md:text-sm text-red-500">-1.76 7D</span>
               </div>
             </div>
             <div>
-              <div className="text-sm text-black text-sidebar-foreground">Price</div>
+              <div className="text-sm text-gray-300">Price</div>
               <div className="flex items-center gap-2">
-                <span className="text-lg md:text-xl text-black font-semibold text-sidebar-foreground">$0.86</span>
+                <span className="text-lg md:text-xl text-gray-300 font-semibold">$0.86</span>
                 <span className="text-xs md:text-sm text-green-500">+28.44% 7D</span>
               </div>
             </div>

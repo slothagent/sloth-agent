@@ -58,7 +58,7 @@ const mockMessages: Message[] = [
 
 const Message = () => {
     return (
-        <div className="bg-black text-white rounded-lg p-6">
+        <div className="bg-[#161B28] text-gray-300 rounded-lg p-6">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Message Board</h2>
                 <Button variant="outline" className="text-[#93E905] border-[#93E905] hover:bg-[#93E905]/10">

@@ -48,15 +48,15 @@ const Hero: React.FC = () => {
 
   return (
     <div className="w-full bg-[#0B0E17] border-y border-[#1F2937]">
-      <div className="container mx-auto py-6">
-        <div className="flex flex-col md:flex-row gap-6">
+      <div className="container mx-auto py-6 px-4 sm:px-6">
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Featured Agent Card */}
           {loading ? (
             <MainCardSkeleton />
           ) : agents[0] && (
             <Card 
               onClick={() => router.push(`/agent/${agents[0].ticker.toLowerCase()}`)}
-              className="w-full md:w-[400px] h-[200px] bg-[#161B28] hover:bg-[#1C2333] transition-colors duration-200 cursor-pointer border-none rounded-lg"
+              className="w-full lg:w-[400px] h-auto min-h-[200px] bg-[#161B28] hover:bg-[#1C2333] transition-colors duration-200 cursor-pointer border-none rounded-lg"
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
@@ -88,7 +88,7 @@ const Hero: React.FC = () => {
 
           {/* Stats and Info */}
           <div className="flex-1 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-[#161B28] border-none rounded-lg p-4">
                 <h4 className="text-gray-400 mb-2">Total Agents</h4>
                 <p className="text-2xl font-semibold text-white">
@@ -111,7 +111,7 @@ const Hero: React.FC = () => {
             
             <Button 
               onClick={() => router.push('/agent/create')}
-              className="bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2"
+              className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2"
             >
               Create New Agent
             </Button>

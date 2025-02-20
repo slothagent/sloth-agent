@@ -53,48 +53,122 @@ const TransactionList: React.FC = () => {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-xl text-gray-400">FILTER FOR TRANSFERS</div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="bg-[#6200EA] text-white hover:bg-[#7C4DFF] rounded px-3 py-1">
+      {/* Header Section - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <div className="text-lg sm:text-xl text-gray-400">FILTER FOR TRANSFERS</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" className="bg-[#6200EA] text-white hover:bg-[#7C4DFF] rounded px-3 py-1 text-sm">
             ALL
           </Button>
-          <Button variant="outline" className="bg-[#161B28] text-gray-400 hover:bg-[#1C2333] rounded px-3 py-1">
+          <Button variant="outline" className="bg-[#161B28] text-gray-400 hover:bg-[#1C2333] rounded px-3 py-1 text-sm">
             USD {'>'} $1
           </Button>
-          <Button variant="outline" className="bg-[#161B28] text-gray-400 hover:bg-[#1C2333] rounded px-3 py-1">
+          <Button variant="outline" className="bg-[#161B28] text-gray-400 hover:bg-[#1C2333] rounded px-3 py-1 text-sm">
             SORT BY TIME
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-400 mb-2 px-2">
+      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-400 mb-2 px-2">
         <div>
           TRANSFERS <span className="mx-2">1 / {totalTransactions}</span>
         </div>
       </div>
 
-      <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 p-4 text-sm text-gray-400 border-b border-gray-800">
-          <div className="col-span-1">TIME</div>
-          <div className="col-span-4">FROM</div>
-          <div className="col-span-4">TO</div>
-          <div className="col-span-1 text-right">VALUE</div>
-          <div className="col-span-1 text-right">TOKEN</div>
-          <div className="col-span-1 text-right">USD</div>
-        </div>
+      {/* Desktop View - Hidden on mobile */}
+      <div className="hidden md:block">
+        <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
+          <div className="grid grid-cols-12 gap-4 p-4 text-sm text-gray-400 border-b border-gray-800">
+            <div className="col-span-1">TIME</div>
+            <div className="col-span-4">FROM</div>
+            <div className="col-span-4">TO</div>
+            <div className="col-span-1 text-right">VALUE</div>
+            <div className="col-span-1 text-right">TOKEN</div>
+            <div className="col-span-1 text-right">USD</div>
+          </div>
 
-        <div className="divide-y divide-gray-800">
-          {isLoading ? (
-            <div className="p-4 text-center text-gray-400">Loading transactions...</div>
-          ) : transactions.length === 0 ? (
-            <div className="p-4 text-center text-gray-400">No transactions found</div>
-          ) : (
-            transactions.map((tx) => (
-              <div key={tx.id} className="grid grid-cols-12 gap-4 p-4 text-sm hover:bg-[#1C2333] transition-colors duration-200">
-                <div className="col-span-1 text-[#2196F3]">{formatTime()}</div>
-                <div className="col-span-4">
-                  <div className="flex items-center gap-2">
+          <div className="divide-y divide-gray-800">
+            {isLoading ? (
+              <div className="p-4 text-center text-gray-400">Loading transactions...</div>
+            ) : transactions.length === 0 ? (
+              <div className="p-4 text-center text-gray-400">No transactions found</div>
+            ) : (
+              transactions.map((tx) => (
+                <div key={tx.id} className="grid grid-cols-12 gap-4 p-4 text-sm hover:bg-[#1C2333] transition-colors duration-200">
+                  <div className="col-span-1 text-[#2196F3]">{formatTime()}</div>
+                  <div className="col-span-4">
+                    <div className="flex items-center gap-2">
+                      {tx.from.icon && (
+                        <Image
+                          src={tx.from.icon}
+                          alt={tx.from.name || 'From'}
+                          width={20}
+                          height={20}
+                          className="rounded-full"
+                        />
+                      )}
+                      <span className="text-gray-400">
+                        {tx.from.name || formatAddress(tx.from.address)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="col-span-4">
+                    <div className="flex items-center gap-2">
+                      {tx.to.icon && (
+                        <Image
+                          src={tx.to.icon}
+                          alt={tx.to.name || 'To'}
+                          width={20}
+                          height={20}
+                          className="rounded-full"
+                        />
+                      )}
+                      <span className="text-gray-400">
+                        {tx.to.name || formatAddress(tx.to.address)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="col-span-1 text-right text-white">{tx.value}</div>
+                  <div className="col-span-1 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {tx.token.icon && (
+                        <Image
+                          src={tx.token.icon}
+                          alt={tx.token.symbol}
+                          width={16}
+                          height={16}
+                          className="rounded-full"
+                        />
+                      )}
+                      <span className="text-white">{tx.token.symbol}</span>
+                    </div>
+                  </div>
+                  <div className="col-span-1 text-right text-white">${tx.usdValue}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Mobile View - Hidden on desktop */}
+      <div className="md:hidden space-y-4">
+        {isLoading ? (
+          <div className="p-4 text-center text-gray-400">Loading transactions...</div>
+        ) : transactions.length === 0 ? (
+          <div className="p-4 text-center text-gray-400">No transactions found</div>
+        ) : (
+          transactions.map((tx) => (
+            <Card key={tx.id} className="bg-[#161B28] border-none rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[#2196F3] text-sm">{formatTime()}</span>
+                <span className="text-white text-sm">${tx.usdValue}</span>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm w-16">From:</span>
+                  <div className="flex items-center gap-2 flex-1">
                     {tx.from.icon && (
                       <Image
                         src={tx.from.icon}
@@ -104,13 +178,15 @@ const TransactionList: React.FC = () => {
                         className="rounded-full"
                       />
                     )}
-                    <span className="text-gray-400">
+                    <span className="text-gray-400 text-sm truncate">
                       {tx.from.name || formatAddress(tx.from.address)}
                     </span>
                   </div>
                 </div>
-                <div className="col-span-4">
-                  <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm w-16">To:</span>
+                  <div className="flex items-center gap-2 flex-1">
                     {tx.to.icon && (
                       <Image
                         src={tx.to.icon}
@@ -120,14 +196,14 @@ const TransactionList: React.FC = () => {
                         className="rounded-full"
                       />
                     )}
-                    <span className="text-gray-400">
+                    <span className="text-gray-400 text-sm truncate">
                       {tx.to.name || formatAddress(tx.to.address)}
                     </span>
                   </div>
                 </div>
-                <div className="col-span-1 text-right text-white">{tx.value}</div>
-                <div className="col-span-1 text-right">
-                  <div className="flex items-center justify-end gap-1">
+
+                <div className="flex items-center justify-between pt-2 border-t border-gray-800">
+                  <div className="flex items-center gap-1">
                     {tx.token.icon && (
                       <Image
                         src={tx.token.icon}
@@ -137,36 +213,37 @@ const TransactionList: React.FC = () => {
                         className="rounded-full"
                       />
                     )}
-                    <span className="text-white">{tx.token.symbol}</span>
+                    <span className="text-white text-sm">{tx.token.symbol}</span>
                   </div>
+                  <span className="text-white text-sm">{tx.value}</span>
                 </div>
-                <div className="col-span-1 text-right text-white">${tx.usdValue}</div>
               </div>
-            ))
-          )}
-        </div>
+            </Card>
+          ))
+        )}
+      </div>
 
-        <div className="flex items-center justify-between p-4 border-t border-gray-800">
-          <Button
-            variant="outline"
-            className="text-gray-400 hover:bg-[#1C2333]"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </Button>
-          <span className="text-gray-400">
-            Page {currentPage}
-          </span>
-          <Button
-            variant="outline"
-            className="text-gray-400 hover:bg-[#1C2333]"
-            onClick={() => setCurrentPage(p => p + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      </Card>
+      {/* Pagination - Responsive for both views */}
+      <div className="flex items-center justify-between p-4 mt-4 bg-[#161B28] rounded-lg">
+        <Button
+          variant="outline"
+          className="text-gray-400 hover:bg-[#1C2333] text-sm"
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </Button>
+        <span className="text-gray-400 text-xs sm:text-sm">
+          Page {currentPage}
+        </span>
+        <Button
+          variant="outline"
+          className="text-gray-400 hover:bg-[#1C2333] text-sm"
+          onClick={() => setCurrentPage(p => p + 1)}
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 };
