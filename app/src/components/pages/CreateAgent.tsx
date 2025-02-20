@@ -453,7 +453,7 @@ const CreateAgent: React.FC = () => {
                                             'bg-[#161B28] border-[#1F2937] text-gray-400'}`}>
                                             {index + 1}
                                         </div>
-                                        <div className="text-sm text-gray-400">{step.title}</div>
+                                        <div className="text-xs md:text-sm text-gray-400 text-center">{step.title}</div>
                                     </div>
                                 ))}
                             </div>
@@ -496,10 +496,10 @@ const CreateAgent: React.FC = () => {
                     </div>
 
                     {/* Preview Section */}
-                    <div className="w-full mt-10">
-                        <div className="sticky top-8">
-                            <h2 className="text-3xl font-semibold mb-4 text-white">Agent Preview</h2>
-                            <div className="bg-[#161B28] border border-[#1F2937] rounded-lg p-6">
+                    <div className="w-full mt-10 lg:mt-0">
+                        <div className="lg:sticky lg:top-8">
+                            <h2 className="text-2xl lg:text-3xl font-semibold mb-4 text-white">Agent Preview</h2>
+                            <div className="bg-[#161B28] border border-[#1F2937] rounded-lg p-4 lg:p-6">
                                 <AgentPreview
                                     name={agentName || ''}
                                     description={description || ''}
