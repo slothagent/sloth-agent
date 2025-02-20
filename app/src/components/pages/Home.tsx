@@ -1,0 +1,21 @@
+"use client";
+
+import Hero from "@/components/custom/Hero";
+import TrendingTokens from "@/components/custom/TrendingTokens";
+import TransactionList from "@/components/custom/TransactionList";
+
+const Home: React.FC = () => {
+  return (
+    <main className="min-h-screen mx-auto flex flex-col bg-[#0B0E17]">   
+      <div className="w-full">
+        <Hero />
+        <div className="container mx-auto space-y-8 pb-10">
+          <TrendingTokens />
+          <TransactionList />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default Home;

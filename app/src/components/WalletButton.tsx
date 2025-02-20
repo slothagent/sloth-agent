@@ -33,16 +33,9 @@ const WalletButton = () => {
                 return (
                   <button
                     onClick={openConnectModal}
-                    className="flex w-[200px] items-center gap-2 px-4 py-2 font-semibold text-white transition-all rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 hover:shadow-lg"
+                    className="bg-[#2196F3] hover:bg-[#1E88E5] text-white rounded h-10 px-6 transition-colors duration-200 text-sm"
                   >
-                    <Image
-                      src="/assets/wallets/metamask.png"
-                      alt="Wallet"
-                      width={24}
-                      height={24}
-                      className="w-6 h-6"
-                    />
-                    Connect Wallet
+                    Connect
                   </button>
                 );
               }
@@ -51,16 +44,17 @@ const WalletButton = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={openChainModal}
-                    className="flex w-[180px] text-center justify-center items-center gap-2 px-3 py-2 text-sm font-medium transition-all bg-gray-100 rounded-lg hover:bg-gray-200"
+                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 rounded h-10 px-4 flex items-center gap-2 border border-[#1F2937] text-sm"
                   >
                     {chain.hasIcon && (
-                      <div className="w-5 h-5">
+                      <div className="w-4 h-4">
                         {chain.iconUrl && (
                           <Image
                             alt={chain.name ?? 'Chain icon'}
                             src={chain.iconUrl}
-                            width={20}
-                            height={20}
+                            width={16}
+                            height={16}
+                            className="rounded-full"
                           />
                         )}
                       </div>
@@ -70,13 +64,11 @@ const WalletButton = () => {
 
                   <button
                     onClick={openAccountModal}
-                    className="flex w-[210px] text-center justify-center items-center gap-2 px-3 py-2 text-sm font-medium transition-all bg-gray-100 rounded-lg hover:bg-gray-200"
+                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 rounded h-10 px-4 flex items-center gap-3 border border-[#1F2937] text-sm"
                   >
-                    {account.displayName}
-                    <span className="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
-                      {account.displayBalance
-                        ? `${account.displayBalance}`
-                        : ''}
+                    <span className="text-white">{account.displayName}</span>
+                    <span className="text-gray-400">
+                      {account.displayBalance}
                     </span>
                   </button>
                 </div>

@@ -43,7 +43,31 @@
   "pnpm": {
     "overrides": {
       "onnxruntime-node": "1.20.0"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "@discordjs/opus",
+      "@elizaos/plugin-node",
+      "better-sqlite3",
+      "bigint-buffer",
+      "bufferutil",
+      "canvas",
+      "es5-ext",
+      "esbuild",
+      "ffmpeg-static",
+      "keccak",
+      "node-hid",
+      "node-llama-cpp",
+      "onnxruntime-node",
+      "protobufjs",
+      "puppeteer",
+      "secp256k1",
+      "sharp",
+      "sodium-native",
+      "usb",
+      "utf-8-validate",
+      "wtf_wikipedia",
+      "youtube-dl-exec"
+    ]
   },
   "devDependencies": {
     "pm2": "5.4.3",

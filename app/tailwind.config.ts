@@ -10,23 +10,7 @@ const config: Config = {
   ],
   theme: {
   	extend: {
-  		fontFamily: {
-  			sans: [
-  				'var(--font-space-grotesk)'
-  			]
-  		},
   		colors: {
-			sloth: {
-				light: '#93E905',
-				dark: '#00FF00',
-			},
-  			neon: {
-  				pink: '#FF0080',
-  				green: '#00FF00',
-  				purple: '#9C27B0',
-  				yellow: '#FFB800',
-  				blue: '#00B4D8'
-  			},
   			gradient: {
   				start: '#FF0080',
   				middle: '#7928CA',
@@ -124,6 +108,13 @@ const config: Config = {
   			'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
   			'gradient-conic':
   				'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+  		},
+  		container: {
+  			center: true,
+  			padding: "1rem",
+  			screens: {
+  				"2xl": "1400px",
+  			},
   		},
   	}
   },
