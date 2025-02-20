@@ -1,4 +1,5 @@
 import React from 'react';
+import { Input } from "@/components/ui/input";
 
 interface BasicInformationProps {
     agentName: string;
@@ -15,59 +16,41 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
     ticker,
     onNameChange,
     onDescriptionChange,
-    onTickerChange
+    onTickerChange,
 }) => {
     return (
-        <div className="space-y-6 ">
-            <div>
-                <label className="block text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">
-                    Agent Name
-                </label>
-                <input
-                    type="text"
+        <div className="space-y-6">
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Agent Name</label>
+                <Input
                     value={agentName}
                     onChange={(e) => onNameChange(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#fffbf2] border-2 border-[#8b7355] rounded-none 
-                     
-                    focus:shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]
-                    focus:translate-x-[2px] focus:translate-y-[2px]
-                    transition-all duration-200 outline-none
-                    text-[#8b7355] placeholder-[#baa89d]"
                     placeholder="Enter agent name"
+                    className="w-full bg-[#0B0E17] border-[#1F2937] text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3]"
                 />
             </div>
-            <div>
-                <label className="block text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">
-                    Description
-                </label>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Description</label>
                 <textarea
                     value={description}
                     onChange={(e) => onDescriptionChange(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#fffbf2] border-2 border-[#8b7355] rounded-none 
-                    
-                    focus:shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]
-                    focus:translate-x-[2px] focus:translate-y-[2px]
-                    transition-all duration-200 outline-none
-                    text-[#8b7355] placeholder-[#baa89d] h-32 resize-none"
-                    placeholder="Enter a brief description of your agent"
+                    placeholder="Enter agent description"
+                    rows={4}
+                    className="w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none resize-none"
                 />
             </div>
-            <div>
-                <label className="block text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">
-                    Ticker
-                </label>
-                <input
-                    type="text"
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Ticker</label>
+                <Input
                     value={ticker}
                     onChange={(e) => onTickerChange(e.target.value.toUpperCase())}
+                    placeholder="Enter ticker symbol (e.g. BTC)"
+                    className="w-full bg-[#0B0E17] border-[#1F2937] text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] uppercase"
                     maxLength={5}
-                    className="w-full px-4 py-2 bg-[#fffbf2] border-2 border-[#8b7355] rounded-none 
-                    focus:shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]
-                    focus:translate-x-[2px] focus:translate-y-[2px]
-                    transition-all duration-200 outline-none
-                    text-[#8b7355] placeholder-[#baa89d] uppercase"
-                    placeholder="Enter token ticker (max 5 chars)"
                 />
+                <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
             </div>
         </div>
     );

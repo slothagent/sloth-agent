@@ -84,8 +84,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="light">
-      <body className={`${spaceGrotesk.variable} font-sans bg-white text-gray-900`}>
+    <html lang="en">
+      <body className={`${spaceGrotesk.className} bg-[#0B0E17] text-gray-900`}>
         <Providers>
           <Header />
           <Suspense fallback={ <Loading /> }>

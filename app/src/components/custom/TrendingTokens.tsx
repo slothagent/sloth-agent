@@ -99,71 +99,71 @@ const fetchAgents = async (page: number, pageSize: number): Promise<PaginatedRes
 
 const TableSkeleton = () => {
   return (
-    <Card className="border-2 border-[#8b7355] rounded-lg overflow-hidden">
+    <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
       <Table>
         <TableHeader>
-          <TableRow className="border-b-2 border-[#8b7355] hover:bg-[#8b7355]/5">
-            <TableHead className="font-mono text-[#8b7355]">Token</TableHead>
-            <TableHead className="font-mono text-[#8b7355]">Age</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Liq $/MC</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">MindShare</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Holders</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Smart $/KOL</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">1h TXs</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">1h Vol</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Price</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Δ7D</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Market Cap</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Volume</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Followers</TableHead>
-            <TableHead className="text-right font-mono text-[#8b7355]">Top Tweets</TableHead>
+          <TableRow className="border-b border-gray-800 hover:bg-transparent">
+            <TableHead className="font-mono text-gray-400">Token</TableHead>
+            <TableHead className="font-mono text-gray-400">Age</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Liq $/MC</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">MindShare</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Holders</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Smart $/KOL</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">1h TXs</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">1h Vol</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Price</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Δ7D</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Market Cap</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Volume</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Followers</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">Top Tweets</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {[...Array(5)].map((_, index) => (
-            <TableRow key={index} className="border-b border-[#8b7355]/20">
+            <TableRow key={index} className="border-b border-gray-800">
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <Skeleton className="h-8 w-8 rounded-lg" />
+                  <Skeleton className="h-8 w-8 rounded-lg bg-gray-700" />
                   <div className="flex flex-col gap-1">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-4 w-24 bg-gray-700" />
+                    <Skeleton className="h-3 w-16 bg-gray-700" />
                   </div>
                 </div>
               </TableCell>
-              <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-              <TableCell>
+              <TableCell><Skeleton className="h-4 w-16 bg-gray-700" /></TableCell>
+              <TableCell className="text-right">
                 <div className="flex flex-col items-end gap-1">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-4 w-20 bg-gray-700" />
+                  <Skeleton className="h-3 w-16 bg-gray-700" />
                 </div>
               </TableCell>
-              <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-              <TableCell>
+              <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
+              <TableCell className="text-right">
                 <div className="flex flex-col items-end gap-1">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-4 w-16 bg-gray-700" />
+                  <Skeleton className="h-3 w-12 bg-gray-700" />
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-right">
                 <div className="flex flex-col items-end gap-1">
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-4 w-20 bg-gray-700" />
+                  <Skeleton className="h-3 w-16 bg-gray-700" />
                 </div>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-right">
                 <div className="flex flex-col items-end gap-1">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-16 bg-gray-700" />
+                  <Skeleton className="h-3 w-20 bg-gray-700" />
                 </div>
               </TableCell>
-              <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-20 ml-auto" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-20 ml-auto bg-gray-700" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-20 ml-auto bg-gray-700" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
+              <TableCell><Skeleton className="h-4 w-12 mx-auto bg-gray-700" /></TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -219,11 +219,11 @@ const TrendingTokens: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-8">
-        <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-[#8b7355]">Error Loading Agents</h2>
-        <p className="text-[#8b7355] mb-4">{error instanceof Error ? error.message : 'An error occurred while loading agents'}</p>
+        <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-white">Error Loading Agents</h2>
+        <p className="text-gray-400 mb-4">{error instanceof Error ? error.message : 'An error occurred while loading agents'}</p>
         <Button
           variant="outline"
-          className="border-2 border-[#8b7355] text-[#8b7355] hover:bg-[#8b7355]/10 rounded-lg font-mono transition-all duration-200"
+          className="border border-gray-600 text-gray-400 hover:bg-gray-800 rounded-lg font-mono"
           onClick={() => window.location.reload()}
         >
           Retry
@@ -234,100 +234,94 @@ const TrendingTokens: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-[#8b7355]">AI Agent Index</h2>
+      <h2 className="text-2xl mt-8 font-bold mb-4 text-white">AI Agent Index</h2>
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <Card className="border-2 border-[#8b7355] rounded-lg overflow-hidden">
+        <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="border-b-2 border-[#8b7355] hover:bg-[#8b7355]/5">
-                <TableHead className="font-mono text-[#8b7355]">Token</TableHead>
-                <TableHead className="font-mono text-[#8b7355]">Age</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Liq $/MC</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">MindShare</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Holders</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Smart $/KOL</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">1h TXs</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">1h Vol</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Price</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Δ7D</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Market Cap</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Volume</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Followers</TableHead>
-                <TableHead className="text-right font-mono text-[#8b7355]">Top Tweets</TableHead>
+              <TableRow className="border-b border-gray-800 hover:bg-transparent">
+                <TableHead className="text-gray-400">Token</TableHead>
+                <TableHead className="text-gray-400">Age</TableHead>
+                <TableHead className="text-right text-gray-400">Liq $/MC</TableHead>
+                <TableHead className="text-right text-gray-400">MindShare</TableHead>
+                <TableHead className="text-right text-gray-400">Holders</TableHead>
+                <TableHead className="text-right text-gray-400">Smart $/KOL</TableHead>
+                <TableHead className="text-right text-gray-400">1h TXs</TableHead>
+                <TableHead className="text-right text-gray-400">1h Vol</TableHead>
+                <TableHead className="text-right text-gray-400">Price</TableHead>
+                <TableHead className="text-right text-gray-400">Δ7D</TableHead>
+                <TableHead className="text-right text-gray-400">Market Cap</TableHead>
+                <TableHead className="text-right text-gray-400">Volume</TableHead>
+                <TableHead className="text-right text-gray-400">Followers</TableHead>
+                <TableHead className="text-right text-gray-400">Top Tweets</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {agents.map((agent) => (
                 <TableRow 
                   key={agent._id.toString()} 
-                  className="border-b border-[#8b7355]/20 text-[#8b7355] hover:bg-[#8b7355]/5 cursor-pointer transition-colors duration-200" 
+                  className="border-b border-gray-800 text-white hover:bg-[#1C2333] cursor-pointer transition-colors duration-200"
                   onClick={() => router.push(`/agent/${agent.ticker.toLowerCase()}`)}
                 >
-                  <TableCell className="font-mono">
+                  <TableCell>
                     <div className="flex items-center gap-2">
                       <Image 
                         src={agent.imageUrl || ''} 
                         alt={agent.name} 
                         width={32} 
                         height={32} 
-                        className="rounded-lg border border-[#8b7355]/20"
+                        className="rounded-lg"
                       />
                       <div className="flex flex-col min-w-0">
-                        <span className="font-medium truncate text-[#8b7355]">{agent.name}</span>
-                        <span className="text-sm text-[#8b7355]/60 truncate">{agent.address.slice(0, 6)}...{agent.address.slice(-4)}</span>
+                        <span className="font-medium truncate text-white">{agent.name}</span>
+                        <span className="text-sm text-gray-400 truncate">{agent.address.slice(0, 6)}...{agent.address.slice(-4)}</span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono">{timeAgo(agent.createdAt)}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    <div>{agent.metrics?.liquidityAmount||"-"} 🔥</div>
-                    <div className="text-sm text-[#8b7355]/60">{agent.metrics?.liquidityValue||"-"}</div>
+                  <TableCell className="text-gray-400">{timeAgo(agent.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="text-white">{agent.metrics?.liquidityAmount||"-"} 🔥</div>
+                    <div className="text-sm text-gray-400">{agent.metrics?.liquidityValue||"-"}</div>
                   </TableCell>
-                  <TableCell className="text-right text-[#8b7355] font-mono">{agent.metrics?.blueChipHolding||"-"}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    <div>{agent.metrics?.holdersCount||"-"}</div>
-                    <div className="text-sm text-[#8b7355]/60">+{agent.metrics?.holdersChange24h||"-"}</div>
+                  <TableCell className="text-right text-white">{agent.metrics?.blueChipHolding||"-"}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="text-white">{agent.metrics?.holdersCount||"-"}</div>
+                    <div className="text-sm text-gray-400">+{agent.metrics?.holdersChange24h||"-"}</div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
-                    <div>{agent.metrics?.smartMoneyValue||"-"}</div>
-                    <div className="text-sm text-[#8b7355]/60">{agent.metrics?.smartMoneyKol||"-"} KOL</div>
+                  <TableCell className="text-right">
+                    <div className="text-white">{agent.metrics?.smartMoneyValue||"-"}</div>
+                    <div className="text-sm text-gray-400">{agent.metrics?.smartMoneyKol||"-"} KOL</div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
-                    <div>{agent.metrics?.totalTransactions||"-"}</div>
-                    <div className="text-sm text-[#8b7355]/60">{agent.metrics?.buyTransactions||"-"}/{agent.metrics?.sellTransactions||"-"}</div>
+                  <TableCell className="text-right">
+                    <div className="text-white">{agent.metrics?.totalTransactions||"-"}</div>
+                    <div className="text-sm text-gray-400">{agent.metrics?.buyTransactions||"-"}/{agent.metrics?.sellTransactions||"-"}</div>
                   </TableCell>
-                  <TableCell className="text-right font-mono">{agent.metrics?.volumeLastHour||"-"}</TableCell>
-                  <TableCell className="text-right font-mono">{agent.metrics?.currentPrice||"-"}</TableCell>
-                  <TableCell className="text-right font-mono text-[#8b7355]">
-                    {agent.metrics?.priceChange1m||"-"}
+                  <TableCell className="text-right text-white">{agent.metrics?.volumeLastHour||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{agent.metrics?.currentPrice||"-"}</TableCell>
+                  <TableCell className="text-right">
+                    <span className={agent.metrics?.priceChange1m && Number(agent.metrics.priceChange1m) > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {agent.metrics?.priceChange1m||"-"}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {agent.metrics?.marketCap||"-"}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {agent.metrics?.totalVolume||"-"}
-                  </TableCell>
-                  <TableCell className="text-right font-mono">
-                    {agent.metrics?.followersCount||"-"}
-                  </TableCell>
-                  <TableCell className="text-center font-mono">
-                    {agent.metrics?.topTweetsCount||"-"}
-                  </TableCell>
+                  <TableCell className="text-right text-white">{agent.metrics?.marketCap||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{agent.metrics?.totalVolume||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{agent.metrics?.followersCount||"-"}</TableCell>
+                  <TableCell className="text-center text-white">{agent.metrics?.topTweetsCount||"-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
           
-          <div className="flex items-center justify-between px-6 py-4 border-t border-[#8b7355]/20">
-            <div className="flex-1 text-sm text-[#8b7355]">
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
+            <div className="flex-1 text-sm text-gray-400">
               Page {metadata.currentPage} of {metadata.totalPages}
             </div>
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
-                className="border-2 border-[#8b7355] text-[#8b7355] hover:bg-[#8b7355]/10 rounded-lg font-mono transition-all duration-200"
+                className="text-gray-400 hover:bg-gray-800 rounded-lg"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || isFetching}
               >
@@ -335,7 +329,7 @@ const TrendingTokens: React.FC = () => {
               </Button>
               <Button
                 variant="outline"
-                className="border-2 border-[#8b7355] text-[#8b7355] hover:bg-[#8b7355]/10 rounded-lg font-mono transition-all duration-200"
+                className="text-gray-400 hover:bg-gray-800 rounded-lg"
                 onClick={() => setCurrentPage(prev => Math.min(metadata.totalPages, prev + 1))}
                 disabled={currentPage === metadata.totalPages || isFetching}
               >

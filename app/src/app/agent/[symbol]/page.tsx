@@ -12,15 +12,18 @@ import { useParams } from 'next/navigation';
 import Chart from '@/components/chart';
 import Overview from '@/components/custom/Overview';
 import Social from '@/components/custom/Social';
+import { Button } from "@/components/ui/button";
+import Message from '@/components/custom/Message';
+import Launching from '@/components/custom/Launching';
 import { useQuery } from '@tanstack/react-query';   
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { NextPage } from 'next';
-import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } from 'wagmi';
+import { useReadContract, useWriteContract } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { toast } from 'react-hot-toast';
-import { Button } from '@/components/ui/button';
 import { parseEther, formatUnits } from "ethers";
+
 
 const AgentDetails: NextPage = () => {
     const { symbol } = useParams();
@@ -120,62 +123,46 @@ const AgentDetails: NextPage = () => {
     }
 
     return (
-    <div className="min-h-screen bg-white container mx-auto">
+    <div className="min-h-screen bg-[#0B0E17]">
       {/* Top Navigation Bar */}
-        <div className="bg-primary top-0 sm:top-12 border-border-primary border-b sm:border-b-0">
-            <div className="py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8 mx-auto">
+        <div className="bg-[#0B0E17] top-0 sm:top-12 border-[#1F2937] border-b sm:border-b-0">
+            <div className="container mx-auto py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8">
                 <div className="flex items-center gap-3 justify-between sm:justify-start">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-4">
                     <Link href="/" className="flex items-center gap-2">
-                    <button className="flex items-center justify-center w-max font-sans font-medium antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary disabled:bg-quarternary [&>svg]:w-[1em] [&>svg]:h-[1em] text-button-text-default bg-button-bg-default hover:bg-button-bg-hover group-hover:bg-button-bg-hover active:bg-button-bg-pressed h-8 gap-1 text-sm rounded-full aspect-square px-0">
-                        <div className="w-6 h-6 bg-gray-200 rounded-full"></div>
-                    </button>
-                    <div className="hidden sm:flex items-center border gap-1 rounded-full px-2 py-1">
-                        <p className="text-text-primary text-sm font-medium">slothai.xyz</p>
-                    </div>
+                        <Button variant="ghost" size="icon" className="flex items-center gap-2 text-gray-400 hover:text-white">
+                            <div className="w-6 h-6 bg-[#161B28] rounded-full border border-[#1F2937]"></div>
+                        </Button>
+                        <div className="hidden sm:flex items-center gap-2 border border-[#1F2937] px-4 py-2">
+                            <p className="text-gray-400 text-sm font-medium">{agentData?.ticker}</p>
+                        </div>
                     </Link>
                     <div className="hidden sm:block">
-                    <button className="flex items-center justify-center w-max font-sans antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary [&>svg]:w-[1em] [&>svg]:h-[1em] disabled:bg-transparent hover:bg-button-bg-hover group-hover:bg-button-bg-hover active:bg-button-bg-pressed px-2 py-1.5 h-8 gap-2 text-sm font-medium text-text-primary border border-border-secondary rounded-lg">
-                        <img className="size-5 rounded-xs" alt="F" src="https://pbs.twimg.com/profile_images/1848028530099052545/urFxrFx__400x400.jpg" loading="lazy" />
+                    <button className="flex items-center justify-center w-max font-sans antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary [&>svg]:w-[1em] [&>svg]:h-[1em] disabled:bg-transparent hover:bg-[#1C2333] group-hover:bg-[#1C2333] active:bg-button-bg-pressed px-2 py-1.5 h-8 gap-2 text-sm font-medium text-gray-400 border border-[#1F2937] rounded-lg">
+                        <img className="size-5 rounded-xs" alt="F" src={agentData?.imageUrl} loading="lazy" />
                         {agentData?.name}
                     </button>
                     </div>
                 </div>
-                <div className="sm:hidden">
-                    <button className="flex items-center justify-center w-max font-sans antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary [&>svg]:w-[1em] [&>svg]:h-[1em] disabled:bg-transparent hover:bg-button-bg-hover group-hover:bg-button-bg-hover active:bg-button-bg-pressed px-2 py-1.5 h-8 gap-2 text-sm font-medium text-text-primary border border-border-secondary rounded-lg">
-                    <img className="size-5 rounded-xs" alt="F" src="https://pbs.twimg.com/profile_images/1848028530099052545/urFxrFx__400x400.jpg" loading="lazy" />
-                    {agentData?.name}
-                    </button>
-                </div>
-                <button className="flex items-center border justify-center w-max font-sans font-medium antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary disabled:bg-quarternary [&>svg]:w-[1em] [&>svg]:h-[1em] group-hover:bg-inverted-secondary active:bg-inverted-tertiary h-8 rounded-full px-3 group/star bg-quarternary gap-2 text-button-text-default text-sm hover:bg-tertiary aspect-square sm:aspect-auto">
+                <Button variant="ghost" className="group/star text-gray-400 hover:text-white">
                     <Star className="w-4 h-4" />
-                    <span className="sm:block hidden">Add to watchlist</span>
-                </button>
+                    <span className="sm:block hidden border border-[#1F2937] px-4 py-2 h-[40px]">Add to watchlist</span>
+                </Button>
                 </div>
                 <div className="hidden md:block">
-                <div role="group" dir="ltr" className="flex items-center justify-center border border-border-primary shadow-sm rounded-lg h-8 p-[1px] gap-0 !w-full md:!w-max md:!mx-0">
-                    <button type="button" data-state="off" className="inline-flex items-center justify-center text-sm transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:text-badge-info-text data-[state=on]:bg-green-200 data-[state=on]:!font-medium data-[state=on]:!text-black hover:bg-secondary whitespace-nowrap border-none rounded-md font-medium px-3 data-[state=off]:!text-text-primary h-[28px] w-full">
-                    24h
-                    </button>
-                    <button type="button" data-state="off" className="inline-flex items-center justify-center text-sm transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:text-badge-info-text data-[state=on]:bg-green-200 data-[state=on]:!font-medium data-[state=on]:!text-black hover:bg-secondary whitespace-nowrap border-none rounded-md font-medium px-3 data-[state=off]:!text-text-primary h-[28px] w-full">
-                    3D
-                    </button>
-                    <button type="button" data-state="on" className="inline-flex items-center justify-center text-sm transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:text-badge-info-text data-[state=on]:bg-green-200 data-[state=on]:!font-medium data-[state=on]:!text-black hover:bg-secondary whitespace-nowrap border-none rounded-md font-medium px-3 data-[state=off]:!text-text-primary h-[28px] w-full">
-                    7D
-                    </button>
-                    <button type="button" data-state="off" className="inline-flex items-center justify-center text-sm transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:text-badge-info-text data-[state=on]:bg-green-200 data-[state=on]:!font-medium data-[state=on]:!text-black hover:bg-secondary whitespace-nowrap border-none rounded-md font-medium px-3 data-[state=off]:!text-text-primary h-[28px] w-full">
-                    14D
-                    </button>
-                    <button type="button" data-state="off" className="inline-flex items-center justify-center text-sm transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 data-[state=on]:text-badge-info-text data-[state=on]:bg-green-200 data-[state=on]:!font-medium data-[state=on]:!text-black hover:bg-secondary whitespace-nowrap border-none rounded-md font-medium px-3 data-[state=off]:!text-text-primary h-[28px] w-full">
-                    30D
-                    </button>
+                <div role="list" dir="ltr" className="flex items-center justify-center border-[#1F2937] shadow-sm rounded-lg p-[1px] gap-0 !w-full md:!w-max md:!mx-0 border py-2 h-[40px]">
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">24h</Button>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">3D</Button>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">7D</Button>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">14D</Button>
+                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">30D</Button>
                 </div>
                 </div>
             </div>
         </div>
 
         {/* Main Content */}
-        <div className = "flex flex-col sm:mt-4 mb-6 lg:px-4 lg:mb-12">
+        <div className="container mx-auto flex flex-col sm:mt-4 mb-6 lg:px-4 lg:mb-12">
             <div className="lg:mb-10 hidden sm:block">
                 <div className="flex max-lg:p-2 h-full w-full lg:justify-between relative">
                     <div className="hidden lg:grid lg:grid-cols-[1fr,_420px] gap-4 w-full">
@@ -193,68 +180,53 @@ const AgentDetails: NextPage = () => {
                                     <div className="lg:flex flex-col justify-center h-full">
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h1 className="text-3xl font-medium mb-1">{agentData?.name}</h1>
+                                                <h1 className="text-3xl font-medium mb-1 text-white">{agentData?.name}</h1>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <a href="/d/categories/meme">
-                                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 rounded-full px-2 py-0.5 text-xs h-6 bg-transparent border-border-secondary text-text-tertiary border">
+                                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 rounded-full px-2 py-0.5 text-xs h-6 bg-[#161B28] border-[#1F2937] text-gray-400 border">
                                                             {agentData?.ticker}
                                                         </div>
                                                     </a>
                                                 </div>
                                             </div>
-                                            <p className="text-sm text-text-tertiary">{agentData?.ticker}</p>
+                                            <p className="text-sm text-gray-400">{agentData?.ticker}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div className="flex-col gap-2 mt-4 max-lg:mt-6">
-                                <div className="text-text-primary text-sm">
+                                <div className="text-gray-400 text-sm">
                                     {agentData?.description}
                                 </div>
-                                {/* <div className="mt-4">
-                                    <div className="flex items-center gap-2 ">
-                                        <a href="https://x.com/FartCoinOfSOL" target="_blank">
-                                            <button className="flex items-center border  justify-center w-max font-sans font-medium antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary disabled:bg-quarternary [&>svg]:w-[1em] [&>svg]:h-[1em] text-button-text-default bg-button-bg-default hover:bg-button-bg-hover group-hover:bg-button-bg-hover active:bg-button-bg-pressed h-8 gap-1 px-3 text-sm rounded-lg">
-                                                𝕏
-                                            </button>
-                                        </a>
-                                        <a href="https://www.geckoterminal.com/solana/tokens/9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump" target="_blank">
-                                            <button className="flex items-center border justify-center w-max font-sans font-medium antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary disabled:bg-quarternary [&>svg]:w-[1em] [&>svg]:h-[1em] text-button-text-default bg-button-bg-default hover:bg-button-bg-hover group-hover:bg-button-bg-hover active:bg-button-bg-pressed h-8 gap-1 text-sm rounded-lg px-2">
-                                                <img height="16" width="16" className="rounded-full mr-0.5" src="/geckoterminal.png" />
-                                                GeckoTerminal
-                                            </button>
-                                        </a>
-                                    </div>
-                                </div> */}
                             </div>
                         </div>
                         <div className="ml-auto w-max hidden lg:block">
                             <div className="grid grid-cols-2 max-h-[86px]">
-                                <div className="border px-4 py-3 w-52 h-[86px] justify-between flex flex-col">
+                                <div className="w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
                                     <div className="flex flex-col h-full">
-                                        <div className="text-sm mb-auto flex items-center gap-1.5 font-medium">
-                                            <img alt="Solana" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
+                                        <div className="text-sm mb-auto flex items-center gap-1.5 font-medium text-gray-400">
+                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
                                             Contract address
                                         </div>
-                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${agentData?.address}`} target="_blank" className="flex text-sm items-center gap-1 mt-1.5">
+                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${agentData?.address}`} target="_blank" className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
                                             {agentData?.address.slice(0, 4)}...{agentData?.address.slice(-4)}
-                                            <button className="ml-1 text-gray-400 hover:text-gray-600">
+                                            <button className="ml-1 text-gray-400 hover:text-white">
                                                 <Copy className="w-4 h-4" />
                                             </button>
                                         </Link>
                                     </div>
                                 </div>
-                                <div className="border border-l-0  px-4 py-3 w-52 h-[86px] justify-between flex flex-col">
+                                <div className="border-l-0 w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
                                     <div>
-                                        <div className="text-sm flex items-center gap-1.5 font-medium">
+                                        <div className="text-sm flex items-center gap-1.5 font-medium text-gray-400">
                                             <Clock className="w-4 h-4" />
                                             Created
                                         </div>
-                                        <div className="flex text-sm items-center gap-1 mt-1.5">
+                                        <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400">
                                             {agentData?.createdAt ? (
                                                 <>
                                                     {agentData.createdAt.toLocaleDateString()} 
-                                                    <span className="text-text-tertiary">
+                                                    <span className="text-gray-500">
                                                         {getDaysAgo(agentData.createdAt)}
                                                     </span>
                                                 </>
@@ -273,44 +245,29 @@ const AgentDetails: NextPage = () => {
                             <div>
                                 <div className="flex flex-col gap-0">
                                     <div className="mb-1 flex items-center gap-1.5">
-                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 rounded-full px-2 py-1 text-xs h-auto bg-transparent border-border-secondary text-text-tertiary border">
+                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 rounded-full px-2 py-1 text-xs h-auto bg-[#161B28] border-[#1F2937] text-gray-400 border">
                                             {agentData?.ticker}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        <h1 className="text-2xl font-medium font-display mb-1">{agentData?.name}</h1>
+                                        <h1 className="text-2xl font-medium font-display mb-1 text-white">{agentData?.name}</h1>
                                     </div>
-                                    <p className="text-xs text-text-tertiary">{agentData?.ticker}</p>
+                                    <p className="text-xs text-gray-400">{agentData?.ticker}</p>
                                     <div className="mt-2 flex items-center gap-1">
-                                        <div className="flex items-center rounded justify-center font-sans font-medium w-fit bg-badge-success-bg text-badge-success-text h-6 gap-1 text-xs px-2">
+                                        <div className="flex items-center rounded justify-center font-sans font-medium w-fit bg-[#161B28] text-gray-400 h-6 gap-1 text-xs px-2 border border-[#1F2937]">
                                             {agentData?.ticker}
                                         </div>
-                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${agentData?.address}`} target="_blank" className="flex items-center rounded justify-center font-medium w-fit bg-quarternary text-text-primary text-[10px] leading-[12px] gap-1 px-1 font-mono h-auto py-1">
-                                            <img alt="Solana" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-4" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
+                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${agentData?.address}`} target="_blank" className="flex items-center rounded justify-center font-medium w-fit bg-[#161B28] text-gray-400 text-[10px] leading-[12px] gap-1 px-1 h-auto py-1 border border-[#1F2937]">
+                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-4" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
                                             {agentData?.address.slice(0, 4)}...{agentData?.address.slice(-4)}
                                         </Link>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <p className="text-xs mt-2 text-text-tertiary">
+                        <p className="text-xs mt-2 text-gray-400">
                             {agentData?.description}
                         </p>
-                        <div className="flex gap-2 mt-3 flex-wrap">
-                            <div className="flex items-center gap-2">
-                                <a href="https://x.com/FartCoinOfSOL" target="_blank">
-                                    <button className="flex items-center justify-center w-max font-sans font-medium antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary disabled:bg-quarternary [&>svg]:w-[1em] [&>svg]:h-[1em] text-button-text-default bg-button-bg-default hover:bg-button-bg-hover group-hover:bg-button-bg-hover active:bg-button-bg-pressed h-8 gap-1 px-3 text-sm rounded-lg">
-                                        𝕏
-                                    </button>
-                                </a>
-                                <a href="https://www.geckoterminal.com/solana/tokens/9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump" target="_blank">
-                                    <button className="flex items-center justify-center w-max font-sans font-medium antialiased focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-border-focus transition-all disabled:cursor-not-allowed disabled:text-text-tertiary disabled:bg-quarternary [&>svg]:w-[1em] [&>svg]:h-[1em] text-button-text-default bg-button-bg-default hover:bg-button-bg-hover group-hover:bg-button-bg-hover active:bg-button-bg-pressed h-8 gap-1 text-sm rounded-lg px-2">
-                                        <img height="16" width="16" className="rounded-full mr-0.5" src="/geckoterminal.png" />
-                                        GeckoTerminal
-                                    </button>
-                                </a>
-                            </div>
-                        </div>
                     </div>
 
                     </div>
@@ -318,82 +275,105 @@ const AgentDetails: NextPage = () => {
             </div>
 
             {/* Navigation Tabs */}
-            <div className=" border-border-primary">
+            <div className="border-[#1F2937]">
                 <div className="">
                 <Tabs defaultValue="trade" className="w-full">
-                    <div className="flex items-center justify-between mb-4 border-b">
+                    <div className="flex items-center justify-between mb-4 border-b border-[#1F2937]">
                         <TabsList className="h-[62px] w-full justify-start gap-6 bg-transparent">
                         <TabsTrigger 
                             value="trade"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-text-primary data-[state=active]:shadow-none rounded-none px-0 text-base font-medium"
+                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
                         >
                             <div className="flex items-center gap-1 text-base font-medium">Trade</div>
                         </TabsTrigger>
                         <TabsTrigger 
                             value="overview"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-text-primary data-[state=active]:shadow-none rounded-none px-0 text-base font-medium"
+                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
                         >
                             <div className="flex text-base font-medium">Overview</div>
                         </TabsTrigger>
                         <TabsTrigger 
                             value="social"
-                            className="data-[state=active]:border-b-2 data-[state=active]:border-text-primary data-[state=active]:shadow-none rounded-none px-0 text-base font-medium"
+                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
                         >
                             <div className="flex items-center gap-1 text-base font-medium">Social</div>
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="message"
+                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
+                        >
+                            <div className="flex items-center gap-1 text-base font-medium">Message</div>
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="launching"
+                            className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-base font-medium text-gray-400 data-[state=active]:text-white"
+                        >
+                            <div className="flex items-center gap-1 text-base font-medium">Launching</div>
                         </TabsTrigger>
                         </TabsList>
                     </div>
 
                     <TabsContent value="trade" className="mt-4">
                         <div className="sm:hidden flex px-4 justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl font-medium">$0.60282</span>
-                        </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl font-medium text-white">$0.60282</span>
+                            </div>
                         </div>
                         <div className="flex flex-col gap-4">
-                            <div className="md:grid grid-cols-1 md:grid-cols-[1fr,_400px] gap-4 ">
-                                <div className="h-[400px] md:h-[550px] md:border md:rounded-lg relative flex flex-col">
-                                    <div className="h-[100px] hidden md:flex justify-between p-4 border-b">
+                            <div className="md:grid grid-cols-1 md:grid-cols-[1fr,_400px] gap-4">
+                                <div className="h-[400px] md:h-[550px] md:border md:rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
+                                    <div className="h-[100px] hidden md:flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-4xl font-medium">$0.51033</p>
-                                            <span className="text-sm flex gap-1 items-center text-change-negative">
+                                            <p className="text-4xl font-medium text-white">$0.51033</p>
+                                            <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15%
                                             <span>(7D)</span>
                                             </span>
                                         </div>
                                     </div>
                                     <div className="h-[450px] w-full p-4 relative hidden md:block">
-                                        <div className="flex flex-col w-full h-full relative pt-16">
-                                            <Chart height="full" />
+                                        <div className="flex flex-col w-full h-full relative pt-3">
+                                            {/* <Chart height="full" /> */}
                                         </div>
                                     </div>
                                 </div>
+
                                 {/* Desktop Swap */}
-                                <div className="hidden md:block border p-2 overflow-hidden h-[550px] rounded-lg">
+                                <div className="hidden md:block border border-[#1F2937] p-2 overflow-hidden h-[550px] rounded-lg bg-[#161B28]">
                                     <Tabs defaultValue="buy" className="flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
                                             <div className="w-[200px]">
-                                                <TabsList className="grid w-full grid-cols-3">
+                                                <TabsList className="grid w-full grid-cols-3 bg-[#0B0E17]">
                                                     <TabsTrigger 
                                                         value="buy"
-                                                        className="data-[state=active]:bg-green-100 data-[state=active]:text-green-800"
+                                                        className="text-gray-400 data-[state=active]:bg-[#93E905]/20 data-[state=active]:text-white"
                                                     >
                                                         Buy
                                                     </TabsTrigger>
-                                                    <TabsTrigger value="sell">Sell</TabsTrigger>
-                                                    <TabsTrigger value="auto">Auto</TabsTrigger>
+                                                    <TabsTrigger 
+                                                        value="sell"
+                                                        className="text-gray-400 data-[state=active]:bg-[#93E905]/20 data-[state=active]:text-white"
+                                                    >
+                                                        Sell
+                                                    </TabsTrigger>
+                                                    <TabsTrigger 
+                                                        value="auto"
+                                                        className="text-gray-400 data-[state=active]:bg-[#93E905]/20 data-[state=active]:text-white"
+                                                    >
+                                                        Auto
+                                                    </TabsTrigger>
                                                 </TabsList>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm text-gray-500">Bal:</span>
-                                                <span className="text-sm font-medium">—SOL</span>
+                                                <span className="text-sm text-gray-400">Bal:</span>
+                                                <span className="text-sm font-medium text-white">—ETH</span>
                                             </div>
                                         </div>
                                         <TabsContent value="buy">
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-sm text-gray-500">Amount</span>
-                                                    <div className="flex items-center gap-2 border px-2">
+                                                    <span className="text-sm text-gray-400">Amount</span>
+                                                    <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
                                                         <Input 
                                                             type="number"
                                                             step="any"
@@ -401,41 +381,41 @@ const AgentDetails: NextPage = () => {
                                                             placeholder="0.0"
                                                             value={amount||0}
                                                             onChange={(e) => setAmount(e.target.value)}
-                                                            className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                                            className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
                                                         />
-                                                        <span>ETH</span>
+                                                        <span className="text-gray-400">ETH</span>
                                                     </div>
                                                     <div className="grid grid-cols-4 gap-2">
                                                         <button 
                                                             onClick={() => handleAmountClick(0.01)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             0.01
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(0.1)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             0.1
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(0.5)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             0.5
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(1)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             1
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <div className="flex items-center gap-2 text-sm text-gray-400">
                                                     <span>You will receive: {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {agentData?.ticker}</span>
                                                 </div>
-                                                <Button onClick={handleBuy} className="w-full mt-2 bg-[#93E905]/20 text-black py-3 rounded-md font-medium hover:bg-[#93E905]/50 transition-colors">
+                                                <Button onClick={handleBuy} className="w-full mt-2 bg-[#93E905]/20 text-white py-3 rounded-md font-medium hover:bg-[#93E905]/30 transition-colors">
                                                     Buy
                                                 </Button>
                                             </div>
@@ -443,8 +423,8 @@ const AgentDetails: NextPage = () => {
                                         <TabsContent value="sell">
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-sm text-gray-500">Amount</span>
-                                                    <div className="flex items-center gap-2 border px-2">
+                                                    <span className="text-sm text-gray-400">Amount</span>
+                                                    <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
                                                         <Input 
                                                             type="number"
                                                             step="any"
@@ -452,52 +432,53 @@ const AgentDetails: NextPage = () => {
                                                             placeholder="0.0"
                                                             value={amount||0}
                                                             onChange={(e) => setAmount(e.target.value)}
-                                                            className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                                            className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
                                                         />
-                                                        <span>ETH</span>
+                                                        <span className="text-gray-400">ETH</span>
                                                     </div>
                                                     <div className="grid grid-cols-4 gap-2">
                                                         <button 
                                                             onClick={() => handleAmountClick(0.01)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             25%
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(0.1)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             50%
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(0.5)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             75%
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(1)}
-                                                            className="px-4 py-2 text-sm font-medium border rounded-md hover:bg-gray-50"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             100%
                                                         </button>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                                <div className="flex items-center gap-2 text-sm text-gray-400">
                                                     <span>1 ETH = {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {agentData?.ticker}</span>
                                                 </div>
-                                                <button className="w-full mt-2 bg-gray-200 text-gray-800 py-3 rounded-md font-medium hover:bg-gray-300 transition-colors">
+                                                <button className="w-full mt-2 bg-[#93E905]/20 text-white py-3 rounded-md font-medium hover:bg-[#93E905]/30 transition-colors">
                                                     Sell
                                                 </button>
                                             </div>
                                         </TabsContent>
                                         <TabsContent value="auto">
-                                            <span>Coming Soon</span>
+                                            <span className="text-gray-400">Coming Soon</span>
                                         </TabsContent>  
                                     </Tabs>
                                 </div>
                             </div>
                         </div>
+                        
                     </TabsContent>
                     <TabsContent value="overview" className="mt-4">
                         <Overview />
@@ -505,31 +486,36 @@ const AgentDetails: NextPage = () => {
                     <TabsContent value="social" className="mt-4">
                         <Social agentData={agentData} />
                     </TabsContent>
+                    <TabsContent value="message" className="mt-4">
+                        <Message />
+                    </TabsContent>
+                    <TabsContent value="launching" className="mt-4">
+                        <Launching />
+                    </TabsContent>
                 </Tabs>
                 </div>
 
             {/* Mobile Navigation */}
             <div className="sm:hidden">
-                <div className="border-t-2 border-tertiary grid grid-cols-3 h-[52px] bg-primary justify-evenly z-[999] w-full fixed bottom-0 gap-[1px]">
-                    <button className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-white text-text-primary">
+                <div className="border-t border-[#1F2937] grid grid-cols-3 h-[52px] bg-[#0B0E17] justify-evenly z-[999] w-full fixed bottom-0 gap-[1px]">
+                    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-[#161B28] text-white">
                     <div className="flex items-center gap-1">Trade</div>
-                    </button>
-                    <button className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-quarternary text-text-quarternary">
+                    </Button>
+                    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-[#161B28] text-gray-400">
                     <div className="flex">Overview</div>
-                    </button>
-                    <button className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-quarternary text-text-quarternary">
+                    </Button>
+                    <Button variant="ghost" className="flex flex-col items-center justify-center gap-0.5 text-2xs font-medium bg-[#161B28] text-gray-400">
                     <div className="flex items-center gap-1">Social</div>
-                    </button>
+                    </Button>
                 </div>
             </div>
             </div>
-
-
             
-        </div>
-
+        </div>      
+    
     </div>
     );
 } 
+
 
 export default AgentDetails;

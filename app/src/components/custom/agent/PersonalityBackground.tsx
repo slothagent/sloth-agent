@@ -1,4 +1,5 @@
 import React from 'react';
+import { Input } from "@/components/ui/input";
 
 interface PersonalityBackgroundProps {
     agentLore: string;
@@ -19,50 +20,41 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
 }) => {
     return (
         <div className="space-y-6">
-            <div>
-                <label className="block text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">
-                    Agent Lore
-                </label>
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Agent Lore</label>
                 <textarea
                     value={agentLore}
                     onChange={(e) => onLoreChange(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#fffbf2] border-2 border-[#8b7355] rounded-none 
-                    focus:shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]
-                    focus:translate-x-[2px] focus:translate-y-[2px]
-                    transition-all duration-200 outline-none
-                    text-[#8b7355] placeholder-[#baa89d] h-32 resize-none"
                     placeholder="Enter the background story of your agent"
+                    rows={4}
+                    className="w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none resize-none"
                 />
             </div>
-            <div>
-                <label className="block text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">
-                    Personality
-                </label>
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Personality</label>
                 <textarea
                     value={personality}
                     onChange={(e) => onPersonalityChange(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#fffbf2] border-2 border-[#8b7355] rounded-none 
-                    focus:shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]
-                    focus:translate-x-[2px] focus:translate-y-[2px]
-                    transition-all duration-200 outline-none
-                    text-[#8b7355] placeholder-[#baa89d] h-32 resize-none"
-                    placeholder="Describe your agent's personality traits and characteristics"
+                    placeholder="Describe your agent's personality traits"
+                    rows={4}
+                    className="w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none resize-none"
                 />
             </div>
-            <div>
-                <label className="block text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">
-                    Communication Style
-                </label>
-                <textarea
+
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Communication Style</label>
+                <select
                     value={communicationStyle}
                     onChange={(e) => onStyleChange(e.target.value)}
-                    className="w-full px-4 py-2 bg-[#fffbf2] border-2 border-[#8b7355] rounded-none 
-                    focus:shadow-[2px_2px_0px_0px_rgba(139,115,85,1)]
-                    focus:translate-x-[2px] focus:translate-y-[2px]
-                    transition-all duration-200 outline-none
-                    text-[#8b7355] placeholder-[#baa89d] h-32 resize-none"
-                    placeholder="Describe how your agent communicates (e.g., formal, casual, uses emoji, concise, detailed)"
-                />
+                    className="w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none"
+                >
+                    <option value="" className="bg-[#0B0E17]">Select a communication style</option>
+                    <option value="professional" className="bg-[#0B0E17]">Professional</option>
+                    <option value="casual" className="bg-[#0B0E17]">Casual</option>
+                    <option value="friendly" className="bg-[#0B0E17]">Friendly</option>
+                    <option value="technical" className="bg-[#0B0E17]">Technical</option>
+                </select>
             </div>
         </div>
     );

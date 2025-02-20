@@ -33,28 +33,28 @@ const WalletButton = () => {
                 return (
                   <button
                     onClick={openConnectModal}
-                    className="bg-[#8b7355] hover:bg-[#8b7355]/90 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 border-2 border-[#8b7355]/20"
+                    className="bg-[#2196F3] hover:bg-[#1E88E5] text-white rounded h-10 px-6 transition-colors duration-200 text-sm"
                   >
-                    Connect Wallet
+                    Connect
                   </button>
                 );
               }
 
               return (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={openChainModal}
-                    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#8b7355] transition-all duration-200 border-2 border-[#8b7355]/20 rounded-lg hover:bg-[#8b7355]/10 bg-white/50 backdrop-blur-sm"
+                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 rounded h-10 px-4 flex items-center gap-2 border border-[#1F2937] text-sm"
                   >
                     {chain.hasIcon && (
-                      <div className="w-5 h-5 relative">
+                      <div className="w-4 h-4">
                         {chain.iconUrl && (
                           <Image
                             alt={chain.name ?? 'Chain icon'}
                             src={chain.iconUrl}
-                            width={20}
-                            height={20}
-                            className="object-contain"
+                            width={16}
+                            height={16}
+                            className="rounded-full"
                           />
                         )}
                       </div>
@@ -64,14 +64,12 @@ const WalletButton = () => {
 
                   <button
                     onClick={openAccountModal}
-                    className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-[#8b7355] transition-all duration-200 border-2 border-[#8b7355]/20 rounded-lg hover:bg-[#8b7355]/10 bg-white/50 backdrop-blur-sm"
+                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 rounded h-10 px-4 flex items-center gap-3 border border-[#1F2937] text-sm"
                   >
-                    {account.displayName}
-                    {account.displayBalance && (
-                      <span className="px-3 py-1 text-xs font-medium text-[#8b7355] bg-[#8b7355]/10 rounded-full border border-[#8b7355]/20">
-                        {account.displayBalance}
-                      </span>
-                    )}
+                    <span className="text-white">{account.displayName}</span>
+                    <span className="text-gray-400">
+                      {account.displayBalance}
+                    </span>
                   </button>
                 </div>
               );

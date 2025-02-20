@@ -1,13 +1,16 @@
 import React from 'react';
 import Image from 'next/image';
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Bot, Star } from 'lucide-react';
 
 interface AgentPreviewProps {
     name: string;
     description: string;
     ticker: string;
     systemType: string;
-    imageUrl?: string;
-    personality?: string;
+    imageUrl: string;
+    personality: string;
 }
 
 const AgentPreview: React.FC<AgentPreviewProps> = ({
@@ -16,86 +19,72 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
     ticker,
     systemType,
     imageUrl,
-    personality
+    personality,
 }) => {
     return (
-        <div className="bg-[#fffbf2] rounded-none border-2 border-[#8b7355] p-6 w-full">
-            <div className="flex flex-col space-y-4">
-                {/* Image and Basic Info */}
-                <div className="flex items-start space-x-4">
-                    <div className="w-24 h-24 relative rounded-none border-2 border-[#8b7355] overflow-hidden bg-[#fffbf2] flex-shrink-0">
+        <div className="space-y-4">
+            {/* Agent Card */}
+            <Card className="bg-[#161B28] border border-[#1F2937] p-4 rounded-lg">
+                <div className="flex items-start gap-4">
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-[#0B0E17] border border-[#1F2937] flex items-center justify-center">
                         {imageUrl ? (
                             <Image
                                 src={imageUrl}
-                                alt={name}
+                                alt={name || 'Agent'}
                                 fill
                                 className="object-cover"
                             />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[#baa89d] font-pixel">
-                                No Image
-                            </div>
+                            <Bot className="w-8 h-8 text-gray-400" />
                         )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-pixel text-[#8b7355] mb-1 truncate uppercase tracking-wider">{name || 'Unnamed Agent'}</h3>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                            {ticker && (
-                                <span className="px-2 py-1 bg-[#8b7355] text-[#fffbf2] text-sm rounded-none font-pixel">
-                                    ${ticker}
-                                </span>
-                            )}
-                            {systemType && (
-                                <span className="px-2 py-1 bg-[#93E905] text-[#8b7355] text-sm rounded-none font-pixel border-2 border-[#8b7355]">
-                                    {systemType.replace('_', ' ').split(' ').map(word => 
-                                        word.charAt(0).toUpperCase() + word.slice(1)
-                                    ).join(' ')}
-                                </span>
-                            )}
-                            {personality && (
-                                <span className="px-2 py-1 bg-[#fffbf2] text-[#8b7355] text-sm rounded-none font-pixel border-2 border-[#8b7355]">
-                                    {personality.charAt(0).toUpperCase() + personality.slice(1)}
-                                </span>
-                            )}
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-medium text-white">
+                                    {name || 'Unnamed Agent'}
+                                </h3>
+                                <p className="text-sm text-gray-400">
+                                    ${ticker || 'TICKER'}
+                                </p>
+                            </div>
+                            <Badge variant="outline" className="bg-[#0B0E17] text-gray-400 border-[#1F2937]">
+                                {systemType || 'Type Not Set'}
+                            </Badge>
                         </div>
+                        <p className="mt-2 text-sm text-gray-400 line-clamp-2">
+                            {description || 'No description provided'}
+                        </p>
                     </div>
                 </div>
+            </Card>
 
-                {/* Description */}
-                <div className="border-t-2 border-[#8b7355] pt-4">
-                    <h4 className="text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">Description</h4>
-                    <p className="text-sm text-[#8b7355] font-pixel">
-                        {description || 'No description available'}
+            {/* Stats Card */}
+            <Card className="bg-[#161B28] border border-[#1F2937] p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <p className="text-sm text-gray-400">Market Cap</p>
+                        <p className="text-lg font-medium text-white">$0</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-sm text-gray-400">24h Volume</p>
+                        <p className="text-lg font-medium text-white">$0</p>
+                    </div>
+                </div>
+            </Card>
+
+            {/* Personality Preview */}
+            {personality && (
+                <Card className="bg-[#161B28] border border-[#1F2937] p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Star className="w-4 h-4 text-gray-400" />
+                        <h4 className="text-sm font-medium text-gray-400">Personality</h4>
+                    </div>
+                    <p className="text-sm text-gray-400">
+                        {personality}
                     </p>
-                </div>
-
-                {/* Agent Details */}
-                <div className="border-t-2 border-[#8b7355] pt-4">
-                    <h4 className="text-sm font-pixel text-[#8b7355] mb-2 uppercase tracking-wider">Agent Details</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm font-pixel">
-                        <div>
-                            <span className="text-[#baa89d]">Type:</span>
-                            <span className="ml-2 text-[#8b7355]">
-                                {systemType ? systemType.replace('_', ' ').split(' ').map(word => 
-                                    word.charAt(0).toUpperCase() + word.slice(1)
-                                ).join(' ') : 'Not specified'}
-                            </span>
-                        </div>
-                        <div>
-                            <span className="text-[#baa89d]">Personality:</span>
-                            <span className="ml-2 text-[#8b7355]">
-                                {personality ? personality.charAt(0).toUpperCase() + personality.slice(1) : 'Not specified'}
-                            </span>
-                        </div>
-                        <div>
-                            <span className="text-[#baa89d]">Token:</span>
-                            <span className="ml-2 text-[#8b7355]">
-                                {ticker ? `$${ticker}` : 'Not specified'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                </Card>
+            )}
         </div>
     );
 };
