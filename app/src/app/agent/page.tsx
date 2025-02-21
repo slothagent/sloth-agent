@@ -1,9 +1,10 @@
-const Agents = () => {
+import Agents from "@/components/pages/Agents";
+import { NextPage } from "next";
+
+const AgentsPage: NextPage = () => {
     return (
-        <div>
-            <h1>Agents</h1>
-        </div>
+        <Agents />     
     )
 }
 
-export default Agents;
+export default AgentsPage;
