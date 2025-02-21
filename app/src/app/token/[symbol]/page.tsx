@@ -27,7 +27,7 @@ import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits } from "ethers";
 
 
-const AgentDetails: NextPage = () => {
+const TokenDetails: NextPage = () => {
     const { symbol } = useParams();
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
@@ -520,4 +520,4 @@ const AgentDetails: NextPage = () => {
 } 
 
 
-export default AgentDetails;
+export default TokenDetails;

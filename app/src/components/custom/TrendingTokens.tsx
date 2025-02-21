@@ -263,7 +263,7 @@ const TrendingTokens: React.FC = () => {
                 <TableRow 
                   key={agent._id.toString()} 
                   className="border-b border-gray-800 text-white hover:bg-[#1C2333] cursor-pointer transition-colors duration-200"
-                  onClick={() => router.push(`/agent/${agent.ticker.toLowerCase()}`)}
+                  onClick={() => router.push(`/token/${agent.ticker.toLowerCase()}`)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">
