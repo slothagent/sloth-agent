@@ -59,20 +59,6 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                 </div>
             </Card>
 
-            {/* Stats Card */}
-            <Card className="bg-[#161B28] border border-[#1F2937] p-4 rounded-lg">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <p className="text-sm text-gray-400">Market Cap</p>
-                        <p className="text-lg font-medium text-white">$0</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-sm text-gray-400">24h Volume</p>
-                        <p className="text-lg font-medium text-white">$0</p>
-                    </div>
-                </div>
-            </Card>
-
             {/* Personality Preview */}
             {personality && (
                 <Card className="bg-[#161B28] border border-[#1F2937] p-4 rounded-lg">

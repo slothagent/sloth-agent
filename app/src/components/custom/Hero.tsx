@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Agent } from '@/types/agent';
+import { ArrowRight } from 'lucide-react';
 
 const Hero: React.FC = () => {
   const router = useRouter();
@@ -109,12 +110,20 @@ const Hero: React.FC = () => {
               </Card>
             </div>
             
-            <Button 
-              onClick={() => router.push('/agent/create')}
-              className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2"
-            >
-              Create New Agent
-            </Button>
+            <div className='flex gap-4'>
+              <Button 
+                onClick={() => router.push('/agent/create')}
+                className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2"
+              >
+                Create New Agent
+              </Button>
+              <button
+                  onClick={()=>router.push('/token/create')}
+                  className={`flex items-center gap-2 px-6 py-2 text-sm bg-[#161B28] border border-[#1F2937] text-gray-400 hover:bg-[#1C2333] hover:text-white`}
+              >
+                  Create New Token
+              </button>
+            </div>
           </div>
         </div>
       </div>
