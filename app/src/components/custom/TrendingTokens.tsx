@@ -8,12 +8,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Agent } from "@/types/agent";
-import { AgentMetrics } from "@/models/agentMetrics";
+import { TokenMetrics } from "@/models/agentMetrics";
 import { useQuery } from "@tanstack/react-query";
 
-type AgentWithMetrics = Agent & {
+type TokenWithMetrics = Agent & {
   _id: string;
-  metrics: AgentMetrics | null;
+  metrics: TokenMetrics | null;
   createdAt: string | Date;
 };
 
@@ -30,13 +30,13 @@ type PaginatedResponse<T> = {
 };
 
 type ApiResponse = {
-  data: AgentWithMetrics[];
+  data: TokenWithMetrics[];
   metadata: PaginationMetadata;
 };
 
-const fetchAgents = async (page: number, pageSize: number): Promise<PaginatedResponse<AgentWithMetrics>> => {
+const fetchTokens = async (page: number, pageSize: number): Promise<PaginatedResponse<TokenWithMetrics>> => {
   try {
-    const response = await fetch(`/api/agent?page=${page}&pageSize=${pageSize}`, {
+    const response = await fetch(`/api/token?page=${page}&pageSize=${pageSize}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -45,32 +45,15 @@ const fetchAgents = async (page: number, pageSize: number): Promise<PaginatedRes
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
-      console.error('Failed to fetch agents:', {
+      console.error('Failed to fetch tokens:', {
         status: response.status,
         statusText: response.statusText,
         errorData
       });
-      throw new Error(`Failed to fetch agents: ${response.statusText}`);
+      throw new Error(`Failed to fetch tokens: ${response.statusText}`);
     }
 
     const data: ApiResponse = await response.json();
-
-
-    // Validate response structure
-    if (!data || typeof data !== 'object') {
-      console.error('Invalid response format: not an object', data);
-      throw new Error('Invalid response format from server');
-    }
-
-    if (!data.data || !Array.isArray(data.data)) {
-      console.error('Invalid response format: data is not an array', data);
-      throw new Error('Invalid response format from server');
-    }
-
-    if (!data.metadata || typeof data.metadata !== 'object') {
-      console.error('Invalid response format: missing metadata', data);
-      throw new Error('Invalid response format from server');
-    }
 
     const { currentPage, pageSize: responsePageSize, totalPages, totalCount } = data.metadata;
     
@@ -92,7 +75,7 @@ const fetchAgents = async (page: number, pageSize: number): Promise<PaginatedRes
       }
     };
   } catch (error) {
-    console.error('Error in fetchAgents:', error);
+    console.error('Error in fetchTokens:', error);
     throw error;
   }
 };
@@ -157,6 +140,18 @@ const TableSkeleton = () => {
                   <Skeleton className="h-3 w-20 bg-gray-700" />
                 </div>
               </TableCell>
+              <TableCell className="text-right">
+                <div className="flex flex-col items-end gap-1">
+                  <Skeleton className="h-4 w-16 bg-gray-700" />
+                  <Skeleton className="h-3 w-16 bg-gray-700" />
+                </div>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex flex-col items-end gap-1">
+                  <Skeleton className="h-4 w-16 bg-gray-700" />
+                  <Skeleton className="h-3 w-16 bg-gray-700" />
+                </div>
+              </TableCell>
               <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
               <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
               <TableCell><Skeleton className="h-4 w-16 ml-auto bg-gray-700" /></TableCell>
@@ -178,8 +173,8 @@ const TrendingTokens: React.FC = () => {
   const pageSize = 5;
 
   const { data, isLoading, isFetching, error } = useQuery({
-    queryKey: ['agents', currentPage, pageSize],
-    queryFn: () => fetchAgents(currentPage, pageSize),
+    queryKey: ['tokens', currentPage, pageSize],
+    queryFn: () => fetchTokens(currentPage, pageSize),
     staleTime: 60 * 1000, // Consider data fresh for 60 seconds
     gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
     refetchOnWindowFocus: false,
@@ -187,7 +182,7 @@ const TrendingTokens: React.FC = () => {
     retry: 1,
   });
 
-  const agents = data?.data || [];
+  const tokens = data?.data || [];
   const metadata = data?.metadata || {
     currentPage: 1,
     totalPages: 1,
@@ -219,11 +214,11 @@ const TrendingTokens: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-8">
-        <h2 className="text-2xl mt-8 font-bold mb-4 font-mono text-white">Error Loading Agents</h2>
-        <p className="text-gray-400 mb-4">{error instanceof Error ? error.message : 'An error occurred while loading agents'}</p>
+        <h2 className="text-2xl mt-8 font-bold mb-4 text-white">Error Loading Tokens</h2>
+        <p className="text-gray-400 mb-4">{error instanceof Error ? error.message : 'An error occurred while loading tokens'}</p>
         <Button
           variant="outline"
-          className="border border-gray-600 text-gray-400 hover:bg-gray-800 rounded-lg font-mono"
+          className="border border-gray-600 text-gray-400 hover:bg-gray-800 rounded-lg"
           onClick={() => window.location.reload()}
         >
           Retry
@@ -234,7 +229,7 @@ const TrendingTokens: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl mt-8 font-bold mb-4 text-white">AI Agent Index</h2>
+      <h2 className="text-2xl mt-8 font-bold mb-4 text-white">Tokens Index</h2>
       {isLoading ? (
         <TableSkeleton />
       ) : (
@@ -259,56 +254,56 @@ const TrendingTokens: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {agents.map((agent) => (
+              {tokens.map((token) => (
                 <TableRow 
-                  key={agent._id.toString()} 
+                  key={token._id.toString()} 
                   className="border-b border-gray-800 text-white hover:bg-[#1C2333] cursor-pointer transition-colors duration-200"
-                  onClick={() => router.push(`/token/${agent.ticker.toLowerCase()}`)}
+                  onClick={() => router.push(`/token/${token.ticker.toLowerCase()}`)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Image 
-                        src={agent.imageUrl || ''} 
-                        alt={agent.name} 
+                        src={token.imageUrl || ''} 
+                        alt={token.name} 
                         width={32} 
                         height={32} 
                         className="rounded-lg"
                       />
                       <div className="flex flex-col min-w-0">
-                        <span className="font-medium truncate text-white">{agent.name}</span>
-                        <span className="text-sm text-gray-400 truncate">{agent.address.slice(0, 6)}...{agent.address.slice(-4)}</span>
+                        <span className="font-medium truncate text-white">{token.name}</span>
+                        <span className="text-sm text-gray-400 truncate">{token.address.slice(0, 6)}...{token.address.slice(-4)}</span>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-400">{timeAgo(agent.createdAt)}</TableCell>
+                  <TableCell className="text-gray-400">{timeAgo(token.createdAt)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="text-white">{agent.metrics?.liquidityAmount||"-"} 🔥</div>
-                    <div className="text-sm text-gray-400">{agent.metrics?.liquidityValue||"-"}</div>
+                    <div className="text-white">{token.metrics?.liquidityAmount||"-"} 🔥</div>
+                    <div className="text-sm text-gray-400">{token.metrics?.liquidityValue||"-"}</div>
                   </TableCell>
-                  <TableCell className="text-right text-white">{agent.metrics?.blueChipHolding||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{token.metrics?.blueChipHolding||"-"}</TableCell>
                   <TableCell className="text-right">
-                    <div className="text-white">{agent.metrics?.holdersCount||"-"}</div>
-                    <div className="text-sm text-gray-400">+{agent.metrics?.holdersChange24h||"-"}</div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="text-white">{agent.metrics?.smartMoneyValue||"-"}</div>
-                    <div className="text-sm text-gray-400">{agent.metrics?.smartMoneyKol||"-"} KOL</div>
+                    <div className="text-white">{token.metrics?.holdersCount||"-"}</div>
+                    <div className="text-sm text-gray-400">+{token.metrics?.holdersChange24h||"-"}</div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="text-white">{agent.metrics?.totalTransactions||"-"}</div>
-                    <div className="text-sm text-gray-400">{agent.metrics?.buyTransactions||"-"}/{agent.metrics?.sellTransactions||"-"}</div>
+                    <div className="text-white">{token.metrics?.smartMoneyValue||"-"}</div>
+                    <div className="text-sm text-gray-400">{token.metrics?.smartMoneyKol||"-"} KOL</div>
                   </TableCell>
-                  <TableCell className="text-right text-white">{agent.metrics?.volumeLastHour||"-"}</TableCell>
-                  <TableCell className="text-right text-white">{agent.metrics?.currentPrice||"-"}</TableCell>
                   <TableCell className="text-right">
-                    <span className={agent.metrics?.priceChange1m && Number(agent.metrics.priceChange1m) > 0 ? 'text-green-400' : 'text-red-400'}>
-                      {agent.metrics?.priceChange1m||"-"}
+                    <div className="text-white">{token.metrics?.totalTransactions||"-"}</div>
+                    <div className="text-sm text-gray-400">{token.metrics?.buyTransactions||"-"}/{token.metrics?.sellTransactions||"-"}</div>
+                  </TableCell>
+                  <TableCell className="text-right text-white">{token.metrics?.volumeLastHour||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{token.metrics?.currentPrice||"-"}</TableCell>
+                  <TableCell className="text-right">
+                    <span className={token.metrics?.priceChange1m && Number(token.metrics.priceChange1m) > 0 ? 'text-green-400' : 'text-red-400'}>
+                      {token.metrics?.priceChange1m||"-"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right text-white">{agent.metrics?.marketCap||"-"}</TableCell>
-                  <TableCell className="text-right text-white">{agent.metrics?.totalVolume||"-"}</TableCell>
-                  <TableCell className="text-right text-white">{agent.metrics?.followersCount||"-"}</TableCell>
-                  <TableCell className="text-center text-white">{agent.metrics?.topTweetsCount||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{token.metrics?.marketCap||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{token.metrics?.totalVolume||"-"}</TableCell>
+                  <TableCell className="text-right text-white">{token.metrics?.followersCount||"-"}</TableCell>
+                  <TableCell className="text-center text-white">{token.metrics?.topTweetsCount||"-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

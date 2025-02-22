@@ -11,6 +11,7 @@ const Home: React.FC = () => {
         <Hero />
         <div className="container mx-auto space-y-8 pb-10">
           <TrendingTokens />
+          <div className="border-b border-[#1F2937]"/>
           <TransactionList />
         </div>
       </div>

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import Replicate from 'replicate';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+const replicate = new Replicate({
+    auth: process.env.REPLICATE_API_TOKEN,
 });
 
 export async function POST(req: Request) {
@@ -16,19 +16,43 @@ export async function POST(req: Request) {
             );
         }
 
-        const response = await openai.images.generate({
-            model: "dall-e-3",
-            prompt: prompt,
-            n: 1,
-            size: "1024x1024",
-            quality: "standard",
-            style: "natural"
+        // Create a prediction
+        const prediction = await replicate.predictions.create({
+            version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+            input: {
+                prompt: prompt,
+                width: 1024,
+                height: 1024,
+                scheduler: "K_EULER",
+                num_inference_steps: 50,
+                guidance_scale: 7.5,
+                refine: "base_image_refiner",
+                high_noise_frac: 0.8,
+            }
         });
 
-        const imageUrl = response.data[0].url;
+        if (prediction?.error) {
+            return NextResponse.json({ error: prediction.error }, { status: 500 });
+        }
 
-        if (!imageUrl) {
-            throw new Error('No image URL received from OpenAI');
+        // Wait for the prediction to complete
+        let result = await replicate.wait(prediction);
+
+        // Check if we have valid output
+        if (!result?.output || !Array.isArray(result.output) || result.output.length === 0) {
+            return NextResponse.json(
+                { error: 'No image generated' },
+                { status: 500 }
+            );
+        }
+
+        const imageUrl = result.output[0];
+
+        if (!imageUrl || typeof imageUrl !== 'string') {
+            return NextResponse.json(
+                { error: 'Invalid image URL received' },
+                { status: 500 }
+            );
         }
 
         return NextResponse.json({ imageUrl }, { status: 200 });

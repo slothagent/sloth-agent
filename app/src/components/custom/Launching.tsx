@@ -33,12 +33,6 @@ const Launching = () => {
                     </div>
 
                     <div>
-                        <h3 className="text-gray-400 text-sm mb-1">AGENT Needed for Launch</h3>
-                        <div className="text-3xl font-bold">242,066.32</div>
-                        <div className="text-[#93E905] text-sm">AGENT</div>
-                    </div>
-
-                    <div>
                         <h3 className="text-gray-400 text-sm mb-1">Tokens on Bonding Curve</h3>
                         <div className="text-3xl font-bold">547,843,120.62</div>
                         <div className="text-[#93E905] text-sm">VOLF</div>

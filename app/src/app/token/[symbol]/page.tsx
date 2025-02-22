@@ -15,8 +15,6 @@ import Chart from '@/components/chart';
 import Overview from '@/components/custom/Overview';
 import Social from '@/components/custom/Social';
 import { Button } from "@/components/ui/button";
-import Message from '@/components/custom/Message';
-import Launching from '@/components/custom/Launching';
 import { useQuery } from '@tanstack/react-query';   
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
@@ -58,20 +56,20 @@ const TokenDetails: NextPage = () => {
         return `(${diffDays}d ago)`;
     };
 
-    const fetchAgentBySymbol = async () => {
-        const agent = await fetch(`/api/agent?symbol=${symbol?.toString().toUpperCase()}`,{
+    const fetchTokenBySymbol = async () => {
+        const token = await fetch(`/api/token?symbol=${symbol?.toString().toUpperCase()}`,{
             next: { revalidate: 60 },
             headers: {
                 'Cache-Control': 'no-cache',
                 'Pragma': 'no-cache'
             }
         });
-        return agent.json();
+        return token.json();
     }
 
-    const { data: agent, isLoading } = useQuery({
-        queryKey: ['agent', symbol],
-        queryFn: () => fetchAgentBySymbol(),
+    const { data: token, isLoading } = useQuery({
+        queryKey: ['token', symbol],
+        queryFn: () => fetchTokenBySymbol(),
         staleTime: 60 * 1000,
         gcTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
@@ -79,27 +77,27 @@ const TokenDetails: NextPage = () => {
         retry: 1,
     });
 
-    const agentData = useMemo(() => {
-        if (!agent) return null;
+    const tokenData = useMemo(() => {
+        if (!token) return null;
         return {
-            ...agent.data,
-            createdAt: agent.data?.createdAt ? new Date(agent.data.createdAt) : null
+            ...token.data,
+            createdAt: token.data?.createdAt ? new Date(token.data.createdAt) : null
         };
-    }, [agent]);
+    }, [token]);
 
     const { data: tokensToReceive, isLoading: isLoadingTokenPrice } = useReadContract({
         address: process.env.FACTORY_ADDRESS as `0x${string}`,
         abi: factoryAbi,
         functionName: 'calculateTokensForEth',
-        args: [agentData?.address, parseEther(amount||"0")]
+        args: [tokenData?.address, parseEther(amount||"0")]
     });
 
 
-    if (isLoading || !agentData) {
+    if (isLoading || !tokenData) {
         return <div>Loading...</div>;
     }
 
-    console.log(process.env.FACTORY_ADDRESS);
+    // console.log(process.env.FACTORY_ADDRESS);
 
     const handleBuy = async () => {
         const loadingToast = toast.loading('Buying...');
@@ -109,7 +107,7 @@ const TokenDetails: NextPage = () => {
                 abi: factoryAbi,
                 functionName: 'buyTokens',
                 value: parseEther(amount||"0"),
-                args: [agentData?.address, tokensToReceive||BigInt(0)]
+                args: [tokenData?.address, tokensToReceive||BigInt(0)]
             });
             toast.success('Buy successful!', { id: loadingToast });
         } catch (error: any) {
@@ -129,43 +127,41 @@ const TokenDetails: NextPage = () => {
       {/* Top Navigation Bar */}
         <div className="bg-[#0B0E17] top-0 sm:top-12 border-[#1F2937] border-b sm:border-b-0">
             <div className="container mx-auto py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8">
-                <div className="flex items-center gap-4 justify-between sm:justify-start">
+                <div className="flex items-center gap-2 justify-between sm:justify-start">
                     <Link href="/" className="flex items-center gap-3">
                         <Button 
                             variant="ghost" 
                             size="icon" 
                             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200"
                         >
-                            <div className="w-7 h-7 bg-[#161B28] flex items-center justify-center rounded-full border border-[#1F2937] hover:border-gray-600">
+                            <div className="w-7 h-7 bg-[#161B28] flex items-center justify-center border border-[#1F2937] hover:border-gray-600">
                                 <ArrowLeft className="w-4 h-4" />
                             </div>
                         </Button>
-                        <div className="hidden sm:flex items-center gap-2 border border-[#1F2937] px-3 py-1 rounded-full hover:border-gray-600 transition-colors duration-200">
-                            <p className="text-gray-400 text-sm font-medium">{agentData?.ticker}</p>
+                        <div className="hidden sm:flex items-center gap-2 border border-[#1F2937] px-3 py-1 hover:border-gray-600 transition-colors duration-200">
+                            <p className="text-gray-400 text-sm font-medium">{tokenData?.ticker}</p>
                         </div>
                     </Link>
                     
                     <ChevronRight className="w-4 h-4 text-gray-500 hidden sm:block" />
                     
                     <div className="hidden sm:block">
-                        <button className="flex items-center justify-center gap-3 px-3 py-0.5 text-sm font-medium text-gray-400 border border-[#1F2937] rounded-xl hover:bg-[#1C2333] hover:border-gray-600 transition-all duration-200">
+                        <button className="flex items-center justify-center gap-3 px-3 py-1 text-sm font-medium text-gray-400 border border-[#1F2937] hover:bg-[#1C2333] hover:border-gray-600 transition-all duration-200">
                             <img 
-                                className="w-6 h-6 rounded-md" 
-                                alt={agentData?.name} 
-                                src={agentData?.imageUrl} 
+                                className="w-5 h-5 rounded-md" 
+                                alt={tokenData?.name} 
+                                src={tokenData?.imageUrl} 
                                 loading="lazy" 
                             />
-                            {agentData?.name}
+                            {tokenData?.name}
                         </button>
                     </div>
-                    
-                    <ChevronRight className="w-4 h-4 text-gray-500 hidden sm:block" />
                     
                     <Button 
                         variant="ghost" 
                         className="group/star text-gray-400 hover:text-white p-0 transition-colors duration-200"
                     >
-                        <span className="flex items-center gap-3 border border-[#1F2937] px-4 py-2 rounded-full hover:border-gray-600">
+                        <span className="flex items-center gap-3 border border-[#1F2937] px-4 py-1 hover:border-gray-600">
                             <Star className="w-4 h-4" />
                             Add to watchlist
                         </span>
@@ -192,9 +188,9 @@ const TokenDetails: NextPage = () => {
                             <div className="lg:flex w-full items-center">                        
                                 <div className="lg:flex items-center gap-3 h-full hidden">
                                     <Image 
-                                        src={agentData?.imageUrl}
+                                        src={tokenData?.imageUrl}
                                         alt="Token Logo"
-                                        className="w-32 h-32 rounded-xl"
+                                        className="w-28 h-28 rounded-xl"
                                         loading="lazy"
                                         width={64}
                                         height={64}
@@ -202,25 +198,59 @@ const TokenDetails: NextPage = () => {
                                     <div className="lg:flex flex-col justify-center h-full">
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <h1 className="text-3xl font-medium mb-1 text-white">{agentData?.name}</h1>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <a href="/d/categories/meme">
-                                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 rounded-full px-2 py-0.5 text-xs h-6 bg-[#161B28] border-[#1F2937] text-gray-400 border">
-                                                            {agentData?.ticker}
-                                                        </div>
-                                                    </a>
-                                                </div>
+                                                <h1 className="text-3xl font-medium mb-1 text-white">{tokenData?.name}</h1>
                                             </div>
-                                            <p className="text-xs text-gray-400">@{agentData?.ticker}</p>
+                                            <p className="text-xs text-gray-400">@{tokenData?.ticker}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex-col gap-2 mt-4 max-lg:mt-6">
-                                <div className="text-gray-400 text-sm">
-                                    {agentData?.description}
+                            <div className="flex-col gap-2 mt-4 space-y-4">
+                                <div className="text-white text-sm">
+                                    {tokenData?.description}
+                                </div>
+                                <div className="flex items-center gap-4 mb-2">
+                                    {tokenData?.twitterUrl && (
+                                        <Link 
+                                            href={tokenData.twitterUrl} 
+                                            target="_blank"
+                                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 bg-[#161B28] border border-[#1F2937] hover:text-white hover:border-gray-600 transition-colors rounded-md"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                                                <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/>
+                                            </svg>
+                                            Twitter
+                                        </Link>
+                                    )}
+                                    {tokenData?.websiteUrl && (
+                                        <Link 
+                                            href={tokenData.websiteUrl} 
+                                            target="_blank"
+                                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 bg-[#161B28] border border-[#1F2937] hover:text-white hover:border-gray-600 transition-colors rounded-md"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                                                <circle cx="12" cy="12" r="10"/>
+                                                <line x1="2" y1="12" x2="22" y2="12"/>
+                                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                                            </svg>
+                                            Website
+                                        </Link>
+                                    )}
+                                    {tokenData?.telegramUrl && (
+                                        <Link 
+                                            href={tokenData.telegramUrl} 
+                                            target="_blank"
+                                            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 bg-[#161B28] border border-[#1F2937] hover:text-white hover:border-gray-600 transition-colors rounded-md"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                                                <path d="M21.198 2.433a2.242 2.242 0 0 0-1.022.215l-16.5 7.5a2.25 2.25 0 0 0 .126 4.303l3.984 1.028 2.25 6.75a2.25 2.25 0 0 0 4.203.495l7.5-16.5a2.25 2.25 0 0 0-1.041-3.791z"/>
+                                            </svg>
+                                            Telegram
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
+                            
                         </div>
                         <div className="ml-auto w-max hidden lg:block">
                             <div className="grid grid-cols-2 max-h-[86px]">
@@ -230,12 +260,12 @@ const TokenDetails: NextPage = () => {
                                             <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
                                             Contract address
                                         </div>
-                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${agentData?.address}`} target="_blank" className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
-                                            {agentData?.address.slice(0, 4)}...{agentData?.address.slice(-4)}
+                                        <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
+                                            {tokenData?.address.slice(0, 4)}...{tokenData?.address.slice(-4)}
                                             <button className="ml-1 text-gray-400 hover:text-white">
                                                 <Copy className="w-4 h-4" />
                                             </button>
-                                        </Link>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="border-l-0 w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
@@ -245,11 +275,11 @@ const TokenDetails: NextPage = () => {
                                             Created
                                         </div>
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400">
-                                            {agentData?.createdAt ? (
+                                            {tokenData?.createdAt ? (
                                                 <>
-                                                    {agentData.createdAt.toLocaleDateString()} 
+                                                    {tokenData.createdAt.toLocaleDateString()} 
                                                     <span className="text-gray-500">
-                                                        {getDaysAgo(agentData.createdAt)}
+                                                        {getDaysAgo(tokenData.createdAt)}
                                                     </span>
                                                 </>
                                             ) : (
@@ -268,27 +298,27 @@ const TokenDetails: NextPage = () => {
                                 <div className="flex flex-col gap-0">
                                     <div className="mb-1 flex items-center gap-1.5">
                                         <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 rounded-full px-2 py-1 text-xs h-auto bg-[#161B28] border-[#1F2937] text-gray-400 border">
-                                            {agentData?.ticker}
+                                            {tokenData?.ticker}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-1.5">
-                                        <h1 className="text-2xl font-medium font-display mb-1 text-white">{agentData?.name}</h1>
+                                        <h1 className="text-2xl font-medium font-display mb-1 text-white">{tokenData?.name}</h1>
                                     </div>
-                                    <p className="text-xs text-gray-400">{agentData?.ticker}</p>
+                                    <p className="text-xs text-gray-400">{tokenData?.ticker}</p>
                                     <div className="mt-2 flex items-center gap-1">
                                         <div className="flex items-center rounded justify-center font-sans font-medium w-fit bg-[#161B28] text-gray-400 h-6 gap-1 text-xs px-2 border border-[#1F2937]">
-                                            {agentData?.ticker}
+                                            {tokenData?.ticker}
                                         </div>
-                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${agentData?.address}`} target="_blank" className="flex items-center rounded justify-center font-medium w-fit bg-[#161B28] text-gray-400 text-[10px] leading-[12px] gap-1 px-1 h-auto py-1 border border-[#1F2937]">
+                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${tokenData?.address}`} target="_blank" className="flex items-center rounded justify-center font-medium w-fit bg-[#161B28] text-gray-400 text-[10px] leading-[12px] gap-1 px-1 h-auto py-1 border border-[#1F2937]">
                                             <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-4" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
-                                            {agentData?.address.slice(0, 4)}...{agentData?.address.slice(-4)}
+                                            {tokenData?.address.slice(0, 4)}...{tokenData?.address.slice(-4)}
                                         </Link>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <p className="text-xs mt-2 text-gray-400">
-                            {agentData?.description}
+                            {tokenData?.description}
                         </p>
                     </div>
 
@@ -351,7 +381,7 @@ const TokenDetails: NextPage = () => {
                                     </div>
                                     <div className="flex-1 w-full p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
-                                            {/* <Chart height="full" /> */}
+                                            <Chart height="full" />
                                         </div>
                                     </div>
                                 </div>
@@ -363,19 +393,19 @@ const TokenDetails: NextPage = () => {
                                                 <TabsList className="grid w-full grid-cols-3 bg-[#0B0E17]">
                                                     <TabsTrigger 
                                                         value="buy"
-                                                        className="text-gray-400 data-[state=active]:bg-[#93E905]/20 data-[state=active]:text-white"
+                                                        className="text-gray-400 data-[state=active]:text-white"
                                                     >
                                                         Buy
                                                     </TabsTrigger>
                                                     <TabsTrigger 
                                                         value="sell"
-                                                        className="text-gray-400 data-[state=active]:bg-[#93E905]/20 data-[state=active]:text-white"
+                                                        className="text-gray-400 data-[state=active]:text-white"
                                                     >
                                                         Sell
                                                     </TabsTrigger>
                                                     <TabsTrigger 
                                                         value="auto"
-                                                        className="text-gray-400 data-[state=active]:bg-[#93E905]/20 data-[state=active]:text-white"
+                                                        className="text-gray-400 data-[state=active]:text-white"
                                                     >
                                                         Auto
                                                     </TabsTrigger>
@@ -430,9 +460,9 @@ const TokenDetails: NextPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {agentData?.ticker}</span>
+                                                    <span>You will receive: {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {tokenData?.ticker}</span>
                                                 </div>
-                                                <Button onClick={handleBuy} className="w-full mt-2 bg-[#93E905]/20 text-white py-3 rounded-md font-medium hover:bg-[#93E905]/30 transition-colors">
+                                                <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Buy
                                                 </Button>
                                             </div>
@@ -481,11 +511,11 @@ const TokenDetails: NextPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>1 ETH = {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {agentData?.ticker}</span>
+                                                    <span>1 ETH = {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {tokenData?.ticker}</span>
                                                 </div>
-                                                <button className="w-full mt-2 bg-[#93E905]/20 text-white py-3 rounded-md font-medium hover:bg-[#93E905]/30 transition-colors">
+                                                <Button className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Sell
-                                                </button>
+                                                </Button>
                                             </div>
                                         </TabsContent>
                                         <TabsContent value="auto">
@@ -501,13 +531,21 @@ const TokenDetails: NextPage = () => {
                         <Overview />
                     </TabsContent>
                     <TabsContent value="social" className="mt-4">
-                        <Social agentData={agentData} />
+                        <Social tokenData={tokenData} />
                     </TabsContent>
                     <TabsContent value="message" className="mt-4">
-                        <Message />
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-sm text-gray-400">Coming Soon</span>
+                            </div>
+                        </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching />
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-sm text-gray-400">Coming Soon</span>
+                            </div>
+                        </div>
                     </TabsContent>
                 </Tabs>
                 </div>
