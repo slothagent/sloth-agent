@@ -13,23 +13,23 @@ module.exports = {
     }
   },
   networks: {
-    'ancient8-celestia-testnet': {
-      url: 'https://rpcv2-testnet.ancient8.gg',
+    'sonic-blaze': {
+      url: "https://rpc.blaze.soniclabs.com",
       accounts: [process.env.PRIVATE_KEY],
-      chainId: 28122024
+      chainId: 57054
     },
   },
   etherscan: {
     apiKey: {
-      'ancient8-celestia-testnet': 'empty'
+      'sonic-blaze': process.env.SONICSCAN_TESTNET_API_KEY
     },
     customChains: [
       {
-        network: "ancient8-celestia-testnet",
-        chainId: 28122024,
+        network: "sonic-blaze",
+        chainId: 57054,
         urls: {
-          apiURL: "https://explorer-ancient-8-celestia-wib77nnwsq.t.conduit.xyz/api",
-          browserURL: "https://explorer-ancient-8-celestia-wib77nnwsq.t.conduit.xyz:443"
+          apiURL: "https://api-testnet.sonicscan.org/api",
+          browserURL: "https://testnet.sonicscan.org"
         }
       }
     ]
