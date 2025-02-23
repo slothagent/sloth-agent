@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_REDIRECT_URI: process.env.NEXT_PUBLIC_REDIRECT_URI,
     REDIRECT_URI: process.env.REDIRECT_URI,
     MONGODB_URI: process.env.MONGODB_URI,
-    MONGODB_DB: process.env.MONGODB_DB
+    MONGODB_DB: process.env.MONGODB_DB,
+    REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN
   },
   reactStrictMode: true,
   experimental: {

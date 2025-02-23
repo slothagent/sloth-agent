@@ -35,7 +35,7 @@ const fetchTransactions = async (page: number): Promise<{ data: Transaction[], t
 
 const TransactionList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalTransactions, setTotalTransactions] = useState(625);
+  const [totalTransactions, setTotalTransactions] = useState(1);
 
   const { data, isLoading } = useQuery({
     queryKey: ['transactions', currentPage],
@@ -55,8 +55,8 @@ const TransactionList: React.FC = () => {
     <div className="w-full">
       {/* Header Section - Responsive */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <div className="text-lg sm:text-xl text-gray-400">FILTER FOR TRANSFERS</div>
-        <div className="flex flex-wrap items-center gap-2">
+        <h2 className="text-2xl font-bold mb-4 text-white">Transactions</h2>
+        {/* <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" className="bg-[#6200EA] text-white hover:bg-[#7C4DFF] rounded px-3 py-1 text-sm">
             ALL
           </Button>
@@ -66,7 +66,7 @@ const TransactionList: React.FC = () => {
           <Button variant="outline" className="bg-[#161B28] text-gray-400 hover:bg-[#1C2333] rounded px-3 py-1 text-sm">
             SORT BY TIME
           </Button>
-        </div>
+        </div> */}
       </div>
 
       <div className="flex items-center justify-between text-xs sm:text-sm text-gray-400 mb-2 px-2">
@@ -238,7 +238,7 @@ const TransactionList: React.FC = () => {
         </span>
         <Button
           variant="outline"
-          className="text-gray-400 hover:bg-[#1C2333] text-sm"
+          className="text-gray-400 hover:bg-[#1C2333] hover:text-white text-sm"
           onClick={() => setCurrentPage(p => p + 1)}
         >
           Next

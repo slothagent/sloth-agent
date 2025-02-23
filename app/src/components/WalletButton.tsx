@@ -33,7 +33,7 @@ const WalletButton = () => {
                 return (
                   <button
                     onClick={openConnectModal}
-                    className="bg-[#2196F3] hover:bg-[#1E88E5] text-white rounded h-10 px-6 transition-colors duration-200 text-sm"
+                    className="bg-[#2196F3] hover:bg-[#1E88E5] text-white h-10 px-6 transition-colors duration-200 text-sm"
                   >
                     Connect
                   </button>
@@ -44,7 +44,7 @@ const WalletButton = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={openChainModal}
-                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 rounded h-10 px-4 flex items-center gap-2 border border-[#1F2937] text-sm"
+                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-4 flex items-center gap-2 border border-[#1F2937] text-sm"
                   >
                     {chain.hasIcon && (
                       <div className="w-4 h-4">
@@ -64,7 +64,7 @@ const WalletButton = () => {
 
                   <button
                     onClick={openAccountModal}
-                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 rounded h-10 px-4 flex items-center gap-3 border border-[#1F2937] text-sm"
+                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-4 flex items-center gap-3 border border-[#1F2937] text-sm"
                   >
                     <span className="text-white">{account.displayName}</span>
                     <span className="text-gray-400">
