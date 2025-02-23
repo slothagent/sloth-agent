@@ -1,14 +1,14 @@
 "use client";
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Coins, Upload } from 'lucide-react';
 import { uploadImageToPinata } from '@/utils/pinata';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { Button } from '../ui/button';
-import { parseEther,parseUnits } from 'viem';
+import { parseEther, parseUnits, decodeEventLog, type TransactionReceipt } from 'viem';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 import Image from 'next/image';
@@ -28,12 +28,12 @@ const CreateToken: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'upload'|'generate'>('upload');
     const [imagePrompt, setImagePrompt] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
-
+    const [txHash, setTxHash] = useState<string | null>(null);
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
+    const publicClient = usePublicClient();
 
-    const router = useRouter();
-
+    const router = useRouter(); 
 
     // Validation states
     const [errors, setErrors] = useState<{
@@ -46,6 +46,7 @@ const CreateToken: React.FC = () => {
         telegramUrl?: string;
         websiteUrl?: string;
     }>({});
+
 
     const validateForm = () => {
         const newErrors: typeof errors = {};
@@ -231,6 +232,66 @@ const CreateToken: React.FC = () => {
         return value.replace(/\./g, '');
     };
 
+    // Watch for transaction confirmation
+    const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
+        hash: txHash as `0x${string}`,
+    });
+
+    // Handle transaction receipt
+    useEffect(() => {
+        const processReceipt = async () => {
+            if (receipt && publicClient) {
+                try {
+                    // Find TokenAndCurveCreated event log
+                    const eventLog = receipt.logs.find(log => {
+                        try {
+                            const decoded = decodeEventLog({
+                                abi: factoryAbi,
+                                data: log.data,
+                                topics: log.topics,
+                            });
+                            return decoded.eventName === 'TokenAndCurveCreated';
+                        } catch {
+                            return false;
+                        }
+                    });
+
+                    if (eventLog) {
+                        const decoded = decodeEventLog({
+                            abi: factoryAbi,
+                            data: eventLog.data,
+                            topics: eventLog.topics,
+                        });
+
+                        // console.log('TokenAndCurveCreated Event:', decoded);
+                        
+                        const { token, bondingCurve } = decoded.args as any;
+                        // console.log('New Token Created:', {
+                        //     token: token,
+                        //     curve: bondingCurve
+                        // });
+
+                        // Create token in database
+                        await createToken(token, bondingCurve);
+                    }
+                } catch (error) {
+                    console.error('Error processing transaction receipt:', error);
+                    toast.error('Error processing transaction receipt');
+                }
+            }
+        };
+
+        processReceipt();
+    }, [receipt, publicClient]);
+
+    // Handle confirmation error
+    useEffect(() => {
+        if (isConfirmationError) {
+            console.error('Transaction confirmation failed');
+            toast.error('Transaction confirmation failed');
+        }
+    }, [isConfirmationError]);
+
     const handleCreateToken = async () => {
         if (!isConnected) {
             toast.error('Please connect your wallet');
@@ -244,41 +305,37 @@ const CreateToken: React.FC = () => {
         const loadingToast = toast.loading('Creating token...');
 
         try {
+            if (!tokenName || !ticker) {
+                toast.error('Token name and ticker are required', { id: loadingToast });
+                return;
+            }
+            
             try {
-                if (!tokenName || !ticker) {
-                    toast.error('Token name and ticker are required', { id: loadingToast });
-                    return;
-                }
+                const tx = await writeContractAsync({
+                    address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
+                    abi: factoryAbi,
+                    functionName: 'createTokenAndCurve',
+                    value: BigInt(1137000000000000),
+                    args: [tokenName, ticker, parseUnits('1000000', 18), parseUnits('0.00001', 18), parseUnits('0.000001', 18)]
+                });
                 
-                try {
-                    await writeContractAsync({
-                        address: process.env.FACTORY_ADDRESS as `0x${string}`,
-                        abi: factoryAbi,
-                        functionName: 'createTokenAndCurve',
-                        value: BigInt(1137000000000000),
-                        args: [tokenName, ticker, parseUnits('1000000', 18), parseUnits('0.00001', 18), parseUnits('0.000001', 18)]
-                    });
-                    toast.success('Please wait for the token to be created!', { id: loadingToast });
-                } catch (error: any) {
-                    console.error('Agent creation error:', error);
-                    // Check for MetaMask rejection
-                    if (error.code === 4001 || error.message?.includes('User rejected')) {
-                        toast.error('Transaction rejected by user', { id: loadingToast });
-                    } else if (error.code === -32603) {
-                        toast.error('Internal JSON-RPC error. Please check your wallet balance.', { id: loadingToast });
-                    } else {
-                        toast.error('Failed to create agent', { id: loadingToast });
-                    }
+                setTxHash(tx); // Save transaction hash
+                toast.success('Transaction submitted! Waiting for confirmation...', { id: loadingToast });
+                
+            } catch (error: any) {
+                console.error('Token creation error:', error);
+                if (error.code === 4001 || error.message?.includes('User rejected')) {
+                    toast.error('Transaction rejected by user', { id: loadingToast });
+                } else if (error.code === -32603) {
+                    toast.error('Internal JSON-RPC error. Please check your wallet balance.', { id: loadingToast });
+                } else {
+                    toast.error('Failed to create token', { id: loadingToast });
                 }
-
-            } catch (jsonError) {
-                console.error('Error parsing success response:', jsonError);
             }
         } catch (error) {
-            console.error('Error creating agent:', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to create agent. Please try again.');
+            console.error('Error:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to create token. Please try again.');
         }
-        
     };
 
     const createToken = async (address: string, curveAddress: string) => {
@@ -305,7 +362,7 @@ const CreateToken: React.FC = () => {
                 websiteUrl: websiteUrl,
             };
 
-            console.log('Sending payload:', payload); // Debug log
+            // console.log('Sending payload:', payload); // Debug log
 
             const response = await fetch('/api/token', {
                 method: 'POST',
@@ -328,17 +385,6 @@ const CreateToken: React.FC = () => {
             toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
         }
     }
-
-    useWatchContractEvent({
-        address: process.env.FACTORY_ADDRESS as `0x${string}`,
-        abi: factoryAbi,
-        eventName: 'TokenAndCurveCreated',
-        onLogs(logs) {
-            // console.log('TokenAndCurveCreated event:', logs);
-            // Create agent in database
-            createToken(logs[0].args.token as `0x${string}`, logs[0].args.bondingCurve as `0x${string}`);
-        }
-    });
 
     return (
         <main className="min-h-screen bg-[#0B0E17]">
@@ -384,7 +430,7 @@ const CreateToken: React.FC = () => {
                                 }}
                                 placeholder="Enter description"
                                 rows={4}
-                                className={`w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none resize-none ${errors.description ? 'border-red-500' : ''}`}
+                                className={`w-full bg-[#0B0E17] text-sm border border-[#1F2937] rounded-md p-3 text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none resize-none ${errors.description ? 'border-red-500' : ''}`}
                             />
                             {errors.description && (
                                 <p className="text-sm text-red-500 mt-1">{errors.description}</p>
