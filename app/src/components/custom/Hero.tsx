@@ -2,32 +2,54 @@ import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Agent } from '@/types/agent';
-import { ArrowRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 const Hero: React.FC = () => {
   const router = useRouter();
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchAgents = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/agent');
-      const result = await response.json();
-      setAgents(result.data);
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const fetchTokens = async () => {
+    const response = await fetch('/api/token');
+    const result = await response.json();
+    return result.data;
+  }
 
-  useEffect(() => {
-    fetchAgents();
-  }, [fetchAgents]);
+  const fetchAgents = async () => {
+    const response = await fetch('/api/agent');
+    const result = await response.json();
+    return result.data;
+  }
+
+  const { data: token, isLoading } = useQuery({
+    queryKey: ['token'],
+    queryFn: () => fetchTokens(),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
+  });
+
+  const { data: agent, isLoading: agentLoading } = useQuery({
+    queryKey: ['agent'],
+    queryFn: () => fetchAgents(),
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
+  });
+
+  const agents = useMemo(() => {
+    if (!agent) return [];
+    return agent;
+  }, [agent]);
+  
+  const tokens = useMemo(() => {
+    if (!token) return [];
+    return token;
+  }, [token]);
 
   const MainCardSkeleton = useCallback(() => (
     <Card className="w-full md:w-[400px] h-[200px] bg-[#161B28] border-none rounded-lg">
@@ -52,25 +74,24 @@ const Hero: React.FC = () => {
       <div className="container mx-auto py-6 px-4 sm:px-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Featured Agent Card */}
-          {loading ? (
+          {isLoading ? (
             <MainCardSkeleton />
-          ) : agents[0] && (
+          ) : tokens[0] && (
             <Card 
-              onClick={() => router.push(`/agent/${agents[0].ticker.toLowerCase()}`)}
+              onClick={() => router.push(`/token/${tokens[0].ticker.toLowerCase()}`)}
               className="w-full lg:w-[400px] h-auto min-h-[200px] bg-[#161B28] hover:bg-[#1C2333] transition-colors duration-200 cursor-pointer border-none rounded-lg"
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   <Image
-                    src={agents[0].imageUrl || ''}
-                    alt={agents[0].name}
+                    src={tokens[0].imageUrl || ''}
+                    alt={tokens[0].name}
                     width={48}
                     height={48}
-                    className="rounded-full"
                   />
                   <div>
-                    <h3 className="text-xl font-semibold text-white">{agents[0].name}</h3>
-                    <p className="text-gray-400">{agents[0].ticker}</p>
+                    <h3 className="text-xl font-semibold text-white">{tokens[0].name}</h3>
+                    <p className="text-gray-400">{tokens[0].ticker}</p>
                   </div>
                 </div>
                 <div className="mt-6">
@@ -93,19 +114,19 @@ const Hero: React.FC = () => {
               <Card className="bg-[#161B28] border-none rounded-lg p-4">
                 <h4 className="text-gray-400 mb-2">Total Agents</h4>
                 <p className="text-2xl font-semibold text-white">
-                  {loading ? <Skeleton className="h-8 w-20" /> : agents.length}
+                  {isLoading ? <Skeleton className="h-8 w-20" /> : agents.length}
+                </p>
+              </Card>
+              <Card className="bg-[#161B28] border-none rounded-lg p-4">
+                <h4 className="text-gray-400 mb-2">Total Tokens</h4>
+                <p className="text-2xl font-semibold text-white">
+                  {isLoading ? <Skeleton className="h-8 w-20" /> : tokens.length}
                 </p>
               </Card>
               <Card className="bg-[#161B28] border-none rounded-lg p-4">
                 <h4 className="text-gray-400 mb-2">Total Volume</h4>
                 <p className="text-2xl font-semibold text-white">
-                  {loading ? <Skeleton className="h-8 w-20" /> : "$1.2M"}
-                </p>
-              </Card>
-              <Card className="bg-[#161B28] border-none rounded-lg p-4">
-                <h4 className="text-gray-400 mb-2">Active Traders</h4>
-                <p className="text-2xl font-semibold text-white">
-                  {loading ? <Skeleton className="h-8 w-20" /> : "2.5K"}
+                  {isLoading ? <Skeleton className="h-8 w-20" /> : "$1.2M"}
                 </p>
               </Card>
             </div>

@@ -3,8 +3,8 @@ const hre = require("hardhat");
 async function main() {
     console.log("Starting contract verification...");
 
-    const factoryAddress = "0xEfD274F10fD2dF021be3d910d66C24C94E24cD98";
-    const factoryLibAddress = "0x5D67608eaa7906Cd786894Eca81b8837e88de7c4"; // You need to replace this with actual FactoryLib address
+    const factoryAddress = "0x5aF21C160f120D0fF9672b703A031Cdfd7ecA15F";
+    const factoryLibAddress = "0x3106b243211f597BfADeD2E2EcE00927a6ab45c0"; // You need to replace this with actual FactoryLib address
     const creationFee = hre.ethers.parseEther("0.001137"); // $3 in ETH
 
     // First verify FactoryLib

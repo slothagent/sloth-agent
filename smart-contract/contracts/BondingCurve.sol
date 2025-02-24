@@ -61,9 +61,10 @@ contract BondingCurve is Ownable, ReentrancyGuard {
             return (amount * basePrice) / PRECISION;
         }
         
-        // Calculate price using linear formula
-        // Total price = amount * (basePrice + slope * current_supply)
-        uint256 currentPrice = basePrice + (slope * supply) / PRECISION;
+        // Calculate price using square root formula for more gradual increase
+        // Total price = amount * (basePrice + slope * sqrt(current_supply))
+        uint256 sqrtSupply = Math.sqrt(supply * PRECISION);
+        uint256 currentPrice = basePrice + (slope * sqrtSupply) / PRECISION;
         return (amount * currentPrice) / PRECISION;
     }
 
@@ -193,6 +194,29 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         // Market cap = current price * total supply
         uint256 currentPrice = (slope * totalSupply) / PRECISION + basePrice;
         return (currentPrice * totalSupply) / PRECISION;
+    }
+
+    /**
+     * @dev Test function to simulate price changes after multiple buys
+     * @param amount Amount of tokens for each buy
+     * @param numBuys Number of buys to simulate
+     * @return prices Array of prices for each buy
+     */
+    function simulatePrices(uint256 amount, uint256 numBuys) external view returns (uint256[] memory) {
+        uint256[] memory prices = new uint256[](numBuys);
+        uint256 simulatedSupply = totalSupply;
+        
+        for(uint256 i = 0; i < numBuys; i++) {
+            if (simulatedSupply == 0 || (slope * simulatedSupply) / PRECISION < basePrice / 100) {
+                prices[i] = (amount * basePrice) / PRECISION;
+            } else {
+                uint256 currentPrice = basePrice + (slope * simulatedSupply) / PRECISION;
+                prices[i] = (amount * currentPrice) / PRECISION;
+            }
+            simulatedSupply += amount;
+        }
+        
+        return prices;
     }
 
     // Function to receive ETH

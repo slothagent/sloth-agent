@@ -324,4 +324,16 @@ contract Factory is Ownable {
 
     // Function to receive ETH
     receive() external payable {}
+
+    /**
+     * @dev Allows a user to withdraw their ETH balance
+     * @param amount Amount of ETH to withdraw in wei
+     */
+    function withdrawBalance(uint256 amount) external {
+        require(amount > 0, "Amount must be greater than 0");
+        require(amount <= address(this).balance, "Insufficient contract balance");
+        
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Withdrawal failed");
+    }
 } 
