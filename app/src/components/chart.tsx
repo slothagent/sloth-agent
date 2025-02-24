@@ -4,13 +4,13 @@ import HighchartsReact from 'highcharts-react-official';
 
 interface ChartProps {
     height?: string;
-    priceHistory?: {
+    transactionHistory?: {
         price: number;
         timestamp: string;
     }[];
 }
 
-const Chart: FC<ChartProps> = ({ height = '430px', priceHistory = [] }) => {
+const Chart: FC<ChartProps> = ({ height = '430px', transactionHistory = [] }) => {
     const options: Highcharts.Options = {
         title: {
             text: undefined
@@ -110,7 +110,7 @@ const Chart: FC<ChartProps> = ({ height = '430px', priceHistory = [] }) => {
         series: [{
             type: 'area',
             name: 'Price',
-            data: priceHistory.map(point => [
+            data: transactionHistory.map(point => [
                 new Date(point.timestamp).getTime(),
                 point.price
             ]),
