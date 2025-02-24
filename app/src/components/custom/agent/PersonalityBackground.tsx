@@ -21,7 +21,7 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
     return (
         <div className="space-y-6">
             <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Agent Lore</label>
+                <label className="text-sm font-medium text-gray-400">Short Bio</label>
                 <textarea
                     value={agentLore}
                     onChange={(e) => onLoreChange(e.target.value)}
@@ -43,18 +43,8 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
             </div>
 
             <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Communication Style</label>
-                <select
-                    value={communicationStyle}
-                    onChange={(e) => onStyleChange(e.target.value)}
-                    className="w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none"
-                >
-                    <option value="" className="bg-[#0B0E17]">Select a communication style</option>
-                    <option value="professional" className="bg-[#0B0E17]">Professional</option>
-                    <option value="casual" className="bg-[#0B0E17]">Casual</option>
-                    <option value="friendly" className="bg-[#0B0E17]">Friendly</option>
-                    <option value="technical" className="bg-[#0B0E17]">Technical</option>
-                </select>
+                <label className="text-sm font-medium text-gray-400">Category</label>
+                
             </div>
         </div>
     );
