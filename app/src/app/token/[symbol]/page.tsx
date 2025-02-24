@@ -16,19 +16,43 @@ import Overview from '@/components/custom/Overview';
 import Social from '@/components/custom/Social';
 import { Button } from "@/components/ui/button";
 import { useQuery } from '@tanstack/react-query';   
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { NextPage } from 'next';
 import { useReadContract, useWriteContract } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { toast } from 'react-hot-toast';
-import { parseEther, formatUnits } from "ethers";
+import { parseEther, formatUnits, parseUnits } from "ethers";
+import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
+import { tokenAbi } from '@/abi/tokenAbi';
 
 
 const TokenDetails: NextPage = () => {
     const { symbol } = useParams();
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
+    const [timeRange, setTimeRange] = useState('24h');
+    const [sonicPrice, setSonicPrice] = useState<number>(0);
+
+    // Fetch Sonic price from our API route
+    const fetchSonicPrice = async () => {
+        try {
+            const response = await fetch('/api/sonic-price');
+            const data = await response.json();
+            setSonicPrice(data.price);
+        } catch (error) {
+            console.error('Error fetching Sonic price:', error);
+            // Fallback to current market price if API fails
+            setSonicPrice(0.845955);
+        }
+    };
+
+    // Fetch price on component mount and every 30 seconds
+    useEffect(() => {
+        fetchSonicPrice();
+        const interval = setInterval(fetchSonicPrice, 30000); // Update every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
 
     const formatNumber = (num: string): string => {
         const n = parseFloat(num);
@@ -85,31 +109,83 @@ const TokenDetails: NextPage = () => {
         };
     }, [token]);
 
-    const { data: tokensToReceive, isLoading: isLoadingTokenPrice } = useReadContract({
-        address: process.env.FACTORY_ADDRESS as `0x${string}`,
+    const {data: fundingRaised} = useReadContract({
+        address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
         abi: factoryAbi,
-        functionName: 'calculateTokensForEth',
-        args: [tokenData?.address, parseEther(amount||"0")]
+        functionName: 'getTokenFundingRaised',
+        args: [tokenData?.address as `0x${string}`]
+    });
+    
+    const fundingRaisedInEther = formatUnits(fundingRaised||BigInt(0), 18);
+
+    const { data: costInWei, refetch: refetchCostInWei } = useReadContract({
+        address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
+        abi: factoryAbi,
+        functionName: 'getTokenPrice',
+        args: [tokenData?.address as `0x${string}`, parseEther(amount||"0")]
     });
 
+    const { data: priceHistory, refetch: refetchPriceHistory } = useQuery({
+        queryKey: ['priceHistory', tokenData?.address, timeRange],
+        queryFn: async () => {
+            const response = await fetch(`/api/token-price?tokenAddress=${tokenData?.address}&timeRange=${timeRange}`);
+            const data = await response.json();
+            return data.data;
+        },
+        enabled: !!tokenData?.address,
+        staleTime: 1000, // Set to 1 second to allow frequent updates
+        gcTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: true,
+        refetchOnMount: true,
+        refetchInterval: 5000, // Refetch every 5 seconds
+    });
+
+    console.log('priceHistory', priceHistory);
+    // console.log('sonicPrice', sonicPrice);
+
+    
+    const handleTimeRangeChange = (value: string) => {
+        setTimeRange(value);
+    };
 
     if (isLoading || !tokenData) {
         return <div>Loading...</div>;
     }
 
-    // console.log(process.env.FACTORY_ADDRESS);
-
     const handleBuy = async () => {
         const loadingToast = toast.loading('Buying...');
         try {
-            await writeContractAsync({
-                address: process.env.FACTORY_ADDRESS as `0x${string}`,
+            await refetchCostInWei();
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const tx = await writeContractAsync({
+                address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
                 abi: factoryAbi,
                 functionName: 'buyTokens',
-                value: parseEther(amount||"0"),
-                args: [tokenData?.address, tokensToReceive||BigInt(0)]
+                value: costInWei,
+                args: [tokenData?.address, parseEther(amount||"0")]
             });
+
+            // Save price history after successful transaction
+            await fetch('/api/token-price', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tokenAddress: tokenData?.address,
+                    price: parseFloat(fundingRaisedInEther),
+                    transactionType: 'BUY',
+                    transactionHash: tx as `0x${string}`,
+                }),
+            });
+
+            // Refetch price history immediately after successful transaction
+            await refetchPriceHistory();
+            
             toast.success('Buy successful!', { id: loadingToast });
+            setAmount(null);
         } catch (error: any) {
             console.error('Buy error:', error);
             if (error.code === 4001 || error.message?.includes('User rejected')) {
@@ -169,11 +245,46 @@ const TokenDetails: NextPage = () => {
                 </div>
                 <div className="hidden md:block">
                 <div role="list" dir="ltr" className="flex items-center justify-center border-[#1F2937] shadow-sm rounded-lg p-[1px] gap-0 !w-full md:!w-max md:!mx-0 border py-2 h-[40px]">
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">24h</Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">3D</Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">7D</Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">14D</Button>
-                    <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white data-[state=on]:bg-[#161B28] data-[state=on]:text-white">30D</Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleTimeRangeChange('24h')}
+                        className={`text-gray-400 hover:text-white ${timeRange === '24h' ? 'bg-[#161B28] text-white' : ''}`}
+                    >
+                        24h
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleTimeRangeChange('3d')}
+                        className={`text-gray-400 hover:text-white ${timeRange === '3d' ? 'bg-[#161B28] text-white' : ''}`}
+                    >
+                        3D
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleTimeRangeChange('7d')}
+                        className={`text-gray-400 hover:text-white ${timeRange === '7d' ? 'bg-[#161B28] text-white' : ''}`}
+                    >
+                        7D
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleTimeRangeChange('14d')}
+                        className={`text-gray-400 hover:text-white ${timeRange === '14d' ? 'bg-[#161B28] text-white' : ''}`}
+                    >
+                        14D
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => handleTimeRangeChange('30d')}
+                        className={`text-gray-400 hover:text-white ${timeRange === '30d' ? 'bg-[#161B28] text-white' : ''}`}
+                    >
+                        30D
+                    </Button>
                 </div>
                 </div>
             </div>
@@ -257,11 +368,11 @@ const TokenDetails: NextPage = () => {
                                 <div className="w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
                                     <div className="flex flex-col h-full">
                                         <div className="text-sm mb-auto flex items-center gap-1.5 font-medium text-gray-400">
-                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
+                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" style={{ color: 'transparent' }} />
                                             Contract address
                                         </div>
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
-                                            {tokenData?.address.slice(0, 4)}...{tokenData?.address.slice(-4)}
+                                            <Link href={`https://testnet.sonicscan.org/address/${tokenData?.address}`} className='hover:underline' target="_blank">{tokenData?.address.slice(0, 4)}...{tokenData?.address.slice(-4)}</Link>
                                             <button className="ml-1 text-gray-400 hover:text-white">
                                                 <Copy className="w-4 h-4" />
                                             </button>
@@ -373,15 +484,17 @@ const TokenDetails: NextPage = () => {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">$0.51033</p>
-                                            <span className="text-sm flex gap-1 items-center text-red-400">
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(fundingRaisedInEther) * sonicPrice).toFixed(8)}</p>
+                                            {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
-                                            </span>
+                                            </span> */}
                                         </div>
                                     </div>
                                     <div className="flex-1 w-full p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
-                                            <Chart height="full" />
+                                            <Chart 
+                                                priceHistory={priceHistory || []} 
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -412,8 +525,8 @@ const TokenDetails: NextPage = () => {
                                                 </TabsList>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm text-gray-400">Bal:</span>
-                                                <span className="text-sm font-medium text-white">—ETH</span>
+                                                <span className="text-sm text-gray-400">Price:</span>
+                                                <span className="text-sm font-medium text-white">{parseFloat(fundingRaisedInEther).toFixed(8)} S</span>
                                             </div>
                                         </div>
                                         <TabsContent value="buy">
@@ -422,17 +535,15 @@ const TokenDetails: NextPage = () => {
                                                     <span className="text-sm text-gray-400">Amount</span>
                                                     <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
                                                         <Input 
-                                                            type="number"
-                                                            step="any"
-                                                            min="0"
+                                                            type="text"
                                                             placeholder="0.0"
-                                                            value={amount||0}
+                                                            value={amount||''}
                                                             onChange={(e) => setAmount(e.target.value)}
                                                             className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
                                                         />
-                                                        <span className="text-gray-400">ETH</span>
+                                                        <span className="text-gray-400">{tokenData?.ticker}</span>
                                                     </div>
-                                                    <div className="grid grid-cols-4 gap-2">
+                                                    {/* <div className="grid grid-cols-4 gap-2">
                                                         <button 
                                                             onClick={() => handleAmountClick(0.01)}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
@@ -457,10 +568,10 @@ const TokenDetails: NextPage = () => {
                                                         >
                                                             1
                                                         </button>
-                                                    </div>
+                                                    </div> */}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {tokenData?.ticker}</span>
+                                                    {/* <span>You will receive: {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {tokenData?.ticker}</span> */}
                                                 </div>
                                                 <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Buy
@@ -473,17 +584,15 @@ const TokenDetails: NextPage = () => {
                                                     <span className="text-sm text-gray-400">Amount</span>
                                                     <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
                                                         <Input 
-                                                            type="number"
-                                                            step="any"
-                                                            min="0"
+                                                            type="text"
                                                             placeholder="0.0"
-                                                            value={amount||0}
+                                                            value={amount||'0.0'}
                                                             onChange={(e) => setAmount(e.target.value)}
                                                             className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
                                                         />
-                                                        <span className="text-gray-400">ETH</span>
+                                                        <span className="text-gray-400">{tokenData?.ticker}</span>
                                                     </div>
-                                                    <div className="grid grid-cols-4 gap-2">
+                                                    {/* <div className="grid grid-cols-4 gap-2">
                                                         <button 
                                                             onClick={() => handleAmountClick(0.01)}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
@@ -508,10 +617,10 @@ const TokenDetails: NextPage = () => {
                                                         >
                                                             100%
                                                         </button>
-                                                    </div>
+                                                    </div> */}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>1 ETH = {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {tokenData?.ticker}</span>
+                                                    {/* <span>1 ETH = {formatNumber(formatUnits(tokensToReceive || BigInt(0), 18))} {tokenData?.ticker}</span> */}
                                                 </div>
                                                 <Button className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Sell

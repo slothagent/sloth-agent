@@ -13,7 +13,8 @@ const nextConfig: NextConfig = {
     REDIRECT_URI: process.env.REDIRECT_URI,
     MONGODB_URI: process.env.MONGODB_URI,
     MONGODB_DB: process.env.MONGODB_DB,
-    REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN
+    REPLICATE_API_TOKEN: process.env.REPLICATE_API_TOKEN,
+    CMC_API_KEY: process.env.CMC_API_KEY
   },
   reactStrictMode: true,
   experimental: {

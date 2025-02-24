@@ -31,7 +31,6 @@ const CreateToken: React.FC = () => {
     const [txHash, setTxHash] = useState<string | null>(null);
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
-    const publicClient = usePublicClient();
 
     const router = useRouter(); 
 
@@ -118,6 +117,7 @@ const CreateToken: React.FC = () => {
             throw error;
         }
     };
+
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -236,13 +236,15 @@ const CreateToken: React.FC = () => {
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
     });
+    
+    console.log('Receipt:', receipt);
 
     // Handle transaction receipt
     useEffect(() => {
         const processReceipt = async () => {
-            if (receipt && publicClient) {
+            if (receipt) {
                 try {
-                    // Find TokenAndCurveCreated event log
+                    // Find the token address from the logs
                     const eventLog = receipt.logs.find(log => {
                         try {
                             const decoded = decodeEventLog({
@@ -250,6 +252,7 @@ const CreateToken: React.FC = () => {
                                 data: log.data,
                                 topics: log.topics,
                             });
+                            console.log('Decoded:', decoded);
                             return decoded.eventName === 'TokenAndCurveCreated';
                         } catch {
                             return false;
@@ -262,17 +265,19 @@ const CreateToken: React.FC = () => {
                             data: eventLog.data,
                             topics: eventLog.topics,
                         });
-
-                        // console.log('TokenAndCurveCreated Event:', decoded);
                         
                         const { token, bondingCurve } = decoded.args as any;
-                        // console.log('New Token Created:', {
-                        //     token: token,
-                        //     curve: bondingCurve
-                        // });
-
-                        // Create token in database
-                        await createToken(token, bondingCurve);
+                        
+                        // Create token in database with the token address
+                        await createToken(token);
+                    } else {
+                        // If we can't find the event log, try to get the token address from the receipt
+                        const tokenAddress = receipt.logs[0]?.address;
+                        if (tokenAddress) {
+                            await createToken(tokenAddress);
+                        } else {
+                            throw new Error('Could not find token address in transaction receipt');
+                        }
                     }
                 } catch (error) {
                     console.error('Error processing transaction receipt:', error);
@@ -282,7 +287,7 @@ const CreateToken: React.FC = () => {
         };
 
         processReceipt();
-    }, [receipt, publicClient]);
+    }, [receipt]);
 
     // Handle confirmation error
     useEffect(() => {
@@ -315,8 +320,8 @@ const CreateToken: React.FC = () => {
                     address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createTokenAndCurve',
-                    value: BigInt(1137000000000000),
-                    args: [tokenName, ticker, parseUnits('1000000', 18), parseUnits('0.00001', 18), parseUnits('0.000001', 18)]
+                    value: parseEther('2'),
+                    args: [tokenName, ticker, parseEther(totalSupply||'0'), parseEther('0.2'), parseEther('1')]
                 });
                 
                 setTxHash(tx); // Save transaction hash
@@ -338,12 +343,12 @@ const CreateToken: React.FC = () => {
         }
     };
 
-    const createToken = async (address: string, curveAddress: string) => {
+    const createToken = async (address: string) => {
         const loadingToast = toast.loading('Creating token...');
         try {
 
-            if (!address || !curveAddress) {
-                toast.error('Token address and curve address are required', { id: loadingToast });
+            if (!address) {
+                toast.error('Token address is required', { id: loadingToast });
                 return;
             }
 
@@ -352,11 +357,10 @@ const CreateToken: React.FC = () => {
                 name: tokenName,
                 address: address,
                 owner: OwnerAddress,
-                curveAddress: curveAddress,
                 description: description || '',
                 ticker: ticker,
                 imageUrl: imageUrl || '',
-                totalSupply: totalSupply,
+                totalSupply: parseUnits('2',23).toString(),
                 twitterUrl: twitterUrl,
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,

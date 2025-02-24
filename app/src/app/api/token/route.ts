@@ -5,7 +5,6 @@ interface CreateTokenData {
   name: string;
   address: string;
   owner: string;
-  curveAddress: string;
   description?: string;
   ticker: string;
   imageUrl?: string;
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // Validate required fields
-    const requiredFields = ['name', 'address', 'owner', 'curveAddress', 'ticker', 'totalSupply'];
+    const requiredFields = ['name', 'address', 'owner', 'ticker', 'totalSupply'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -35,7 +34,6 @@ export async function POST(req: Request) {
       name: body.name,
       address: body.address,
       owner: body.owner,
-      curveAddress: body.curveAddress,
       ticker: body.ticker,
       totalSupply: body.totalSupply,
       // Optional fields

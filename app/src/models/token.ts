@@ -6,7 +6,6 @@ export interface Token {
   name: string;
   address: string;
   owner: string;
-  curveAddress: string;
   description?: string;
   ticker: string;
   imageUrl?: string;
