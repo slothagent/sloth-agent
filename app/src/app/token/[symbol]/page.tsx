@@ -19,16 +19,15 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { NextPage } from 'next';
-import { useReadContract, useWriteContract } from 'wagmi';
+import { useReadContract, useWriteContract, useAccount } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits, parseUnits } from "ethers";
-import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
-import { tokenAbi } from '@/abi/tokenAbi';
 
 
 const TokenDetails: NextPage = () => {
     const { symbol } = useParams();
+    const { address } = useAccount();
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
     const [timeRange, setTimeRange] = useState('24h');
@@ -125,10 +124,10 @@ const TokenDetails: NextPage = () => {
         args: [tokenData?.address as `0x${string}`, parseEther(amount||"0")]
     });
 
-    const { data: priceHistory, refetch: refetchPriceHistory } = useQuery({
-        queryKey: ['priceHistory', tokenData?.address, timeRange],
+    const { data: transactionHistory, refetch: refetchTransactionHistory } = useQuery({
+        queryKey: ['transactionHistory', tokenData?.address, timeRange],
         queryFn: async () => {
-            const response = await fetch(`/api/token-price?tokenAddress=${tokenData?.address}&timeRange=${timeRange}`);
+            const response = await fetch(`/api/transactions?tokenAddress=${tokenData?.address}&timeRange=${timeRange}`);
             const data = await response.json();
             return data.data;
         },
@@ -140,7 +139,7 @@ const TokenDetails: NextPage = () => {
         refetchInterval: 5000, // Refetch every 5 seconds
     });
 
-    console.log('priceHistory', priceHistory);
+    // console.log('priceHistory', priceHistory);
     // console.log('sonicPrice', sonicPrice);
 
     
@@ -168,7 +167,7 @@ const TokenDetails: NextPage = () => {
             });
 
             // Save price history after successful transaction
-            await fetch('/api/token-price', {
+            await fetch('/api/transactions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -176,13 +175,15 @@ const TokenDetails: NextPage = () => {
                 body: JSON.stringify({
                     tokenAddress: tokenData?.address,
                     price: parseFloat(fundingRaisedInEther),
+                    userAddress: address,
+                    amountToken: parseFloat(amount||"0"),
                     transactionType: 'BUY',
                     transactionHash: tx as `0x${string}`,
                 }),
             });
 
             // Refetch price history immediately after successful transaction
-            await refetchPriceHistory();
+            await refetchTransactionHistory();
             
             toast.success('Buy successful!', { id: loadingToast });
             setAmount(null);
@@ -493,7 +494,7 @@ const TokenDetails: NextPage = () => {
                                     <div className="flex-1 w-full p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
                                             <Chart 
-                                                priceHistory={priceHistory || []} 
+                                                transactionHistory={transactionHistory || []} 
                                             />
                                         </div>
                                     </div>
