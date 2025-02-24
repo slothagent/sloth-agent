@@ -43,21 +43,6 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
     return (
         <div className="space-y-6">
             <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">System Type</label>
-                <select
-                    value={systemType}
-                    onChange={(e) => onSystemTypeChange(e.target.value)}
-                    className="w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none"
-                >
-                    <option value="" className="bg-[#0B0E17]">Select system type</option>
-                    <option value="trading" className="bg-[#0B0E17]">Trading Bot</option>
-                    <option value="social" className="bg-[#0B0E17]">Social Media Manager</option>
-                    <option value="research" className="bg-[#0B0E17]">Research Assistant</option>
-                    <option value="customer" className="bg-[#0B0E17]">Customer Service</option>
-                </select>
-            </div>
-
-            <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-400">Agent Image</label>
                 <div 
                     className="relative border-2 border-dashed border-[#1F2937] rounded-lg p-6 bg-[#0B0E17] hover:border-[#2196F3] transition-colors duration-200"
