@@ -59,45 +59,7 @@ const CreateAgent: React.FC = () => {
 
     const handleSubmit = async () => {
         const loadingToast = toast.loading('Creating agent...');
-        try {
-            // Validate required fields
-            if (!agentName || !ticker) {
-                toast.error('Agent name and ticker are required', { id: loadingToast });
-                return;
-            }
-
-            try {
-                
-                try {
-                    await writeContractAsync({
-                        address: process.env.FACTORY_ADDRESS as `0x${string}`,
-                        abi: factoryAbi,
-                        functionName: 'createTokenAndCurve',
-                        value: BigInt(1137000000000000),
-                        args: [agentName, ticker, parseUnits('1000000', 18), parseUnits('0.0001', 18), parseUnits('0.0000001', 18)]
-                    });
-                    toast.success('Please wait for the agent to be created!', { id: loadingToast });
-                } catch (error: any) {
-                    console.error('Agent creation error:', error);
-                    // Check for MetaMask rejection
-                    if (error.code === 4001 || error.message?.includes('User rejected')) {
-                        toast.error('Transaction rejected by user', { id: loadingToast });
-                    } else if (error.code === -32603) {
-                        toast.error('Internal JSON-RPC error. Please check your wallet balance.', { id: loadingToast });
-                    } else {
-                        toast.error('Failed to create agent', { id: loadingToast });
-                    }
-                }
-
-            } catch (jsonError) {
-                console.error('Error parsing success response:', jsonError);
-                // Even if we can't parse the response, we know the request succeeded
-                toast.success('Agent created successfully!');
-            }
-        } catch (error) {
-            console.error('Error creating agent:', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to create agent. Please try again.');
-        }
+        
     };
 
     const steps = [
