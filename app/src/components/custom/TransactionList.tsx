@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Transaction } from '@/models/transactions';
 import { formatDistance } from 'date-fns';
+import Link from 'next/link';
 
 const fetchTransactions = async (page: number): Promise<{ data: Transaction[], total: number }> => {
   const response = await fetch(`/api/transactions?page=${page}&limit=10`);
@@ -76,12 +77,12 @@ const TransactionList: React.FC = () => {
                   <div className="col-span-2 text-[#2196F3]">
                     {formatDistance(new Date(tx.timestamp), new Date(), { addSuffix: true })}
                   </div>
-                  <div className="col-span-3 text-gray-400 font-mono">
+                  <Link target='_blank' href={`https://testnet.sonicscan.org/token/${tx.tokenAddress}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
                     {formatAddress(tx.tokenAddress)}
-                  </div>
-                  <div className="col-span-3 text-gray-400 font-mono">
+                  </Link>
+                  <Link target='_blank' href={`https://testnet.sonicscan.org/address/${tx.userAddress}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
                     {formatAddress(tx.userAddress)}
-                  </div>
+                  </Link>
                   <div className={`col-span-1 ${tx.transactionType === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>
                     {tx.transactionType}
                   </div>
@@ -89,7 +90,7 @@ const TransactionList: React.FC = () => {
                     {tx.amountToken ? tx.amountToken : '-'}
                   </div>
                   <div className="col-span-2 text-right text-white">
-                    ${tx.price.toFixed(2)}
+                    ${tx.price.toFixed(6)}
                   </div>
                 </div>
               ))

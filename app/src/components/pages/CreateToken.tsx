@@ -79,15 +79,6 @@ const CreateToken: React.FC = () => {
             newErrors.ticker = 'Token symbol can only contain uppercase letters and numbers';
         }
 
-        // Total Supply validation
-        if (!totalSupply) {
-            newErrors.totalSupply = 'Total supply is required';
-        } else if (isNaN(Number(totalSupply)) || Number(totalSupply) <= 0) {
-            newErrors.totalSupply = 'Total supply must be a positive number';
-        } else if (Number(totalSupply) > Number.MAX_SAFE_INTEGER) {
-            newErrors.totalSupply = 'Total supply is too large';
-        }
-
         // Image validation
         if (!imageUrl) {
             newErrors.imageUrl = 'Token image is required';
@@ -269,12 +260,13 @@ const CreateToken: React.FC = () => {
                         const { token, bondingCurve } = decoded.args as any;
                         
                         // Create token in database with the token address
-                        await createToken(token);
+                        await createToken(token, bondingCurve);
                     } else {
                         // If we can't find the event log, try to get the token address from the receipt
                         const tokenAddress = receipt.logs[0]?.address;
+                        const bondingCurve = receipt.logs[1]?.address;
                         if (tokenAddress) {
-                            await createToken(tokenAddress);
+                            await createToken(tokenAddress, bondingCurve);
                         } else {
                             throw new Error('Could not find token address in transaction receipt');
                         }
@@ -303,7 +295,7 @@ const CreateToken: React.FC = () => {
             return;
         }
         if (!validateForm()) {
-            toast.error('Please fix the errors in the form');
+            toast.error('Please fill all the fields');
             return;
         }
 
@@ -320,8 +312,8 @@ const CreateToken: React.FC = () => {
                     address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createTokenAndCurve',
-                    value: parseEther('2'),
-                    args: [tokenName, ticker, parseEther(totalSupply||'0'), parseEther('0.2'), parseEther('1')]
+                    value: parseEther('1'),
+                    args: [tokenName, ticker]
                 });
                 
                 setTxHash(tx); // Save transaction hash
@@ -343,7 +335,7 @@ const CreateToken: React.FC = () => {
         }
     };
 
-    const createToken = async (address: string) => {
+    const createToken = async (address: string, curveAddress: string) => {
         const loadingToast = toast.loading('Creating token...');
         try {
 
@@ -364,6 +356,7 @@ const CreateToken: React.FC = () => {
                 twitterUrl: twitterUrl,
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
+                curveAddress: curveAddress,
             };
 
             // console.log('Sending payload:', payload); // Debug log
@@ -383,7 +376,7 @@ const CreateToken: React.FC = () => {
             }
 
             toast.success('Token created successfully!', { id: loadingToast });
-            router.push(`/token/${ticker?.toLowerCase()}`);
+            router.push(`/token/${address}`);
         } catch (error) {
             console.error('Error creating token:', error);
             toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
@@ -585,7 +578,7 @@ const CreateToken: React.FC = () => {
                             <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
                         </div>
 
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Total Supply</label>
                             <Input
                                 type="text"
@@ -603,7 +596,7 @@ const CreateToken: React.FC = () => {
                             {errors.totalSupply && (
                                 <p className="text-sm text-red-500 mt-1">{errors.totalSupply}</p>
                             )}
-                        </div>
+                        </div> */}
 
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">

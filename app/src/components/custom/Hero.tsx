@@ -78,7 +78,7 @@ const Hero: React.FC = () => {
             <MainCardSkeleton />
           ) : tokens[0] && (
             <Card 
-              onClick={() => router.push(`/token/${tokens[0].ticker.toLowerCase()}`)}
+              onClick={() => router.push(`/token/${tokens[0].address}`)}
               className="w-full lg:w-[400px] h-auto min-h-[200px] bg-[#161B28] hover:bg-[#1C2333] transition-colors duration-200 cursor-pointer border-none rounded-lg"
             >
               <CardContent className="p-4">
