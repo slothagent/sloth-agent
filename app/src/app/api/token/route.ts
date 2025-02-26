@@ -4,6 +4,7 @@ import { TokenModel } from '@/models/token';
 interface CreateTokenData {
   name: string;
   address: string;
+  curveAddress: string;
   owner: string;
   description?: string;
   ticker: string;
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // Validate required fields
-    const requiredFields = ['name', 'address', 'owner', 'ticker', 'totalSupply'];
+    const requiredFields = ['name', 'address', 'owner', 'ticker', 'totalSupply', 'curveAddress'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
       owner: body.owner,
       ticker: body.ticker,
       totalSupply: body.totalSupply,
+      curveAddress: body.curveAddress,
       // Optional fields
       description: body.description || undefined,
       imageUrl: body.imageUrl || undefined,
@@ -83,12 +85,12 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const symbol = searchParams.get('symbol');
+    const address = searchParams.get('address');
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const search = searchParams.get('search');
 
-    console.log('Fetching tokens with params:', { symbol, page, pageSize, search });
+    console.log('Fetching tokens with params:', { address, page, pageSize, search });
 
     const collection = await TokenModel.getCollection();
     
@@ -108,10 +110,10 @@ export async function GET(req: Request) {
       });
     }
 
-    if (symbol) {
-      // Get token by symbol/ticker
-      const token = await collection.findOne({ ticker: symbol.toUpperCase() });
-      console.log('Found token by symbol:', token ? 'yes' : 'no');
+    if (address) {
+      // Get token by address
+      const token = await TokenModel.findByAddress(address);
+      console.log('Found token by address:', token ? 'yes' : 'no');
       
       if (!token) {
         return NextResponse.json(
