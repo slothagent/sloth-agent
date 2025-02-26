@@ -59,8 +59,8 @@ const TransactionList: React.FC = () => {
         <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
           <div className="grid grid-cols-12 gap-4 p-4 text-sm text-gray-400 border-b border-gray-800">
             <div className="col-span-2">TIME</div>
-            <div className="col-span-3">TOKEN ADDRESS</div>
-            <div className="col-span-3">USER ADDRESS</div>
+            <div className="col-span-3">FROM</div>
+            <div className="col-span-3">TO</div>
             <div className="col-span-1">ACTION</div>
             <div className="col-span-1 text-right">AMOUNT</div>
             <div className="col-span-2 text-right">PRICE</div>
@@ -77,17 +77,17 @@ const TransactionList: React.FC = () => {
                   <div className="col-span-2 text-[#2196F3]">
                     {formatDistance(new Date(tx.timestamp), new Date(), { addSuffix: true })}
                   </div>
-                  <Link target='_blank' href={`https://testnet.sonicscan.org/token/${tx.tokenAddress}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
-                    {formatAddress(tx.tokenAddress)}
+                  <Link target='_blank' href={`https://testnet.sonicscan.org/address/${tx.to}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
+                    {formatAddress(tx.to)}
                   </Link>
-                  <Link target='_blank' href={`https://testnet.sonicscan.org/address/${tx.userAddress}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
-                    {formatAddress(tx.userAddress)}
+                  <Link target='_blank' href={`https://testnet.sonicscan.org/token/${tx.from}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
+                    {formatAddress(tx.from)}
                   </Link>
                   <div className={`col-span-1 ${tx.transactionType === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>
                     {tx.transactionType}
                   </div>
                   <div className="col-span-1 text-right text-white">
-                    {tx.amountToken ? tx.amountToken : '-'}
+                    {tx.amount ? tx.amount : '-'} S
                   </div>
                   <div className="col-span-2 text-right text-white">
                     ${tx.price.toFixed(6)}
@@ -119,22 +119,22 @@ const TransactionList: React.FC = () => {
               
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm w-24">Token:</span>
+                  <span className="text-gray-400 text-sm w-24">From:</span>
                   <span className="text-gray-400 text-sm font-mono">
-                    {formatAddress(tx.tokenAddress)}
+                    {formatAddress(tx.to)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm w-24">User:</span>
+                  <span className="text-gray-400 text-sm w-24">To:</span>
                   <span className="text-gray-400 text-sm font-mono">
-                    {formatAddress(tx.userAddress)}
+                    {formatAddress(tx.from)}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-800">
                   <div className="text-white text-sm">
-                    Amount: {tx.amountToken}
+                    Amount: {tx.amount}
                   </div>
                   <div className="text-white text-sm">
                     ${tx.price.toFixed(2)}

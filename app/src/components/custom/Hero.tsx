@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from '@tanstack/react-query';
+import { formatUnits } from 'viem';
+import { formatNumber } from '@/utils/utils';
 
 const Hero: React.FC = () => {
   const router = useRouter();
@@ -21,23 +23,37 @@ const Hero: React.FC = () => {
     return result.data;
   }
 
+  const fetchTransactions = async (tokenAddress: string) => {
+    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=24h`);
+    const result = await response.json();
+    return result.data;
+  }
+
+  const fetchTotalVolume = async () => {
+    const response = await fetch(`/api/transactions?totalVolume=true`);
+    const result = await response.json();
+    return result.data;
+  }
+
   const { data: token, isLoading } = useQuery({
     queryKey: ['token'],
     queryFn: () => fetchTokens(),
-    staleTime: 60 * 1000,
+    staleTime: 10 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: 10 * 1000,
     retry: 1,
   });
 
   const { data: agent, isLoading: agentLoading } = useQuery({
     queryKey: ['agent'],
     queryFn: () => fetchAgents(),
-    staleTime: 60 * 1000,
+    staleTime: 10 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    refetchInterval: 10 * 1000,
     retry: 1,
   });
 
@@ -50,6 +66,44 @@ const Hero: React.FC = () => {
     if (!token) return [];
     return token;
   }, [token]);
+
+  const {data: transactionsData, isLoading: transactionsLoading} = useQuery({
+    queryKey: ['transactions', tokens[0]?.address],
+    queryFn: () => fetchTransactions(tokens[0]?.address),
+    staleTime: 10 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const {data: totalVolumeData, isLoading: totalVolumeLoading} = useQuery({
+    queryKey: ['totalVolume'],
+    queryFn: () => fetchTotalVolume(),
+    staleTime: 10 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const totalVolume = useMemo(() => {
+    if (!totalVolumeData) return 0;
+    return totalVolumeData;
+  }, [totalVolumeData]);
+
+  const transactions = useMemo(() => {
+    if (!transactionsData) return [];
+    return transactionsData;
+  }, [transactionsData]);
+  
+  // console.log(transactions);
+
+  const totalMarketCapToken = useMemo(() => {
+    if (!transactions) return 0;
+    return transactions.reduce((acc: number, curr: any) => acc + curr.marketCap, 0);
+  }, [transactions]);
+
+  const totalVolumeToken = useMemo(() => {
+    if (!transactions) return 0;
+    return transactions.reduce((acc: number, curr: any) => acc + curr.totalValue, 0);
+  }, [transactions]);
 
   const MainCardSkeleton = useCallback(() => (
     <Card className="w-full md:w-[400px] h-[200px] bg-[#161B28] border-none rounded-lg">
@@ -104,11 +158,11 @@ const Hero: React.FC = () => {
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-400">Market Cap</span>
-                    <span className="text-white">$100,000</span>
+                    <span className="text-white">${formatNumber(Number(totalMarketCapToken)/10**18)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">24h Volume</span>
-                    <span className="text-white">$50,000</span>
+                    <span className="text-white">${formatNumber(totalVolumeToken)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -133,7 +187,7 @@ const Hero: React.FC = () => {
               <Card className="bg-[#161B28] border-none rounded-lg p-4">
                 <h4 className="text-gray-400 mb-2">Total Volume</h4>
                 <p className="text-2xl font-semibold text-white">
-                  {isLoading ? <Skeleton className="h-8 w-20" /> : "$1.2M"}
+                  {isLoading ? <Skeleton className="h-8 w-20" /> : `$${totalVolume.volume.toFixed(2)}`}
                 </p>
               </Card>
             </div>

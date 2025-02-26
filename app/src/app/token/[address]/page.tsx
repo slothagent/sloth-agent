@@ -19,11 +19,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { NextPage } from 'next';
-import { useReadContract, useWriteContract, useAccount,useBalance } from 'wagmi';
+import { useReadContract, useWriteContract, useAccount,useBalance, useWaitForTransactionReceipt } from 'wagmi';
 import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits, parseUnits } from "ethers";
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import Launching from '@/components/custom/Launching';
+import { decodeEventLog } from 'viem';
+import { factoryAbi } from '@/abi/factoryAbi';
 
 const TokenDetails: NextPage = () => {
     const { address: tokenAddress } = useParams();
@@ -31,31 +33,9 @@ const TokenDetails: NextPage = () => {
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
     const [timeRange, setTimeRange] = useState('24h');
-    const [sonicPrice, setSonicPrice] = useState<number>(0);
-
     const { data: balance, refetch: refetchBalance } = useBalance({
         address: address,
     });
-
-    // Fetch Sonic price from our API route
-    const fetchSonicPrice = async () => {
-        try {
-            const response = await fetch('/api/sonic-price');
-            const data = await response.json();
-            setSonicPrice(data.price);
-        } catch (error) {
-            console.error('Error fetching Sonic price:', error);
-            // Fallback to current market price if API fails
-            setSonicPrice(0.845955);
-        }
-    };
-
-    // Fetch price on component mount and every 30 seconds
-    useEffect(() => {
-        fetchSonicPrice();
-        const interval = setInterval(fetchSonicPrice, 30000); // Update every 30 seconds
-        return () => clearInterval(interval);
-    }, []);
 
     const formatNumber = (num: string): string => {
         const n = parseFloat(num);
@@ -129,8 +109,6 @@ const TokenDetails: NextPage = () => {
         args: []
     });
 
-    const totalSupplyInEther = formatUnits(totalSupply||BigInt(0), 18);
-    // console.log('totalSupplyInEther', totalSupplyInEther);
 
     const {data: totalMarketCap,refetch: refetchTotalMarketCap} = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
@@ -138,9 +116,6 @@ const TokenDetails: NextPage = () => {
         functionName: 'getTotalMarketCap',
         args: []
     });
-
-    const totalMarketCapInEther = parseFloat(formatUnits(totalMarketCap||BigInt(0), 18))*sonicPrice;
-    // console.log('totalMarketCapInEther', totalMarketCapInEther);
 
     const {data: currentPrice,refetch: refetchCurrentPrice} = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
@@ -189,18 +164,18 @@ const TokenDetails: NextPage = () => {
         refetchInterval: 5000, // Refetch every 5 seconds
     });
 
-    // console.log('priceHistory', priceHistory);
-    // console.log('sonicPrice', sonicPrice);
-
     // console.log('transactionHistory', transactionHistory);
     
     const handleTimeRangeChange = (value: string) => {
         setTimeRange(value);
     };
 
+
+
     if (isLoading || !tokenData) {
         return <div>Loading...</div>;
     }
+
 
     const handleBuy = async () => {
         if (!amount) return toast.error('Please enter an amount');
@@ -221,7 +196,6 @@ const TokenDetails: NextPage = () => {
                 value: parseEther(amount||"0"),
                 args: [BigInt(tokensToReceive||0), address as `0x${string}`]
             });
-
             // Save price history after successful transaction
             await fetch('/api/transactions', {
                 method: 'POST',
@@ -229,22 +203,24 @@ const TokenDetails: NextPage = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    tokenAddress: tokenData?.address,
-                    price: parseFloat(currentPriceInEther) * sonicPrice,
                     userAddress: address,
+                    tokenAddress: tokenData?.address,
+                    price: parseFloat(currentPriceInEther),
                     amountToken: parseFloat(amount||"0"),
                     transactionType: 'BUY',
                     transactionHash: tx as `0x${string}`,
+                    totalSupply: parseFloat(totalSupply?.toString()||"0"),
+                    marketCap: parseFloat(totalMarketCap?.toString()||"0")
                 }),
             });
-
-            // Refetch price history immediately after successful transaction
+            await refetchTotalSupply();
+            await refetchTotalMarketCap();
             await refetchTransactionHistory();
             await refetchCurrentPrice();
             await refetchFundingRaised();
             await refetchBalance();
-            toast.success('Buy successful!', { id: loadingToast });
             setAmount(null);
+            toast.success('Buy successful!', { id: loadingToast });
         } catch (error: any) {
             console.error('Buy error:', error);
             if (error.code === 4001 || error.message?.includes('User rejected')) {
@@ -258,6 +234,11 @@ const TokenDetails: NextPage = () => {
     }
 
     const handleSell = async () => {
+        if (!amount) return toast.error('Please enter an amount');
+        if (!address) return toast.error('Please connect your wallet');
+        if (Number(amount) > parseFloat(totalSupply?.toString()||"0")) return toast.error('Insufficient tokens to sell');
+        if (Number(amount) < Number(currentPriceInEther)) return toast.error('Insufficient funds');
+
         const loadingToast = toast.loading('Selling...');
         try {
             await refetchTokensToReceive();
@@ -279,15 +260,19 @@ const TokenDetails: NextPage = () => {
                 },
                 body: JSON.stringify({
                     tokenAddress: tokenData?.address,
-                    price: parseFloat(currentPriceInEther) * sonicPrice,
+                    price: parseFloat(currentPriceInEther),
                     userAddress: address,
                     amountToken: parseFloat(amount||"0"),
                     transactionType: 'SELL',
                     transactionHash: tx as `0x${string}`,
+                    totalSupply: parseFloat(totalSupply?.toString()||"0"),
+                    marketCap: parseFloat(totalMarketCap?.toString()||"0")
                 }),
             });
 
             // Refetch price history immediately after successful transaction
+            await refetchTotalSupply();
+            await refetchTotalMarketCap();
             await refetchTransactionHistory();
             await refetchCurrentPrice();
             await refetchFundingRaised();
@@ -598,7 +583,7 @@ const TokenDetails: NextPage = () => {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(currentPriceInEther)).toFixed(8)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(transactionHistory?.[transactionHistory.length - 1]?.price||0).toFixed(8)}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
@@ -766,7 +751,7 @@ const TokenDetails: NextPage = () => {
                         </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching totalMarketCap={totalMarketCapInEther} totalSupply={parseFloat(totalSupplyInEther)} symbol={tokenData?.ticker||''} />
+                        <Launching totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
                     </TabsContent>
                 </Tabs>
                 </div>

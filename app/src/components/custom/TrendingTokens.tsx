@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Agent } from "@/types/agent";
 import { TokenMetrics } from "@/models/agentMetrics";
 import { useQuery } from "@tanstack/react-query";
+import TableToken from "./TableToken";
+
 
 type TokenWithMetrics = Agent & {
   _id: string;
@@ -92,8 +94,8 @@ const TableSkeleton = () => {
             <TableHead className="text-right font-mono text-gray-400">MindShare</TableHead>
             <TableHead className="text-right font-mono text-gray-400">Holders</TableHead>
             <TableHead className="text-right font-mono text-gray-400">Smart $/KOL</TableHead>
-            <TableHead className="text-right font-mono text-gray-400">1h TXs</TableHead>
-            <TableHead className="text-right font-mono text-gray-400">1h Vol</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">24h TXs</TableHead>
+            <TableHead className="text-right font-mono text-gray-400">24h Vol</TableHead>
             <TableHead className="text-right font-mono text-gray-400">Price</TableHead>
             <TableHead className="text-right font-mono text-gray-400">Δ7D</TableHead>
             <TableHead className="text-right font-mono text-gray-400">Market Cap</TableHead>
@@ -190,26 +192,7 @@ const TrendingTokens: React.FC = () => {
     pageSize: pageSize
   };
 
-  const timeAgo = (date: string | Date) => {
-    const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
-    
-    let interval = seconds / 31536000; // years
-    if (interval > 1) return Math.floor(interval) + 'y ago';
-    
-    interval = seconds / 2592000; // months
-    if (interval > 1) return Math.floor(interval) + 'mo ago';
-    
-    interval = seconds / 86400; // days
-    if (interval > 1) return Math.floor(interval) + 'd ago';
-    
-    interval = seconds / 3600; // hours
-    if (interval > 1) return Math.floor(interval) + 'h ago';
-    
-    interval = seconds / 60; // minutes
-    if (interval > 1) return Math.floor(interval) + 'm ago';
-    
-    return Math.floor(seconds) + 's ago';
-  };
+
 
   if (error) {
     return (
@@ -243,8 +226,8 @@ const TrendingTokens: React.FC = () => {
                 <TableHead className="text-right text-gray-400 text-nowrap">MindShare</TableHead>
                 <TableHead className="text-right text-gray-400 text-nowrap">Holders</TableHead>
                 <TableHead className="text-right text-gray-400 text-nowrap">Smart $/KOL</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">1h TXs</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">1h Vol</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">24h TXs</TableHead>
+                <TableHead className="text-right text-gray-400 text-nowrap">24h Vol</TableHead>
                 <TableHead className="text-right text-gray-400 text-nowrap">Price</TableHead>
                 <TableHead className="text-right text-gray-400 text-nowrap">Δ7D</TableHead>
                 <TableHead className="text-right text-gray-400 text-nowrap">Market Cap</TableHead>
@@ -255,56 +238,7 @@ const TrendingTokens: React.FC = () => {
             </TableHeader>
             <TableBody>
               {tokens.map((token) => (
-                <TableRow 
-                  key={token._id.toString()} 
-                  className="border-b border-gray-800 text-white hover:bg-[#1C2333] cursor-pointer transition-colors duration-200"
-                  onClick={() => router.push(`/token/${token.address}`)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Image 
-                        src={token.imageUrl || ''} 
-                        alt={token.name} 
-                        width={32} 
-                        height={32} 
-                        className="rounded-lg"
-                      />
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-medium truncate text-white">{token.name}</span>
-                        <span className="text-sm text-gray-400 truncate">{token.address.slice(0, 6)}...{token.address.slice(-4)}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-400">{timeAgo(token.createdAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="text-white">{token.metrics?.liquidityAmount||"-"} 🔥</div>
-                    <div className="text-sm text-gray-400">{token.metrics?.liquidityValue||"-"}</div>
-                  </TableCell>
-                  <TableCell className="text-right text-white">{token.metrics?.blueChipHolding||"-"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="text-white">{token.metrics?.holdersCount||"-"}</div>
-                    <div className="text-sm text-gray-400">+{token.metrics?.holdersChange24h||"-"}</div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="text-white">{token.metrics?.smartMoneyValue||"-"}</div>
-                    <div className="text-sm text-gray-400">{token.metrics?.smartMoneyKol||"-"} KOL</div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="text-white">{token.metrics?.totalTransactions||"-"}</div>
-                    <div className="text-sm text-gray-400">{token.metrics?.buyTransactions||"-"}/{token.metrics?.sellTransactions||"-"}</div>
-                  </TableCell>
-                  <TableCell className="text-right text-white">{token.metrics?.volumeLastHour||"-"}</TableCell>
-                  <TableCell className="text-right text-white">{token.metrics?.currentPrice||"-"}</TableCell>
-                  <TableCell className="text-right">
-                    <span className={token.metrics?.priceChange1m && Number(token.metrics.priceChange1m) > 0 ? 'text-green-400' : 'text-red-400'}>
-                      {token.metrics?.priceChange1m||"-"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right text-white">{token.metrics?.marketCap||"-"}</TableCell>
-                  <TableCell className="text-right text-white">{token.metrics?.totalVolume||"-"}</TableCell>
-                  <TableCell className="text-right text-white">{token.metrics?.followersCount||"-"}</TableCell>
-                  <TableCell className="text-center text-white">{token.metrics?.topTweetsCount||"-"}</TableCell>
-                </TableRow>
+                <TableToken key={token._id?.toString() || ''} token={token} />
               ))}
             </TableBody>
           </Table>

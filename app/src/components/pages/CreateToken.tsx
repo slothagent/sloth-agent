@@ -217,17 +217,12 @@ const CreateToken: React.FC = () => {
         return number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     };
 
-    const parseNumber = (value: string) => {
-        // Remove dots and convert to number
-        return value.replace(/\./g, '');
-    };
-
     // Watch for transaction confirmation
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
     });
     
-    console.log('Receipt:', receipt);
+    // console.log('Receipt:', receipt);
 
     // Handle transaction receipt
     useEffect(() => {
@@ -242,7 +237,7 @@ const CreateToken: React.FC = () => {
                                 data: log.data,
                                 topics: log.topics,
                             });
-                            console.log('Decoded:', decoded);
+                            // console.log('Decoded:', decoded);
                             return decoded.eventName === 'TokenAndCurveCreated';
                         } catch {
                             return false;

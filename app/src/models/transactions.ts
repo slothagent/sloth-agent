@@ -3,13 +3,16 @@ import { ObjectId } from "mongodb";
 
 export interface Transaction {
   _id?: ObjectId;
-  tokenAddress: string;
-  userAddress: string;
+  from: string;
+  to: string;
+  amount: number;
   price: number;
-  amountToken: number;
   timestamp: Date;
   transactionType: 'BUY' | 'SELL';
   transactionHash: string;
+  totalValue: number;
+  supply: number;
+  marketCap: number;
 }
 
 export async function createTransaction(transaction: Omit<Transaction, '_id'>) {
@@ -34,7 +37,7 @@ export async function getTransactionHistory(tokenAddress: string, timeRange?: st
     const client = await clientPromise;
     const collection = client.db().collection('transactions');
     
-    let query: any = { tokenAddress };
+    let query: any = { from: tokenAddress };
     
     // Add time range filter if specified
     if (timeRange) {
@@ -42,6 +45,30 @@ export async function getTransactionHistory(tokenAddress: string, timeRange?: st
       let startDate = new Date();
       
       switch (timeRange) {
+        case '1m':
+          startDate.setMinutes(now.getMinutes() - 1);
+          break;
+        case '5m':
+          startDate.setMinutes(now.getMinutes() - 5);
+          break;
+        case '10m':
+          startDate.setMinutes(now.getMinutes() - 10);
+          break;
+        case '30m':
+          startDate.setMinutes(now.getMinutes() - 30);
+          break;
+        case '1h':
+          startDate.setHours(now.getHours() - 1);
+          break;
+        case '3h':
+          startDate.setHours(now.getHours() - 3);
+          break;
+        case '5h':
+          startDate.setHours(now.getHours() - 5);
+          break;
+        case '12h':
+          startDate.setHours(now.getHours() - 12);
+          break;
         case '24h':
           startDate.setHours(now.getHours() - 24);
           break;
@@ -117,6 +144,174 @@ export async function getPaginatedTransactions(page: number = 1, limit: number =
     };
   } catch (error) {
     console.error('Error getting paginated transactions:', error);
+    throw error;
+  }
+}
+
+export async function calculateVolumeInRange(tokenAddress: string, timeRange?: string) {
+  try {
+    const client = await clientPromise;
+    const collection = client.db().collection('transactions');
+    
+    let query: any = { from: tokenAddress };
+    
+    // Add time range filter if specified
+    if (timeRange) {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (timeRange) {
+        case '1m':
+          startDate.setMinutes(now.getMinutes() - 1);
+          break;
+        case '5m':
+          startDate.setMinutes(now.getMinutes() - 5);
+          break;
+        case '10m':
+          startDate.setMinutes(now.getMinutes() - 10);
+          break;
+        case '30m':
+          startDate.setMinutes(now.getMinutes() - 30);
+          break;
+        case '1h':
+          startDate.setHours(now.getHours() - 1);
+          break;
+        case '3h':
+          startDate.setHours(now.getHours() - 3);
+          break;
+        case '5h':
+          startDate.setHours(now.getHours() - 5);
+          break;
+        case '12h':
+          startDate.setHours(now.getHours() - 12);
+          break;
+        case '24h':
+          startDate.setHours(now.getHours() - 24);
+          break;
+        case '3d':
+          startDate.setDate(now.getDate() - 3);
+          break;
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '14d':
+          startDate.setDate(now.getDate() - 14);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+      }
+      
+      query.timestamp = { $gte: startDate };
+    }
+
+    const result = await collection.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalVolume: { $sum: "$totalValue" },
+          transactionCount: { $sum: 1 }
+        }
+      }
+    ]).toArray();
+
+    return {
+      volume: result[0]?.totalVolume || 0,
+      transactionCount: result[0]?.transactionCount || 0
+    };
+  } catch (error) {
+    console.error('Error calculating volume:', error);
+    throw error;
+  }
+}
+
+export async function calculateTotalVolume(timeRange?: string) {
+  try {
+    const client = await clientPromise;
+    const collection = client.db().collection('transactions');
+    
+    let query: any = {};
+    
+    // Add time range filter if specified
+    if (timeRange) {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (timeRange) {
+        case '1m':
+          startDate.setMinutes(now.getMinutes() - 1);
+          break;
+        case '5m':
+          startDate.setMinutes(now.getMinutes() - 5);
+          break;
+        case '10m':
+          startDate.setMinutes(now.getMinutes() - 10);
+          break;
+        case '30m':
+          startDate.setMinutes(now.getMinutes() - 30);
+          break;
+        case '1h':
+          startDate.setHours(now.getHours() - 1);
+          break;
+        case '3h':
+          startDate.setHours(now.getHours() - 3);
+          break;
+        case '5h':
+          startDate.setHours(now.getHours() - 5);
+          break;
+        case '12h':
+          startDate.setHours(now.getHours() - 12);
+          break;
+        case '24h':
+          startDate.setHours(now.getHours() - 24);
+          break;
+        case '3d':
+          startDate.setDate(now.getDate() - 3);
+          break;
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '14d':
+          startDate.setDate(now.getDate() - 14);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+      }
+      
+      query.timestamp = { $gte: startDate };
+    }
+
+    const result = await collection.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalVolume: { $sum: "$totalValue" },
+          transactionCount: { $sum: 1 },
+          buyVolume: {
+            $sum: {
+              $cond: [{ $eq: ["$transactionType", "BUY"] }, "$totalValue", 0]
+            }
+          },
+          sellVolume: {
+            $sum: {
+              $cond: [{ $eq: ["$transactionType", "SELL"] }, "$totalValue", 0]
+            }
+          }
+        }
+      }
+    ]).toArray();
+
+    return {
+      volume: result[0]?.totalVolume || 0,
+      transactionCount: result[0]?.transactionCount || 0,
+      buyVolume: result[0]?.buyVolume || 0,
+      sellVolume: result[0]?.sellVolume || 0
+    };
+  } catch (error) {
+    console.error('Error calculating total volume:', error);
     throw error;
   }
 } 

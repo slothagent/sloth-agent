@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createTransaction, getTransactionHistory, getLatestTransaction, getPaginatedTransactions } from "@/models/transactions";
+import { createTransaction, getTransactionHistory, getLatestTransaction, getPaginatedTransactions, calculateTotalVolume } from "@/models/transactions";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash } = body;
+    const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash, totalSupply, marketCap } = body;
 
     if (!tokenAddress || !userAddress || !price || !amountToken || !transactionType || !transactionHash) {
       return NextResponse.json(
@@ -14,13 +14,16 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await createTransaction({
-      tokenAddress,
-      userAddress,
+      from: tokenAddress,
+      to: userAddress,
+      amount: amountToken,
       price,
-      amountToken,
       transactionType,
       transactionHash,
       timestamp: new Date(),
+      totalValue: price * amountToken,
+      supply: totalSupply,
+      marketCap: marketCap
     });
 
     return NextResponse.json({ success: true, data: result });
@@ -41,7 +44,13 @@ export async function GET(req: NextRequest) {
     const latest = searchParams.get("latest");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
+    const totalVolume = searchParams.get("totalVolume");
 
+    if (totalVolume) {
+      const allTransactions = await calculateTotalVolume(timeRange || undefined);
+      return NextResponse.json({ success: true, data: allTransactions });
+    }
+    
     // If no specific filters are provided, return paginated transactions
     if (!tokenAddress && !timeRange && !latest) {
       const paginatedResult = await getPaginatedTransactions(page, limit);
@@ -70,4 +79,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
