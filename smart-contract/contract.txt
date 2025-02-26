@@ -2,3 +2,5 @@ Chain sonic-blaze
 
 FactoryLib deployed to: 0x3106b243211f597BfADeD2E2EcE00927a6ab45c0
 Factory deployed to: 0x5aF21C160f120D0fF9672b703A031Cdfd7ecA15F
+
+Bonding Curve deployed to: 0xEE979ba8Da7Cd43a2939D34B562c9457E0AcA776

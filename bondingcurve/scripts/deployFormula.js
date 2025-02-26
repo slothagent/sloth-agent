@@ -1,18 +1,21 @@
 const hre = require("hardhat");
 
 async function main() {
-  console.log("Deploying contracts...");
+  console.log("Deploying contracts for BancorFormula...");
 
   // Deploy Factory
-  const Factory = await hre.ethers.deployContract("Factory");
-  await Factory.waitForDeployment();
-  console.log("Factory deployed to:", Factory.target);
+  const BancorFormulaFactory = await hre.ethers.getContractFactory("BancorFormula");
+  const BancorFormula = await BancorFormulaFactory.deploy();
+  await BancorFormula.waitForDeployment();
+
+  const formulaAddress = await BancorFormula.getAddress();
+  console.log("BancorFormula deployed to:", formulaAddress);
 
   // Verify contract on explorer
   console.log("\nVerifying contract...");
   try {
     await hre.run("verify:verify", {
-      address: Factory.target,
+      address: formulaAddress,
       constructorArguments: []
     });
     console.log("Contract verified successfully");
