@@ -11,7 +11,6 @@ import { Button } from '../ui/button';
 import { parseEther, parseUnits, decodeEventLog, type TransactionReceipt } from 'viem';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
-import Image from 'next/image';
 
 
 const CreateToken: React.FC = () => {
@@ -685,10 +684,9 @@ const CreateToken: React.FC = () => {
                                         <div className="flex items-start gap-4">
                                             <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-[#0B0E17] border border-[#1F2937] flex items-center justify-center">
                                                 {imageUrl ? (
-                                                    <Image
+                                                    <img
                                                         src={imageUrl}
                                                         alt={tokenName || 'Token'}
-                                                        fill
                                                         className="object-cover"
                                                     />
                                                 ) : (
