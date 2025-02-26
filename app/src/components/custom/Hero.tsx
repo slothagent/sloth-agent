@@ -83,12 +83,19 @@ const Hero: React.FC = () => {
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  <Image
-                    src={tokens[0].imageUrl || ''}
-                    alt={tokens[0].name}
-                    width={48}
-                    height={48}
-                  />
+                  {tokens[0].imageUrl &&(
+                    <Image
+                      src={tokens[0].imageUrl}
+                      alt={tokens[0].name}
+                      width={48}
+                      height={48}
+                      unoptimized
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                      }}
+                    />
+                  )}
                   <div>
                     <h3 className="text-xl font-semibold text-white">{tokens[0].name}</h3>
                     <p className="text-gray-400">{tokens[0].ticker}</p>

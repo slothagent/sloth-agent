@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAccount, useReadContract, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { Button } from '../ui/button';
-import { parseEther, parseUnits, decodeEventLog, type TransactionReceipt } from 'viem';
+import { parseEther, parseUnits, decodeEventLog } from 'viem';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 
