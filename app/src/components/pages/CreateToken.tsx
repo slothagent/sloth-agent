@@ -92,12 +92,12 @@ const CreateToken: React.FC = () => {
     const handleUploadImage = async (file: File) => {
         try {
             if (!tokenName) {
-                toast.error('Please enter agent name first');
-                throw new Error('Agent name is required');
+                toast.error('Please enter token name first');
+                return;
             }
             
             const loadingToast = toast.loading('Uploading image...');
-            const ipfsUrl = await uploadImageToPinata(file, tokenName);
+            const ipfsUrl = await uploadImageToPinata(file, tokenName||"");
             setImageUrl(ipfsUrl);
             toast.dismiss(loadingToast);
             toast.success('Image uploaded successfully!');
@@ -477,10 +477,9 @@ const CreateToken: React.FC = () => {
                                     {imageUrl ? (
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="relative w-32 h-32 rounded-lg overflow-hidden">
-                                                <Image
+                                                <img
                                                     src={imageUrl}
                                                     alt="Agent"
-                                                    fill
                                                     className="object-cover"
                                                 />
                                             </div>
@@ -545,10 +544,9 @@ const CreateToken: React.FC = () => {
                                     {imageUrl && (
                                         <div className="flex flex-col items-center gap-4 mt-4">
                                             <div className="relative w-32 h-32 rounded-lg overflow-hidden">
-                                                <Image
+                                                <img
                                                     src={imageUrl}
                                                     alt="Generated"
-                                                    fill
                                                     className="object-cover"
                                                 />
                                             </div>
