@@ -5,8 +5,8 @@ export interface Token {
   _id?: ObjectId;
   name: string;
   address: string;
-  owner: string;
   curveAddress: string;
+  owner: string;
   description?: string;
   ticker: string;
   imageUrl?: string;
@@ -33,7 +33,7 @@ export class TokenModel {
     const collection = await this.getCollection();
 
     // Create indexes if they don't exist
-    await collection.createIndex({ ticker: 1 }, { unique: true });
+    await collection.createIndex({ ticker: 1 });
     await collection.createIndex({ name: 1 });
     await collection.createIndex({ address: 1 });
 

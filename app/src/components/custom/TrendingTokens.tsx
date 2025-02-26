@@ -258,7 +258,7 @@ const TrendingTokens: React.FC = () => {
                 <TableRow 
                   key={token._id.toString()} 
                   className="border-b border-gray-800 text-white hover:bg-[#1C2333] cursor-pointer transition-colors duration-200"
-                  onClick={() => router.push(`/token/${token.ticker.toLowerCase()}`)}
+                  onClick={() => router.push(`/token/${token.address}`)}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">
