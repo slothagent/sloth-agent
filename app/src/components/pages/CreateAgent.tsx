@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Layout, User, Mail, Shirt, Package, Footprints, Crown, Smile } from 'lucide-react';
 import BasicInformation from '@/components/custom/agent/BasicInformation';
 import VisualSystem from '@/components/custom/agent/VisualSystem';
 import PersonalityBackground from '@/components/custom/agent/PersonalityBackground';
@@ -15,6 +15,7 @@ import { factoryAbi } from '@/abi/factoryAbi';
 import { initiateTwitterAuth } from '@/utils/twitter';
 import { Button } from '../ui/button';
 import { parseEther,parseUnits } from 'viem';
+import Image from 'next/image';
 
 interface TwitterAuthData {
     accessToken: string | null;
@@ -28,6 +29,23 @@ interface TwitterUserInfo {
     username: string | null;
     name: string | null;
     profileImageUrl: string | null;
+}
+
+type AvatarCategory = 'body' | 'outfits' | 'tops' | 'bottoms' | 'shoes' | 'accessories' | 'expression';
+
+interface AvatarCustomization {
+    body: string;
+    outfits: string;
+    tops: string;
+    bottoms: string;
+    shoes: string;
+    accessories: string;
+    expression: string;
+}
+
+interface CategoryOption {
+    label: string;
+    value: string;
 }
 
 const CreateAgent: React.FC = () => {
@@ -49,6 +67,19 @@ const CreateAgent: React.FC = () => {
     // Twitter config state
     const [twitterAuth, setTwitterAuth] = useState<TwitterAuthData | null>(null);
     const [twitterUserInfo, setTwitterUserInfo] = useState<TwitterUserInfo | null>(null);
+    const [activeTab, setActiveTab] = useState<'preview' | 'avatar'>('preview');
+    const [avatarEnabled, setAvatarEnabled] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<AvatarCategory>('body');
+    const [selectedSkinTone, setSelectedSkinTone] = useState<string>('All');
+    const [avatarCustomization, setAvatarCustomization] = useState<AvatarCustomization>({
+        body: 'default',
+        outfits: 'casual',
+        tops: 'tshirt',
+        bottoms: 'jeans',
+        shoes: 'sneakers',
+        accessories: 'none',
+        expression: 'neutral'
+    });
 
     const router = useRouter();
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
@@ -323,6 +354,47 @@ const CreateAgent: React.FC = () => {
         }
     });
 
+    const getCategoryOptions = (category: AvatarCategory): CategoryOption[] => {
+        const options: Record<AvatarCategory, CategoryOption[]> = {
+            body: [
+                { label: 'Default', value: 'default' },
+                { label: 'Slim', value: 'slim' },
+                { label: 'Athletic', value: 'athletic' }
+            ],
+            outfits: [
+                { label: 'Casual', value: 'casual' },
+                { label: 'Business', value: 'business' },
+                { label: 'Sport', value: 'sport' }
+            ],
+            tops: [
+                { label: 'T-Shirt', value: 'tshirt' },
+                { label: 'Shirt', value: 'shirt' },
+                { label: 'Sweater', value: 'sweater' }
+            ],
+            bottoms: [
+                { label: 'Jeans', value: 'jeans' },
+                { label: 'Shorts', value: 'shorts' },
+                { label: 'Slacks', value: 'slacks' }
+            ],
+            shoes: [
+                { label: 'Sneakers', value: 'sneakers' },
+                { label: 'Dress Shoes', value: 'dress' },
+                { label: 'Boots', value: 'boots' }
+            ],
+            accessories: [
+                { label: 'None', value: 'none' },
+                { label: 'Glasses', value: 'glasses' },
+                { label: 'Hat', value: 'hat' }
+            ],
+            expression: [
+                { label: 'Neutral', value: 'neutral' },
+                { label: 'Happy', value: 'happy' },
+                { label: 'Serious', value: 'serious' }
+            ]
+        };
+        return options[category];
+    };
+
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
@@ -341,9 +413,11 @@ const CreateAgent: React.FC = () => {
                     <VisualSystem
                         systemType={systemType || ''}
                         imageUrl={imageUrl || ''}
+                        avatarEnabled={avatarEnabled}
                         onSystemTypeChange={setSystemType}
                         onUploadImage={handleUploadImage}
                         onGenerateImage={handleGenerateImage}
+                        onAvatarToggle={setAvatarEnabled}
                     />
                 );
             case 3:
@@ -498,16 +572,90 @@ const CreateAgent: React.FC = () => {
                     {/* Preview Section */}
                     <div className="w-full mt-10 lg:mt-0">
                         <div className="lg:sticky lg:top-8">
-                            <h2 className="text-2xl lg:text-3xl font-semibold mb-4 text-white">Agent Preview</h2>
-                            <div className="bg-[#161B28] border border-[#1F2937] rounded-lg p-4 lg:p-6">
-                                <AgentPreview
-                                    name={agentName || ''}
-                                    description={description || ''}
-                                    ticker={ticker || ''}
-                                    systemType={systemType || ''}
-                                    imageUrl={imageUrl || ''}
-                                    personality={personality || ''}
-                                />
+                            {/* Tabs */}
+                            <div className="mb-6">
+                                <div className="flex p-1 gap-1 bg-[#161B28] rounded-lg w-fit">
+                                    <button
+                                        onClick={() => setActiveTab('preview')}
+                                        className={`px-6 py-2.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
+                                            ${activeTab === 'preview'
+                                                ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                                : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        <Layout className="w-4 h-4" />
+                                        Preview
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('avatar')}
+                                        className={`px-6 py-2.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
+                                            ${activeTab === 'avatar'
+                                                ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                                : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        <User className="w-4 h-4" />
+                                        Avatar
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Tab Content */}
+                            <div className="bg-[#161B28] border border-[#2F3850] rounded-xl p-6 shadow-lg">
+                                {activeTab === 'preview' ? (
+                                    <AgentPreview
+                                        name={agentName || ''}
+                                        description={description || ''}
+                                        ticker={ticker || ''}
+                                        systemType={systemType || ''}
+                                        imageUrl={imageUrl || ''}
+                                        personality={personality || ''}
+                                    />
+                                ) : (
+                                    <div className="space-y-6">
+                                        <div className="flex flex-col lg:flex-row gap-4">
+                                            {/* Left Menu - Horizontal scrolling on mobile */}
+                                            <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:w-16 pb-2 lg:pb-0 no-scrollbar">
+                                                {[
+                                                    { icon: <User className="w-5 h-5" />, label: 'body' as AvatarCategory, color: '#4CAF50' },
+                                                    { icon: <Package className="w-5 h-5" />, label: 'outfits' as AvatarCategory, color: '#2196F3' },
+                                                    { icon: <Shirt className="w-5 h-5" />, label: 'tops' as AvatarCategory, color: '#9C27B0' },
+                                                    { icon: <Package className="w-5 h-5" />, label: 'bottoms' as AvatarCategory, color: '#FF9800' },
+                                                    { icon: <Footprints className="w-5 h-5" />, label: 'shoes' as AvatarCategory, color: '#F44336' },
+                                                    { icon: <Crown className="w-5 h-5" />, label: 'accessories' as AvatarCategory, color: '#795548' },
+                                                    { icon: <Smile className="w-5 h-5" />, label: 'expression' as AvatarCategory, color: '#607D8B' },
+                                                ].map((category) => (
+                                                    <button
+                                                        key={category.label}
+                                                        onClick={() => setSelectedCategory(category.label)}
+                                                        className={`flex-shrink-0 flex flex-col items-center p-2 rounded-lg transition-colors min-w-[80px] lg:min-w-0
+                                                            ${selectedCategory === category.label 
+                                                                ? `bg-[#242938] ring-2 ring-[${category.color}]` 
+                                                                : 'hover:bg-[#242938]'}`}
+                                                    >
+                                                        <div 
+                                                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                                            style={{ backgroundColor: `${category.color}20` }}
+                                                        >
+                                                            <div style={{ color: category.color }}>{category.icon}</div>
+                                                        </div>
+                                                        <span className="text-xs mt-1 text-gray-400 lg:hidden">{category.label}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            {/* Center Preview */}
+                                            <div className="flex-1 bg-[#1A1F2E] rounded-lg p-4 flex items-center justify-center">
+                                                <div className="relative w-[200px] h-[300px] lg:w-[300px] lg:h-[500px]">
+                                                    <Image
+                                                        src={`/avatars/${avatarCustomization[selectedCategory]}-${selectedSkinTone === 'All' ? 'default' : selectedSkinTone}.png`}
+                                                        alt="Avatar Preview"
+                                                        fill
+                                                        className="object-contain"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

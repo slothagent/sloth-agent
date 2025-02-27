@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
@@ -132,15 +131,15 @@ const Hero: React.FC = () => {
             </div>
             
             <div className='flex gap-4'>
-              <Button 
+              <button 
                 onClick={() => router.push('/agent/create')}
-                className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white rounded-lg px-6 py-2"
+                className="flex items-center gap-2 px-6 py-2 text-sm bg-blue-500  border border-[#1F2937] text-wrap hover:bg-blue-600 text-white hover:text-white"
               >
                 Create New Agent
-              </Button>
+              </button>
               <button
                   onClick={()=>router.push('/token/create')}
-                  className={`flex items-center gap-2 px-6 py-2 text-sm bg-[#161B28] border border-[#1F2937] text-gray-400 hover:bg-[#1C2333] hover:text-white`}
+                  className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-[#161B28] border border-[#1F2937] text-gray-400 hover:bg-[#1C2333] hover:text-white`}
               >
                   Create New Token
               </button>
