@@ -20,7 +20,13 @@ const mockBondingCurveHolders: BondingCurveHolder[] = [
     { address: '0x7a6D...9039', percentage: 1.25 },
 ];
 
-const Launching = () => {
+interface LaunchingProps {
+    totalMarketCap: number;
+    totalSupply: number;
+    symbol: string;
+}
+
+const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol}) => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Market Cap Stats */}
@@ -28,14 +34,14 @@ const Launching = () => {
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-gray-400 text-sm mb-1">Current Target MarketCap</h3>
-                        <div className="text-3xl font-bold">34,044.44</div>
+                        <div className="text-3xl font-bold">{totalMarketCap}</div>
                         <div className="text-[#93E905] text-sm">USD</div>
                     </div>
 
                     <div>
                         <h3 className="text-gray-400 text-sm mb-1">Tokens on Bonding Curve</h3>
-                        <div className="text-3xl font-bold">547,843,120.62</div>
-                        <div className="text-[#93E905] text-sm">VOLF</div>
+                        <div className="text-3xl font-bold">{totalSupply}</div>
+                        <div className="text-[#93E905] text-sm">{symbol}</div>
                     </div>
                 </div>
             </div>

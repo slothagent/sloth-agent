@@ -3,39 +3,21 @@ const hre = require("hardhat");
 async function main() {
   console.log("Deploying contracts...");
 
-  // Deploy FactoryLib first
-  const FactoryLib = await hre.ethers.deployContract("FactoryLib");
-  await FactoryLib.waitForDeployment();
-  console.log("FactoryLib deployed to:", FactoryLib.target);
-
-  // Deploy Factory with creation fee of 3$
-  const creationFee = hre.ethers.parseEther("0.001137");
-  const Factory = await hre.ethers.deployContract("Factory", [creationFee], {
-    libraries: {
-      FactoryLib: FactoryLib.target
-    }
-  });
+  // Deploy Factory
+  const Factory = await hre.ethers.deployContract("Factory");
   await Factory.waitForDeployment();
   console.log("Factory deployed to:", Factory.target);
 
-  // Verify contracts on explorer
-  console.log("Verifying contracts...");
+  // Verify contract on explorer
+  console.log("\nVerifying contract...");
   try {
     await hre.run("verify:verify", {
-      address: FactoryLib.target,
+      address: Factory.target,
       constructorArguments: []
     });
-
-    await hre.run("verify:verify", {
-      address: Factory.target,
-      constructorArguments: [creationFee],
-      libraries: {
-        FactoryLib: FactoryLib.target
-      }
-    });
-    console.log("Contracts verified successfully");
+    console.log("Contract verified successfully");
   } catch (error) {
-    console.error("Error verifying contracts:", error);
+    console.error("Error verifying contract:", error);
   }
 }
 

@@ -9,8 +9,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 /**
  * @title BondingCurve
- * @dev Implementation of a bonding curve for token pricing and liquidity
- * Modified to handle very small initial prices
+ * @dev Implementation of Bancor Formula bonding curve for token pricing and liquidity
  */
 contract BondingCurve is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -18,54 +17,217 @@ contract BondingCurve is Ownable, ReentrancyGuard {
     // State variables
     IERC20 public token;  // Token being traded
     uint256 public constant PRECISION = 1e18;  // Standard precision
-    uint256 public slope;  // Slope of the bonding curve
-    uint256 public basePrice;  // Base price for the token
-    uint256 public totalSupply;  // Current supply in the bonding curve
+    uint256 public constant MAX_RESERVE_RATIO = 1000000; // 100% in ppm
+    uint256 public constant FUNDING_GOAL = 400000 ether; // 400,000 ETH funding goal
+    uint256 public constant INITIAL_PRICE = 0.0001 ether; // Initial price: 0.0001 ETH per token
+    uint256 public constant INITIAL_SUPPLY = 1_000_000_000 * 1e18; // 1 billion tokens
+    uint256 public constant INITIAL_RESERVE = 100000 ether; // Initial reserve of 100,000 ETH
     
+    uint256 public reserveWeight; // Reserve weight in ppm (1-1000000)
+    uint256 public initialSupply; // Initial token supply (S₀)
+    uint256 public totalSupply;  // Current supply in the bonding curve
+    uint256 public fundingRaised; // Total funding raised in ETH
+    uint256 public reserveBalance; // Current ETH reserve balance
+    bool public fundingGoalReached; // Flag to track if funding goal is reached
+    uint256 public fundingEndTime; // Timestamp when funding goal was reached
+
     // Events
     event Buy(address indexed buyer, uint256 tokenAmount, uint256 paymentAmount);
     event Sell(address indexed seller, uint256 tokenAmount, uint256 paymentAmount);
-    event SlopeUpdated(uint256 newSlope);
-    event BasePriceUpdated(uint256 newBasePrice);
-    event PreTransferCheck(address buyer, uint256 amount, uint256 contractBalance);
-    event TransferAttempt(address buyer, uint256 amount);
-    event TransferSuccess(address buyer, uint256 amount);
+    event FundingRaised(uint256 amount);
+    event FundingGoalReached(uint256 timestamp);
 
     constructor(
         address _token,
-        uint256 _slope,
-        uint256 _basePrice
+        uint256 _reserveWeight,
+        uint256 _initialSupply
     ) Ownable(msg.sender) {
         require(_token != address(0), "Invalid token address");
-        require(_slope > 0, "Slope must be positive");
-        require(_basePrice > 0, "Base price must be positive");
+        require(_reserveWeight > 0 && _reserveWeight <= MAX_RESERVE_RATIO, "Invalid reserve weight");
+        require(_initialSupply > 0, "Initial supply must be positive");
         
         token = IERC20(_token);
-        // Slope determines how quickly price increases with supply
-        slope = _slope;
-        // Base price is the minimum price of the token
-        basePrice = _basePrice;
+        reserveWeight = _reserveWeight;
+        initialSupply = _initialSupply;
+        totalSupply = 0;
+        fundingRaised = 0;
+        reserveBalance = INITIAL_RESERVE;
     }
 
     /**
-     * @dev Calculate the price for a given amount of tokens
-     * @param amount Amount of tokens
-     * @return price Price in wei
+     * @dev Power function for calculating token price
+     * @param base Base number
+     * @param exp Exponent in PRECISION
+     * @return result Result of base^exp
      */
-    function calculatePrice(uint256 amount) public view returns (uint256) {
-        uint256 supply = totalSupply;
+    function pow(uint256 base, uint256 exp) internal pure returns (uint256) {
+        require(base > 0, "Base must be positive");
         
-        // For initial purchases or when supply is very low, use base price
-        if (supply == 0 || (slope * supply) / PRECISION < basePrice / 100) {
-            // Simple multiplication of amount with base price
-            return (amount * basePrice) / PRECISION;
+        if (base == PRECISION) {
+            return PRECISION;
         }
+        if (exp == 0) {
+            return PRECISION;
+        }
+        if (exp == PRECISION) {
+            return base;
+        }
+
+        // Use logarithmic properties for the calculation
+        uint256 logBase = _ln(base);
+        uint256 logResult = (logBase * exp) / PRECISION;
+        return _exp(logResult);
+    }
+
+    /**
+     * @dev Natural logarithm function
+     * @param x Value to calculate ln(x)
+     * @return Natural logarithm result
+     */
+    function _ln(uint256 x) internal pure returns (uint256) {
+        require(x > 0, "Cannot calculate ln of 0");
         
-        // Calculate price using square root formula for more gradual increase
-        // Total price = amount * (basePrice + slope * sqrt(current_supply))
-        uint256 sqrtSupply = Math.sqrt(supply * PRECISION);
-        uint256 currentPrice = basePrice + (slope * sqrtSupply) / PRECISION;
-        return (amount * currentPrice) / PRECISION;
+        uint256 result = 0;
+        uint256 y = x;
+
+        while (y < PRECISION) {
+            y = (y * 10) / 1;
+            result -= PRECISION / 10;
+        }
+
+        y = y / 10;
+
+        for (uint8 i = 0; i < 10; i++) {
+            y = (y * y) / PRECISION;
+            if (y >= 10 * PRECISION) {
+                result += PRECISION;
+                y = y / 10;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * @dev Exponential function
+     * @param x Value to calculate e^x
+     * @return Exponential result
+     */
+    function _exp(uint256 x) internal pure returns (uint256) {
+        require(x <= 2 ** 255 - 1, "Overflow");
+        
+        uint256 result = PRECISION;
+        uint256 xi = x;
+        uint256 term = PRECISION;
+
+        for (uint8 i = 1; i <= 8; i++) {
+            term = (term * xi) / (i * PRECISION);
+            result += term;
+        }
+
+        return result;
+    }
+
+    /**
+     * @dev Get current token price using Bancor Formula
+     * P = R₀ * (S/S₀)^((1-F)/F)
+     * @return Current price in wei
+     */
+    function getCurrentPrice() public view returns (uint256) {
+        if (totalSupply == 0) {
+            return INITIAL_PRICE;
+        }
+
+        // Calculate (S/S₀)
+        uint256 supplyRatio = (totalSupply * PRECISION) / initialSupply;
+        
+        // Calculate (1-F)/F where F is reserveWeight/MAX_RESERVE_RATIO
+        uint256 exponent = ((MAX_RESERVE_RATIO - reserveWeight) * PRECISION) / reserveWeight;
+        
+        // Calculate (S/S₀)^((1-F)/F)
+        uint256 priceRatio = pow(supplyRatio, exponent);
+        
+        // Calculate final price: R₀ * priceRatio / PRECISION
+        return (INITIAL_RESERVE * priceRatio) / PRECISION;
+    }
+
+    /**
+     * @dev Calculate tokens to receive for ETH amount
+     * @param ethAmount Amount of ETH in wei
+     * @return tokenAmount Number of tokens that can be bought
+     */
+    function calculateTokensForEth(uint256 ethAmount) public view returns (uint256) {
+        require(ethAmount > 0, "ETH amount must be positive");
+
+        // For initial purchase
+        if (totalSupply == 0) {
+            return (ethAmount * PRECISION) / INITIAL_PRICE;
+        }
+
+        // Using Bancor Formula:
+        // T = S * ((1 + E/R)^(W/MAX_WEIGHT) - 1)
+        // Where:
+        // T = Tokens to receive
+        // S = Current total supply
+        // E = ETH being paid
+        // R = Current reserve balance
+        // W = Reserve weight
+
+        // First calculate the effective price based on current supply
+        uint256 currentPrice = getCurrentPrice();
+        
+        // Base token amount at current price
+        uint256 baseTokens = (ethAmount * PRECISION) / currentPrice;
+        
+        // Apply bonding curve effect
+        // Calculate percentage of reserve being added
+        uint256 reserveRatio = (ethAmount * PRECISION) / reserveBalance;
+        
+        // Apply reserve weight effect
+        uint256 weight = (reserveWeight * PRECISION) / MAX_RESERVE_RATIO;
+        
+        // Calculate price impact
+        uint256 priceImpact = (reserveRatio * weight) / PRECISION;
+        
+        // Adjust tokens based on price impact
+        uint256 tokensToReceive = (baseTokens * (PRECISION - priceImpact)) / PRECISION;
+
+        // Ensure we don't exceed available supply
+        uint256 availableSupply = initialSupply - totalSupply;
+        if (tokensToReceive > availableSupply) {
+            tokensToReceive = availableSupply;
+        }
+
+        require(tokensToReceive > 0, "Token calculation resulted in zero");
+        return tokensToReceive;
+    }
+
+    /**
+     * @dev Calculate ETH to receive for token amount
+     * @param tokenAmount Amount of tokens
+     * @return ethAmount Amount of ETH in wei
+     */
+    function calculateEthForTokens(uint256 tokenAmount) public view returns (uint256) {
+        require(tokenAmount > 0, "Token amount must be positive");
+        require(tokenAmount <= totalSupply, "Insufficient supply");
+
+        // Get current price
+        uint256 currentPrice = getCurrentPrice();
+        
+        // Base ETH amount at current price
+        uint256 baseEth = (tokenAmount * currentPrice) / PRECISION;
+        
+        // Calculate percentage of supply being sold
+        uint256 supplyRatio = (tokenAmount * PRECISION) / totalSupply;
+        
+        // Apply reserve weight effect
+        uint256 weight = (reserveWeight * PRECISION) / MAX_RESERVE_RATIO;
+        
+        // Calculate price impact
+        uint256 priceImpact = (supplyRatio * weight) / PRECISION;
+        
+        // Adjust ETH based on price impact
+        return (baseEth * (PRECISION - priceImpact)) / PRECISION;
     }
 
     /**
@@ -74,41 +236,42 @@ contract BondingCurve is Ownable, ReentrancyGuard {
      * @param buyer Address of the token buyer
      */
     function buy(uint256 minTokens, address buyer) external payable nonReentrant {
+        // Check funding goal status first
+        require(!fundingGoalReached, "Funding goal already reached");
+        require(fundingRaised < FUNDING_GOAL, "Funding goal exceeded");
+        
         require(msg.value > 0, "Must send ETH");
-        require(minTokens > 0, "Amount must be positive");
         require(buyer != address(0), "Invalid buyer address");
         
-        uint256 price = calculatePrice(minTokens);
-        require(msg.value >= price, "Insufficient payment");
+        // Calculate tokens to receive
+        uint256 tokensToReceive = calculateTokensForEth(msg.value);
+        require(tokensToReceive > 0, "No tokens to receive");
+        require(tokensToReceive >= minTokens, "Slippage too high");
         
-        // Check token balance before transfer
+        // Check contract balance
         uint256 contractBalance = token.balanceOf(address(this));
-        require(contractBalance >= minTokens, "Insufficient token balance");
+        require(contractBalance >= tokensToReceive, "Insufficient token balance");
+        
+        // Check if this purchase would exceed funding goal
+        require(fundingRaised + msg.value <= FUNDING_GOAL, "Purchase would exceed funding goal");
 
-        // Emit pre-transfer check event
-        emit PreTransferCheck(buyer, minTokens, contractBalance);
+        // Update state before transfer
+        totalSupply += tokensToReceive;
+        fundingRaised += msg.value;
+        reserveBalance += msg.value;
 
-        // Emit transfer attempt event
-        emit TransferAttempt(buyer, minTokens);
+        // Transfer tokens to buyer
+        token.safeTransfer(buyer, tokensToReceive);
 
-        // Transfer tokens to buyer using safeTransfer
-        token.safeTransfer(buyer, minTokens);
-        
-        // Emit transfer success event
-        emit TransferSuccess(buyer, minTokens);
-        
-        // Update total supply after transfer
-        totalSupply += minTokens;
-        
-        // Emit event before refund to ensure correct payment amount
-        emit Buy(buyer, minTokens, price);
-        
-        // Refund excess ETH if any
-        uint256 excess = msg.value - price;
-        if (excess > 0) {
-            (bool success, ) = msg.sender.call{value: excess}("");
-            require(success, "ETH refund failed");
+        // Check if funding goal is reached
+        if (fundingRaised >= FUNDING_GOAL && !fundingGoalReached) {
+            fundingGoalReached = true;
+            fundingEndTime = block.timestamp;
+            emit FundingGoalReached(block.timestamp);
         }
+
+        emit Buy(buyer, tokensToReceive, msg.value);
+        emit FundingRaised(msg.value);
     }
 
     /**
@@ -118,70 +281,24 @@ contract BondingCurve is Ownable, ReentrancyGuard {
      */
     function sell(uint256 tokenAmount, uint256 minEth) external nonReentrant {
         require(tokenAmount > 0, "Amount must be positive");
+        require(totalSupply >= tokenAmount, "Cannot sell more than supply");
         
-        uint256 price = calculatePrice(tokenAmount);
-        require(price >= minEth, "Price below minimum");
-        require(address(this).balance >= price, "Insufficient contract balance");
+        uint256 ethToReceive = calculateEthForTokens(tokenAmount);
+        require(ethToReceive >= minEth, "Below min return");
+        require(reserveBalance >= ethToReceive, "Insufficient reserve");
         
         // Transfer tokens from seller
         token.safeTransferFrom(msg.sender, address(this), tokenAmount);
+        
+        // Update state
         totalSupply -= tokenAmount;
+        reserveBalance -= ethToReceive;
         
         // Transfer ETH to seller
-        (bool success, ) = msg.sender.call{value: price}("");
+        (bool success, ) = msg.sender.call{value: ethToReceive}("");
         require(success, "ETH transfer failed");
         
-        emit Sell(msg.sender, tokenAmount, price);
-    }
-
-    /**
-     * @dev Get current token price per unit
-     * @return Current price in wei
-     */
-    function getCurrentPrice() external view returns (uint256) {
-        // P = slope * totalSupply + basePrice
-        return (slope * totalSupply) / PRECISION + basePrice;
-    }
-
-    /**
-     * @dev Calculate how many tokens can be bought with a specific amount of ETH
-     * @param ethAmount Amount of ETH in wei
-     * @return tokenAmount Approximate number of tokens that can be bought
-     */
-    function calculateTokensForEth(uint256 ethAmount) public view returns (uint256) {
-        uint256 supply = totalSupply;
-        
-        // For initial purchases or when supply is very low, use simple division
-        if (supply == 0 || (slope * supply) / PRECISION < basePrice / 100) {
-            // Simple division of ETH amount by base price
-            return (ethAmount * PRECISION) / basePrice;
-        }
-        
-        // Calculate current price per token
-        uint256 currentPrice = basePrice + (slope * supply) / PRECISION;
-        
-        // Calculate tokens = ETH amount / current price
-        return (ethAmount * PRECISION) / currentPrice;
-    }
-
-    /**
-     * @dev Update the slope of the bonding curve
-     * @param newSlope New slope value
-     */
-    function updateSlope(uint256 newSlope) external onlyOwner {
-        require(newSlope > 0, "Slope must be positive");
-        slope = newSlope;
-        emit SlopeUpdated(newSlope);
-    }
-
-    /**
-     * @dev Update the base price
-     * @param newBasePrice New base price value
-     */
-    function updateBasePrice(uint256 newBasePrice) external onlyOwner {
-        require(newBasePrice > 0, "Base price must be positive");
-        basePrice = newBasePrice;
-        emit BasePriceUpdated(newBasePrice);
+        emit Sell(msg.sender, tokenAmount, ethToReceive);
     }
 
     /**
@@ -190,33 +307,87 @@ contract BondingCurve is Ownable, ReentrancyGuard {
      */
     function getTotalMarketCap() external view returns (uint256) {
         if (totalSupply == 0) return 0;
-        
-        // Market cap = current price * total supply
-        uint256 currentPrice = (slope * totalSupply) / PRECISION + basePrice;
-        return (currentPrice * totalSupply) / PRECISION;
+        return getCurrentPrice() * totalSupply / PRECISION;
     }
 
     /**
-     * @dev Test function to simulate price changes after multiple buys
-     * @param amount Amount of tokens for each buy
-     * @param numBuys Number of buys to simulate
-     * @return prices Array of prices for each buy
+     * @dev Get total funding raised
+     * @return Total funding in wei
      */
-    function simulatePrices(uint256 amount, uint256 numBuys) external view returns (uint256[] memory) {
-        uint256[] memory prices = new uint256[](numBuys);
-        uint256 simulatedSupply = totalSupply;
+    function getTotalFundingRaised() external view returns (uint256) {
+        return fundingRaised;
+    }
+
+    /**
+     * @dev Get holder's token percentage compared to initial supply
+     * @param holder Address of the holder
+     * @return percentage Percentage with 2 decimals (e.g., 534 = 5.34%)
+     */
+    function getHolderTokenPercentage(address holder) external view returns (uint256) {
+        require(holder != address(0), "Invalid address");
+        uint256 holderBalance = token.balanceOf(holder);
+        if (holderBalance == 0) return 0;
+        // Return percentage with 2 decimals
+        return (holderBalance * 10000) / initialSupply;
+    }
+
+    /**
+     * @dev Get top holder percentages
+     * @param holders Array of holder addresses to check
+     * @return percentages Array of percentages with 2 decimals
+     */
+    function getMultipleHolderPercentages(address[] calldata holders) external view returns (uint256[] memory) {
+        uint256[] memory percentages = new uint256[](holders.length);
         
-        for(uint256 i = 0; i < numBuys; i++) {
-            if (simulatedSupply == 0 || (slope * simulatedSupply) / PRECISION < basePrice / 100) {
-                prices[i] = (amount * basePrice) / PRECISION;
-            } else {
-                uint256 currentPrice = basePrice + (slope * simulatedSupply) / PRECISION;
-                prices[i] = (amount * currentPrice) / PRECISION;
+        for(uint256 i = 0; i < holders.length; i++) {
+            if(holders[i] == address(0)) {
+                percentages[i] = 0;
+                continue;
             }
-            simulatedSupply += amount;
+            uint256 holderBalance = token.balanceOf(holders[i]);
+            percentages[i] = holderBalance > 0 ? (holderBalance * 10000) / initialSupply : 0;
         }
         
-        return prices;
+        return percentages;
+    }
+
+    /**
+     * @dev Get funding progress percentage
+     * @return progress Percentage with 2 decimals (e.g., 8350 = 83.50%)
+     */
+    function getFundingProgress() external view returns (uint256) {
+        if (fundingRaised == 0) return 0;
+        return (fundingRaised * 10000) / FUNDING_GOAL;
+    }
+
+    /**
+     * @dev Get remaining funding amount needed
+     * @return remaining Amount in ETH needed to reach goal
+     */
+    function getRemainingFunding() external view returns (uint256) {
+        if (fundingGoalReached || fundingRaised >= FUNDING_GOAL) {
+            return 0;
+        }
+        return FUNDING_GOAL - fundingRaised;
+    }
+
+    /**
+     * @dev Get funding duration if goal reached
+     * @return duration Time in seconds from contract creation to goal reached
+     */
+    function getFundingDuration() external view returns (uint256) {
+        if (!fundingGoalReached) {
+            return 0;
+        }
+        return fundingEndTime;
+    }
+
+    /**
+     * @dev Check if funding is active
+     * @return bool True if funding is still active
+     */
+    function isFundingActive() public view returns (bool) {
+        return !fundingGoalReached && fundingRaised < FUNDING_GOAL;
     }
 
     // Function to receive ETH

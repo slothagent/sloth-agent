@@ -8,10 +8,9 @@ import { useRouter } from 'next/navigation';
 import { useAccount, useReadContract, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { Button } from '../ui/button';
-import { parseEther, parseUnits, decodeEventLog, type TransactionReceipt } from 'viem';
+import { parseEther, parseUnits, decodeEventLog } from 'viem';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
-import Image from 'next/image';
 
 
 const CreateToken: React.FC = () => {
@@ -31,7 +30,6 @@ const CreateToken: React.FC = () => {
     const [txHash, setTxHash] = useState<string | null>(null);
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
-    const publicClient = usePublicClient();
 
     const router = useRouter(); 
 
@@ -80,15 +78,6 @@ const CreateToken: React.FC = () => {
             newErrors.ticker = 'Token symbol can only contain uppercase letters and numbers';
         }
 
-        // Total Supply validation
-        if (!totalSupply) {
-            newErrors.totalSupply = 'Total supply is required';
-        } else if (isNaN(Number(totalSupply)) || Number(totalSupply) <= 0) {
-            newErrors.totalSupply = 'Total supply must be a positive number';
-        } else if (Number(totalSupply) > Number.MAX_SAFE_INTEGER) {
-            newErrors.totalSupply = 'Total supply is too large';
-        }
-
         // Image validation
         if (!imageUrl) {
             newErrors.imageUrl = 'Token image is required';
@@ -102,12 +91,12 @@ const CreateToken: React.FC = () => {
     const handleUploadImage = async (file: File) => {
         try {
             if (!tokenName) {
-                toast.error('Please enter agent name first');
-                throw new Error('Agent name is required');
+                toast.error('Please enter token name first');
+                return;
             }
             
             const loadingToast = toast.loading('Uploading image...');
-            const ipfsUrl = await uploadImageToPinata(file, tokenName);
+            const ipfsUrl = await uploadImageToPinata(file, tokenName||"");
             setImageUrl(ipfsUrl);
             toast.dismiss(loadingToast);
             toast.success('Image uploaded successfully!');
@@ -118,6 +107,7 @@ const CreateToken: React.FC = () => {
             throw error;
         }
     };
+
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -227,22 +217,19 @@ const CreateToken: React.FC = () => {
         return number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     };
 
-    const parseNumber = (value: string) => {
-        // Remove dots and convert to number
-        return value.replace(/\./g, '');
-    };
-
     // Watch for transaction confirmation
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
     });
+    
+    // console.log('Receipt:', receipt);
 
     // Handle transaction receipt
     useEffect(() => {
         const processReceipt = async () => {
-            if (receipt && publicClient) {
+            if (receipt) {
                 try {
-                    // Find TokenAndCurveCreated event log
+                    // Find the token address from the logs
                     const eventLog = receipt.logs.find(log => {
                         try {
                             const decoded = decodeEventLog({
@@ -250,6 +237,7 @@ const CreateToken: React.FC = () => {
                                 data: log.data,
                                 topics: log.topics,
                             });
+                            // console.log('Decoded:', decoded);
                             return decoded.eventName === 'TokenAndCurveCreated';
                         } catch {
                             return false;
@@ -262,17 +250,20 @@ const CreateToken: React.FC = () => {
                             data: eventLog.data,
                             topics: eventLog.topics,
                         });
-
-                        // console.log('TokenAndCurveCreated Event:', decoded);
                         
                         const { token, bondingCurve } = decoded.args as any;
-                        // console.log('New Token Created:', {
-                        //     token: token,
-                        //     curve: bondingCurve
-                        // });
-
-                        // Create token in database
+                        
+                        // Create token in database with the token address
                         await createToken(token, bondingCurve);
+                    } else {
+                        // If we can't find the event log, try to get the token address from the receipt
+                        const tokenAddress = receipt.logs[0]?.address;
+                        const bondingCurve = receipt.logs[1]?.address;
+                        if (tokenAddress) {
+                            await createToken(tokenAddress, bondingCurve);
+                        } else {
+                            throw new Error('Could not find token address in transaction receipt');
+                        }
                     }
                 } catch (error) {
                     console.error('Error processing transaction receipt:', error);
@@ -282,7 +273,7 @@ const CreateToken: React.FC = () => {
         };
 
         processReceipt();
-    }, [receipt, publicClient]);
+    }, [receipt]);
 
     // Handle confirmation error
     useEffect(() => {
@@ -298,7 +289,7 @@ const CreateToken: React.FC = () => {
             return;
         }
         if (!validateForm()) {
-            toast.error('Please fix the errors in the form');
+            toast.error('Please fill all the fields');
             return;
         }
 
@@ -315,8 +306,8 @@ const CreateToken: React.FC = () => {
                     address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createTokenAndCurve',
-                    value: BigInt(1137000000000000),
-                    args: [tokenName, ticker, parseUnits('1000000', 18), parseUnits('0.00001', 18), parseUnits('0.000001', 18)]
+                    value: parseEther('1'),
+                    args: [tokenName, ticker]
                 });
                 
                 setTxHash(tx); // Save transaction hash
@@ -342,8 +333,8 @@ const CreateToken: React.FC = () => {
         const loadingToast = toast.loading('Creating token...');
         try {
 
-            if (!address || !curveAddress) {
-                toast.error('Token address and curve address are required', { id: loadingToast });
+            if (!address) {
+                toast.error('Token address is required', { id: loadingToast });
                 return;
             }
 
@@ -352,14 +343,14 @@ const CreateToken: React.FC = () => {
                 name: tokenName,
                 address: address,
                 owner: OwnerAddress,
-                curveAddress: curveAddress,
                 description: description || '',
                 ticker: ticker,
                 imageUrl: imageUrl || '',
-                totalSupply: totalSupply,
+                totalSupply: parseUnits('2',23).toString(),
                 twitterUrl: twitterUrl,
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
+                curveAddress: curveAddress,
             };
 
             // console.log('Sending payload:', payload); // Debug log
@@ -379,7 +370,7 @@ const CreateToken: React.FC = () => {
             }
 
             toast.success('Token created successfully!', { id: loadingToast });
-            router.push(`/token/${ticker?.toLowerCase()}`);
+            router.push(`/token/${address}`);
         } catch (error) {
             console.error('Error creating token:', error);
             toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
@@ -480,10 +471,9 @@ const CreateToken: React.FC = () => {
                                     {imageUrl ? (
                                         <div className="flex flex-col items-center gap-4">
                                             <div className="relative w-32 h-32 rounded-lg overflow-hidden">
-                                                <Image
+                                                <img
                                                     src={imageUrl}
                                                     alt="Agent"
-                                                    fill
                                                     className="object-cover"
                                                 />
                                             </div>
@@ -548,10 +538,9 @@ const CreateToken: React.FC = () => {
                                     {imageUrl && (
                                         <div className="flex flex-col items-center gap-4 mt-4">
                                             <div className="relative w-32 h-32 rounded-lg overflow-hidden">
-                                                <Image
+                                                <img
                                                     src={imageUrl}
                                                     alt="Generated"
-                                                    fill
                                                     className="object-cover"
                                                 />
                                             </div>
@@ -581,7 +570,7 @@ const CreateToken: React.FC = () => {
                             <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
                         </div>
 
-                        <div className="space-y-2">
+                        {/* <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Total Supply</label>
                             <Input
                                 type="text"
@@ -599,7 +588,7 @@ const CreateToken: React.FC = () => {
                             {errors.totalSupply && (
                                 <p className="text-sm text-red-500 mt-1">{errors.totalSupply}</p>
                             )}
-                        </div>
+                        </div> */}
 
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
@@ -690,10 +679,9 @@ const CreateToken: React.FC = () => {
                                         <div className="flex items-start gap-4">
                                             <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-[#0B0E17] border border-[#1F2937] flex items-center justify-center">
                                                 {imageUrl ? (
-                                                    <Image
+                                                    <img
                                                         src={imageUrl}
                                                         alt={tokenName || 'Token'}
-                                                        fill
                                                         className="object-cover"
                                                     />
                                                 ) : (
