@@ -1,25 +1,53 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from 'next/image';
-import { Upload, Sparkles } from 'lucide-react';
+import { Upload, Sparkles, Pencil, User, Shirt, Package, Footprints, Crown, Smile, X, Check } from 'lucide-react';
 
 interface VisualSystemProps {
     systemType: string;
     imageUrl: string;
+    avatarEnabled: boolean;
     onSystemTypeChange: (value: string) => void;
     onUploadImage: (file: File) => Promise<string>;
     onGenerateImage: () => Promise<void>;
+    onAvatarToggle: (enabled: boolean) => void;
+    selectedAvatar?: string;
+    onAvatarSelect?: (avatarId: string) => void;
+}
+
+interface AvatarCustomization {
+    skinTone: string;
+    selectedCategory: string;
+    bodyType: string;
+    outfitColor: string;
+    accessories: string[];
+    expression: string;
 }
 
 const VisualSystem: React.FC<VisualSystemProps> = ({
     systemType,
     imageUrl,
+    avatarEnabled,
     onSystemTypeChange,
     onUploadImage,
     onGenerateImage,
+    onAvatarToggle,
+    selectedAvatar,
+    onAvatarSelect,
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+    const [selectedSkinTone, setSelectedSkinTone] = useState<string>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>('body');
+    const [avatarCustomization, setAvatarCustomization] = useState<AvatarCustomization>({
+        skinTone: 'default',
+        selectedCategory: 'body',
+        bodyType: 'default',
+        outfitColor: '#000000',
+        accessories: [],
+        expression: 'neutral'
+    });
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -38,6 +66,81 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
+    };
+
+    const skinTones = [
+        { id: 'light1', color: '#FFDBB4', name: 'Light 1' },
+        { id: 'light2', color: '#EDB98A', name: 'Light 2' },
+        { id: 'medium1', color: '#D08B5B', name: 'Medium 1' },
+        { id: 'medium2', color: '#AE5D29', name: 'Medium 2' },
+        { id: 'dark1', color: '#694D3D', name: 'Dark 1' },
+        { id: 'dark2', color: '#482F2F', name: 'Dark 2' },
+        { id: 'dark3', color: '#361F1F', name: 'Dark 3' },
+        { id: 'dark4', color: '#241414', name: 'Dark 4' }
+    ];
+
+    const avatarCategories = [
+        { id: 'body', icon: <User className="w-6 h-6" />, label: 'Body', color: '#4CAF50' },
+        { id: 'outfits', icon: <Package className="w-6 h-6" />, label: 'Outfits', color: '#2196F3' },
+        { id: 'tops', icon: <Shirt className="w-6 h-6" />, label: 'Tops', color: '#9C27B0' },
+        { id: 'bottoms', icon: <Package className="w-6 h-6" />, label: 'Bottoms', color: '#FF9800' },
+        { id: 'shoes', icon: <Footprints className="w-6 h-6" />, label: 'Shoes', color: '#F44336' },
+        { id: 'accessories', icon: <Crown className="w-6 h-6" />, label: 'Accessories', color: '#795548' },
+        { id: 'expression', icon: <Smile className="w-6 h-6" />, label: 'Expression', color: '#607D8B' },
+    ];
+
+    const avatarPresets = [
+        { 
+            id: 'basic1', 
+            name: 'Basic 1',
+            imageUrl: '/avatars/3d/basic1.png',
+            type: '3d',
+            description: 'Simple casual style',
+            customization: {
+                skinTone: 'light1',
+                bodyType: 'default',
+                outfitColor: '#2196F3',
+                accessories: [],
+                expression: 'neutral'
+            }
+        },
+        { 
+            id: 'basic2', 
+            name: 'Basic 2', 
+            imageUrl: '/avatars/3d/basic2.png',
+            type: '3d',
+            description: 'Professional look'
+        },
+    ];
+
+    const handleSkinToneSelect = (toneId: string) => {
+        setSelectedSkinTone(toneId);
+        setAvatarCustomization(prev => ({
+            ...prev,
+            skinTone: toneId
+        }));
+    };
+
+    const handleCategorySelect = (categoryId: string) => {
+        setSelectedCategory(categoryId);
+    };
+
+    const handleCustomizationChange = (key: keyof AvatarCustomization, value: any) => {
+        setAvatarCustomization(prev => ({
+            ...prev,
+            [key]: value
+        }));
+    };
+
+    const handleAvatarPresetSelect = (presetId: string) => {
+        const preset = avatarPresets.find(p => p.id === presetId);
+        if (preset && onAvatarSelect) {
+            onAvatarSelect(presetId);
+            setAvatarCustomization(prev => ({
+                ...prev,
+                ...preset.customization
+            }));
+        }
     };
 
     return (
@@ -105,7 +208,140 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
                         Generate with AI
                     </Button>
                 </div>
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
+                    <label className="text-sm font-medium cursor-pointer text-gray-400">Avatar</label>
+                    <Button variant="outline" size="sm">
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Customize
+                    </Button>
+                </div>
             </div>
+            {isAvatarModalOpen && (
+                <div className="fixed inset-0 bg-[#0B0E17] z-50 flex items-center justify-center">
+                    <div className="bg-[#0B0E17] w-full h-screen overflow-y-auto p-6">
+                        <div className="max-w-6xl mx-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-semibold text-white">Avatar Customization</h2>
+                                <button 
+                                    onClick={() => setIsAvatarModalOpen(false)}
+                                    className="text-gray-400 hover:text-white"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between p-4 rounded-lg bg-[#242938] border border-[#2F3850]">
+                                    <div className="space-y-1">
+                                        <label className="text-sm font-medium text-gray-400">Enable Avatar</label>
+                                        <p className="text-xs text-gray-500">2D or 3D avatars can be used for content creation and customization with wearables.</p>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <button
+                                            onClick={() => onAvatarToggle(!avatarEnabled)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                                avatarEnabled ? 'bg-[#2196F3]' : 'bg-gray-700'
+                                            }`}
+                                        >
+                                            <span
+                                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                    avatarEnabled ? 'translate-x-6' : 'translate-x-1'
+                                                }`}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {avatarEnabled && (
+                                    <>
+                                        <div className="mt-6">
+                                            <label className="text-sm font-medium text-gray-400 mb-3 block">Skin Tone</label>
+                                            <div className="flex gap-3">
+                                                <button 
+                                                    className={`w-8 h-8 rounded-full flex items-center justify-center bg-gray-700 text-xs text-white font-medium ${
+                                                        selectedSkinTone === 'all' ? 'border-2 border-[#2196F3]' : ''
+                                                    }`}
+                                                    onClick={() => handleSkinToneSelect('all')}
+                                                >
+                                                    All
+                                                </button>
+                                                {skinTones.map((tone) => (
+                                                    <button
+                                                        key={tone.id}
+                                                        className={`w-8 h-8 rounded-full hover:ring-2 hover:ring-[#2196F3] transition-all duration-200 ${
+                                                            selectedSkinTone === tone.id ? 'ring-2 ring-[#2196F3]' : ''
+                                                        }`}
+                                                        onClick={() => handleSkinToneSelect(tone.id)}
+                                                    >
+                                                        <span
+                                                            className="block w-full h-full rounded-full"
+                                                            style={{ backgroundColor: tone.color }}
+                                                            title={tone.name}
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                                            {avatarCategories.map((category) => (
+                                                <button
+                                                    key={category.id}
+                                                    className={`flex-shrink-0 flex flex-col items-center p-3 rounded-xl transition-colors ${
+                                                        selectedCategory === category.id ? 'bg-[#242938]' : 'hover:bg-[#242938]'
+                                                    }`}
+                                                    style={{ minWidth: '80px' }}
+                                                    onClick={() => handleCategorySelect(category.id)}
+                                                >
+                                                    <div 
+                                                        className="w-12 h-12 rounded-xl flex items-center justify-center mb-2"
+                                                        style={{ backgroundColor: `${category.color}30` }}
+                                                    >
+                                                        <div style={{ color: category.color }}>
+                                                            {category.icon}
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-gray-300">{category.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-8">
+                                            {avatarPresets.map((preset) => (
+                                                <button
+                                                    key={preset.id}
+                                                    className={`relative aspect-square bg-[#242938] rounded-2xl overflow-hidden hover:bg-[#2A304A] transition-colors ${
+                                                        selectedAvatar === preset.id ? 'ring-4 ring-[#4CAF50]' : ''
+                                                    }`}
+                                                    onClick={() => handleAvatarPresetSelect(preset.id)}
+                                                >
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <Image
+                                                            src={preset.imageUrl}
+                                                            alt={preset.name}
+                                                            width={200}
+                                                            height={300}
+                                                            className="object-contain"
+                                                        />
+                                                    </div>
+                                                    <div className="absolute bottom-0 left-0 right-0 p-2 text-center bg-gradient-to-t from-black/80 to-transparent">
+                                                        <span className="text-sm text-white">{preset.name}</span>
+                                                    </div>
+                                                    {selectedAvatar === preset.id && (
+                                                        <div className="absolute top-2 right-2 w-6 h-6 bg-[#4CAF50] rounded-full flex items-center justify-center">
+                                                            <Check className="w-4 h-4 text-white" />
+                                                        </div>
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

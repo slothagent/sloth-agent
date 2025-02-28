@@ -3,6 +3,7 @@
 import Hero from "@/components/custom/Hero";
 import TrendingTokens from "@/components/custom/TrendingTokens";
 import TransactionList from "@/components/custom/TransactionList";
+import AgentMarket from "@/components/custom/AgentMarket";
 
 const Home: React.FC = () => {
   return (
@@ -10,6 +11,8 @@ const Home: React.FC = () => {
       <div className="w-full">
         <Hero />
         <div className="container mx-auto space-y-8 pb-10">
+          <AgentMarket />
+          <div className="border-b border-[#1F2937]"/>
           <TrendingTokens />
           <div className="border-b border-[#1F2937]"/>
           <TransactionList />

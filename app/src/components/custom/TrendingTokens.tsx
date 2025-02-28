@@ -212,7 +212,7 @@ const TrendingTokens: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl mt-8 font-bold mb-4 text-white">Tokens Index</h2>
+      <h2 className="text-2xl mt-6 font-bold mb-4 text-white">Tokens Index</h2>
       {isLoading ? (
         <TableSkeleton />
       ) : (
