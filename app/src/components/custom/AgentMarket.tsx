@@ -237,13 +237,13 @@ export default function AgentMarket() {
 
   const visibleCategories = showAllCategories ? [...categories, ...extraCategories] : categories
 
-  console.log('Tokens:', tokens)
+  // console.log('Tokens:', tokens)
 
   if (isLoading) {
     return (
       <div className="flex flex-col pt-6">
         <div className="flex items-center justify-between">
-          <p className="text-white text-2xl font-bold">Agent Market</p>
+          <p className="text-white text-2xl font-bold">Tokens Market</p>
         </div>
         <div className="flex gap-4 py-4">
           {[1, 2, 3, 4, 5].map((i) => (

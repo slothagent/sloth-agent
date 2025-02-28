@@ -87,7 +87,7 @@ const TransactionList: React.FC = () => {
                     {tx.transactionType}
                   </div>
                   <div className="col-span-1 text-right text-white">
-                    {tx.amount ? tx.amount : '-'} S
+                    {tx.amount ? tx.amount.toFixed(6) : '-'} S
                   </div>
                   <div className="col-span-2 text-right text-white">
                     ${tx.price.toFixed(6)}

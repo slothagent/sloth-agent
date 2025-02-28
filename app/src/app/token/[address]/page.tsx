@@ -24,7 +24,8 @@ import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits, parseUnits } from "ethers";
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import Launching from '@/components/custom/Launching';
-import { decodeEventLog } from 'viem';
+import { decodeEventLog, transactionType } from 'viem';
+import { tokenAbi } from '@/abi/tokenAbi';
 
 
 
@@ -35,26 +36,20 @@ const TokenDetails: NextPage = () => {
     const { writeContractAsync } = useWriteContract();
     const [timeRange, setTimeRange] = useState('30d');
     const [txHash, setTxHash] = useState<string | null>(null);
+    const [transactionType, setTransactionType] = useState<string | null>(null);
 
     const { data: balance, refetch: refetchBalance } = useBalance({
         address: address,
     });
 
-    const formatNumber = (num: string): string => {
-        const n = parseFloat(num);
-        if (isNaN(n)) return '0';
-        
-        const trillion = 1e12;
-        const billion = 1e9;
-        const million = 1e6;
-        const thousand = 1e3;
-
-        if (n >= trillion) return (n / trillion).toFixed(2) + 'T';
-        if (n >= billion) return (n / billion).toFixed(2) + 'B';
-        if (n >= million) return (n / million).toFixed(2) + 'M';
-        if (n >= thousand) return (n / thousand).toFixed(2) + 'k';
-        return n.toFixed(2);
-    };
+    const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`]
+    });
+    
+    console.log('balanceOfToken', balanceOfToken);
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -116,6 +111,7 @@ const TokenDetails: NextPage = () => {
         const processReceipt = async () => {
             if (receipt) {
                 const loadingToast = toast.loading('Processing...');
+                
                 try {
                     // Find the token address from the logs
                     const eventLog = receipt.logs.find(log => {
@@ -138,42 +134,63 @@ const TokenDetails: NextPage = () => {
                             data: eventLog.data,
                             topics: eventLog.topics,
                         });
-                        
+                        await refetchBalanceOfToken();
                         const { newPrice, newSupply, newTotalMarketCap, newFundingRaised } = decoded.args as any;
-                        
                         // console.log('newPrice', newPrice);
                         // console.log('newSupply', newSupply);
                         // console.log('newTotalMarketCap', newTotalMarketCap);
                         // console.log('newFundingRaised', newFundingRaised);
 
-                        await fetch('/api/transactions', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                userAddress: address,
-                                tokenAddress: tokenData?.address,
-                                price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
-                                amountToken: parseFloat(amount||"0"),
-                                transactionType: 'BUY',
-                                transactionHash: txHash as `0x${string}`,
-                                totalSupply: parseFloat(newSupply||"0"),
-                                marketCap: parseFloat(newTotalMarketCap||"0")
-                            }),
-                        });
-                        setAmount(null);
-                        toast.success('Buy successful!', { id: loadingToast });
+                        if(transactionType === 'BUY'){
+                            await fetch('/api/transactions', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    userAddress: address,
+                                    tokenAddress: tokenData?.address,
+                                    price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
+                                    amountToken: parseFloat(amount||"0"),
+                                    transactionType: 'BUY',
+                                    transactionHash: txHash as `0x${string}`,
+                                    totalSupply: parseFloat(newSupply||"0"),
+                                    marketCap: parseFloat(newTotalMarketCap||"0")
+                                }),
+                            });
+                            await writeContractAsync({
+                                address: tokenData?.address as `0x${string}`,
+                                abi: tokenAbi,
+                                functionName: 'approve',
+                                args: [tokenData?.curveAddress as `0x${string}`, balanceOfToken||BigInt(0)]
+                            });
+                            setAmount(null);
+                            await refetchBalanceOfToken();
+                            toast.success('Buy successful!', { id: loadingToast });
+                        }else{
+                            // Save price history after successful transaction
+                            await fetch('/api/transactions', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    tokenAddress: tokenData?.address,
+                                    price: parseFloat(currentPriceInEther),
+                                    userAddress: address,
+                                    amountToken: parseFloat(amount||"0"),
+                                    transactionType: 'SELL',
+                                    transactionHash: txHash as `0x${string}`,
+                                    totalSupply: parseFloat(totalSupply?.toString()||"0"),
+                                    marketCap: parseFloat(totalMarketCap?.toString()||"0")
+                                }),
+                            });
+                            await refetchBalanceOfToken();
+                            toast.success('Sell successful!', { id: loadingToast });
+                            setAmount(null);
+                        }
+                        
 
-                    }else{
-                        console.log('receipt', eventLog);
-                        const decoded = decodeEventLog({
-                            abi: bondingCurveAbi,
-                            data: receipt.logs[0].data,
-                            topics: receipt.logs[0].topics,
-                        });
-                        console.log('eventLog', decoded);
-                        console.log('No event log found');
                     }
                 } catch (error) {
                     console.error('Error processing transaction receipt:', error);
@@ -218,17 +235,6 @@ const TokenDetails: NextPage = () => {
     const currentPriceInEther = formatUnits(currentPrice||BigInt(0), 18);
     // console.log('currentPriceInEther', currentPriceInEther);
 
-    const {data: fundingRaised,refetch: refetchFundingRaised} = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'getTotalFundingRaised',
-        args: []
-    });
-    
-    const fundingRaisedInEther = formatUnits(fundingRaised||BigInt(0), 18);
-
-    // console.log('fundingRaisedInEther', fundingRaisedInEther);
-
     const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
@@ -236,9 +242,18 @@ const TokenDetails: NextPage = () => {
         args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
     });
 
+    const { data: ethToReceive, refetch: refetchEthToReceive } = useReadContract({
+        address: tokenData?.curveAddress as `0x${string}`,
+        abi: bondingCurveAbi,
+        functionName: 'calculateEthForTokens',
+        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
+    });
+
     // console.log('parseEther', parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0"));
 
     // console.log('tokensToReceive', tokensToReceive);
+    console.log('ethToReceive', ethToReceive);
+
 
     const { data: transactionHistory, refetch: refetchTransactionHistory } = useQuery({
         queryKey: ['transactionHistory', tokenData?.address, timeRange],
@@ -261,7 +276,11 @@ const TokenDetails: NextPage = () => {
         setTimeRange(value);
     };
 
-
+    // Add this helper function near the top of the component
+    const calculatePercentageAmount = (balance: bigint, percentage: number) => {
+        const balanceNum = parseFloat(formatUnits(balance || BigInt(0), 18));
+        return (balanceNum * percentage / 100).toString();
+    };
 
     if (isLoading || !tokenData) {
         return <div>Loading...</div>;
@@ -276,9 +295,6 @@ const TokenDetails: NextPage = () => {
         const loadingToast = toast.loading('Buying...');
         try {
             await refetchTokensToReceive();
-            
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
             const tx = await writeContractAsync({
                 address: tokenData?.curveAddress as `0x${string}`,
                 abi: bondingCurveAbi,
@@ -286,6 +302,7 @@ const TokenDetails: NextPage = () => {
                 value: parseEther(amount||"0"),
                 args: [BigInt(tokensToReceive||0), address as `0x${string}`]
             });
+            setTransactionType('BUY');
             setTxHash(tx as `0x${string}`);
             toast.success("Please wait for the transaction to be confirmed", { id: loadingToast });
         } catch (error: any) {
@@ -300,52 +317,25 @@ const TokenDetails: NextPage = () => {
         }
     }
 
+    console.log('ethToReceive', ethToReceive);
+    console.log(parseEther(amount||"0"))
     const handleSell = async () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
-        if (Number(amount) > parseFloat(totalSupply?.toString()||"0")) return toast.error('Insufficient tokens to sell');
-        if (Number(amount) < Number(currentPriceInEther)) return toast.error('Insufficient funds');
 
         const loadingToast = toast.loading('Selling...');
         try {
             await refetchTokensToReceive();
-            
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
             const tx = await writeContractAsync({
                 address: tokenData?.curveAddress as `0x${string}`,
                 abi: bondingCurveAbi,
                 functionName: 'sell',
-                args: [parseEther(amount||"0"), BigInt(0)]
+                args: [parseEther(amount||"0"), ethToReceive||BigInt(0)]
             });
-
-            // Save price history after successful transaction
-            await fetch('/api/transactions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    tokenAddress: tokenData?.address,
-                    price: parseFloat(currentPriceInEther),
-                    userAddress: address,
-                    amountToken: parseFloat(amount||"0"),
-                    transactionType: 'SELL',
-                    transactionHash: tx as `0x${string}`,
-                    totalSupply: parseFloat(totalSupply?.toString()||"0"),
-                    marketCap: parseFloat(totalMarketCap?.toString()||"0")
-                }),
-            });
-
-            // Refetch price history immediately after successful transaction
-            await refetchTotalSupply();
-            await refetchTotalMarketCap();
-            await refetchTransactionHistory();
-            await refetchCurrentPrice();
-            await refetchFundingRaised();
-            await refetchBalance();
-            toast.success('Sell successful!', { id: loadingToast });
-            setAmount(null);
+            setTransactionType('SELL');
+            setTxHash(tx as `0x${string}`);
+            toast.success("Please wait for the transaction to be confirmed", { id: loadingToast });
+            
         } catch (error: any) {
             console.error('Sell error:', error);
             if (error.code === 4001 || error.message?.includes('User rejected')) {
@@ -692,7 +682,7 @@ const TokenDetails: NextPage = () => {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm text-gray-400">Balance:</span>
-                                                <span className="text-sm font-medium text-white">{parseFloat(formatUnits(balance?.value||BigInt(0), 18).toString()).toFixed(6)} S</span>
+                                                <span className="text-sm font-medium text-white">{parseFloat(formatUnits(balanceOfToken||BigInt(0), 18).toString()).toFixed(6)} {tokenData?.ticker}</span>
                                             </div>
                                         </div>
                                         <TabsContent value="buy">
@@ -739,7 +729,7 @@ const TokenDetails: NextPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {(Number(tokensToReceive?.toString()||"0")/10**18).toFixed(6)} S</span>
+                                                    <span>You will receive: {(Number(tokensToReceive?.toString()||"0")/10**18).toFixed(6)} {tokenData?.ticker}</span>
                                                 </div>
                                                 <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Buy
@@ -762,33 +752,33 @@ const TokenDetails: NextPage = () => {
                                                     </div>
                                                     <div className="grid grid-cols-4 gap-2">
                                                         <button 
-                                                            onClick={() => handleAmountClick(1)}
+                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 10))}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
-                                                            1
+                                                            10%
                                                         </button>
                                                         <button 
-                                                            onClick={() => handleAmountClick(2)}
+                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 30))}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
-                                                            2
+                                                            30%
                                                         </button>
                                                         <button 
-                                                            onClick={() => handleAmountClick(5)}
+                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 50))}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
-                                                            5
+                                                            50%
                                                         </button>
                                                         <button 
-                                                            onClick={() => handleAmountClick(10)}
+                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 100))}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
-                                                            10
+                                                            100%
                                                         </button>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {formatNumber(tokensToReceive?.toString()||"0")}</span>
+                                                    <span>You will receive: {(Number(ethToReceive?.toString()||"0")/10**18).toFixed(6)} S</span>
                                                 </div>
                                                 <Button onClick={handleSell} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Sell
