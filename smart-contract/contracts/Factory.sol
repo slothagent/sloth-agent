@@ -22,6 +22,7 @@ contract Factory is Ownable {
     mapping(address => address) public tokenToCurve;
     mapping(address => address) public curveToToken;
     mapping(address => bool) public isTokenRegistered;
+    mapping(address => bool) public hasWithdrawnCreatorTokens;
     
     // Arrays to store all created tokens and curves
     address[] public allTokens;
@@ -43,12 +44,14 @@ contract Factory is Ownable {
      * @dev Create new Continuous Token and its Bonding Curve
      * @param name Token name
      * @param symbol Token symbol
+     * @param buyAmount Amount of ETH to buy tokens (0 if not buying)
      */
     function createTokenAndCurve(
         string memory name,
-        string memory symbol
+        string memory symbol,
+        uint256 buyAmount
     ) external payable {
-        require(msg.value >= CREATION_FEE, "Insufficient creation fee");
+        require(msg.value >= CREATION_FEE + buyAmount, "Insufficient ETH");
 
         // Calculate allocations
         uint256 bondingCurveAllocation = (FIXED_INITIAL_SUPPLY * CURVE_ALLOCATION) / 1000000;
@@ -74,8 +77,8 @@ contract Factory is Ownable {
         // Transfer 80% to bonding curve
         newToken.transfer(address(newCurve), bondingCurveAllocation);
         
-        // Transfer 20% to creator
-        newToken.transfer(msg.sender, creatorAllocation);
+        // Transfer 20% to address(this)
+        newToken.transfer(address(this), creatorAllocation);
 
         // Register token-curve pair
         tokenToCurve[address(newToken)] = address(newCurve);
@@ -99,8 +102,19 @@ contract Factory is Ownable {
             block.timestamp
         );
 
-        // Refund excess ETH
-        uint256 excess = msg.value - CREATION_FEE;
+        // Buy tokens if buyAmount > 0
+        if (buyAmount > 0) {
+            // Calculate minimum tokens to receive
+            uint256 minTokens = BondingCurve(newCurve).calculateTokensForEth(buyAmount);
+            // Apply a 2% slippage tolerance
+            minTokens = (minTokens * 98) / 1000;
+            
+            // Buy tokens through the bonding curve
+            BondingCurve(newCurve).buy{value: buyAmount}(minTokens, msg.sender);
+        }
+
+        // Refund excess ETH (if any)
+        uint256 excess = msg.value - (CREATION_FEE + buyAmount);
         if (excess > 0) {
             (bool success, ) = msg.sender.call{value: excess}("");
             require(success, "ETH refund failed");
@@ -132,6 +146,27 @@ contract Factory is Ownable {
         
         (bool success, ) = msg.sender.call{value: balance}("");
         require(success, "Fee withdrawal failed");
+    }
+
+    /**
+     * @dev Allows factory owner to withdraw creator tokens for any registered token
+     * @param tokenAddress Address of the token to withdraw allocation from
+     * @param recipient Address that will receive the creator tokens
+     */
+    function withdrawCreatorTokens(address tokenAddress, address recipient) external onlyOwner {
+        require(isTokenRegistered[tokenAddress], "Token not registered");
+
+        ContractErc20 token = ContractErc20(tokenAddress);
+        uint256 creatorAllocation = (FIXED_INITIAL_SUPPLY * CREATOR_ALLOCATION) / 1000000;
+        
+        // Ensure the contract has the tokens to transfer
+        require(token.balanceOf(address(this)) >= creatorAllocation, "Insufficient token balance");
+        
+        // Mark as withdrawn
+        hasWithdrawnCreatorTokens[tokenAddress] = true;
+        
+        // Transfer tokens to the specified recipient
+        require(token.transfer(recipient, creatorAllocation), "Token transfer failed");
     }
 
     // Function to receive ETH

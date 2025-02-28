@@ -3,141 +3,190 @@ const { ethers } = require('hardhat');
 
 async function main() {
     try {
-        // Connect to the network using private key
+        // Connect to network
         const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
         
-        // Factory contract address
-        const FACTORY_ADDRESS = "0x6E1A33A69036247dff6763634eAb015452E2b347";
+        // Factory contract address  
+        const FACTORY_ADDRESS = "0x9f22945BFd523322f6788b014D4cF693717b74D5";
         
-        // Connect to Factory contract
+        // Connect to Factory
         const Factory = await ethers.getContractFactory("Factory");
         const factory = Factory.attach(FACTORY_ADDRESS).connect(wallet);
 
-        console.log("Connected wallet address:", wallet.address);
+        console.log("Connected wallet:", wallet.address);
 
-        // Check wallet balance
-        const balance = await provider.getBalance(wallet.address);
-        console.log("\nWallet balance:", ethers.formatEther(balance), "ETH");
+        // Check balance
+        const walletBalance = await provider.getBalance(wallet.address);
+        console.log("\nWallet balance:", ethers.formatEther(walletBalance), "ETH");
         
-        // Creation fee is 1 ETH
-        const CREATION_FEE = ethers.parseEther("1");
-        if (balance < CREATION_FEE) {
-            throw new Error(`Insufficient balance for creation fee. Need ${ethers.formatEther(CREATION_FEE)} ETH`);
-        }
-
-        // 1. Create new token
-        console.log("\nCreating new Continuous Token...");
-        const tokenParams = {
-            name: "Test Continuous Token",
-            symbol: "TCT",
-        };
-
-        // Create token and curve
+        // Create new token with 1 ETH initial buy
+        console.log("\nCreating new token with 1 ETH initial buy...");
         const createTx = await factory.createTokenAndCurve(
-            tokenParams.name,
-            tokenParams.symbol,
-            { value: CREATION_FEE }
+            "Test Token",
+            "TEST",
+            ethers.parseEther("1"), // Buy 1 ETH worth of tokens
+            { 
+                value: ethers.parseEther("2"), // 1 ETH creation fee + 1 ETH for buying
+                gasLimit: 3000000
+            }
         );
-        console.log("Create transaction hash:", createTx.hash);
         
-        // Wait for transaction to be mined
-        const createReceipt = await createTx.wait();
-        console.log("Token and Curve created!");
+        const receipt = await createTx.wait();
+        console.log("Token created!");
 
-        // Get token and curve addresses from event
-        const createEvent = createReceipt.logs.find(
+        // Get addresses from event
+        const createEvent = receipt.logs.find(
             log => log.fragment && log.fragment.name === 'TokenAndCurveCreated'
         );
         const tokenAddress = createEvent.args[0];
         const curveAddress = createEvent.args[1];
 
-        console.log("\nToken address:", tokenAddress);
-        console.log("Curve address:", curveAddress);
+        console.log("\nToken:", tokenAddress);
+        console.log("Curve:", curveAddress);
 
-        // Connect to Token contract
+        // Connect to contracts
         const Token = await ethers.getContractFactory("ContractErc20");
         const token = Token.attach(tokenAddress).connect(wallet);
 
-        // Get initial token balance
-        const initialBalance = await token.balanceOf(wallet.address);
-        console.log("\nInitial token balance:", ethers.formatEther(initialBalance));
-
-        // 2. Buy tokens through Bonding Curve
-        console.log("\nBuying tokens through AMM...");
-        
-        // Connect to BondingCurve contract
         const BondingCurve = await ethers.getContractFactory("BondingCurve");
-        const bondingCurve = BondingCurve.attach(curveAddress).connect(wallet);
+        const curve = BondingCurve.attach(curveAddress).connect(wallet);
 
-        // Get current price
-        const currentPrice = await bondingCurve.getCurrentPrice();
-        console.log("Current price:", ethers.formatEther(currentPrice), "ETH per token");
+        // Get initial state
+        console.log("\nInitial State:");
+        console.log("------------------------");
+        const initialState = await getState(token, curve, wallet.address);
+        logState(initialState);
 
-        // Calculate tokens for 0.1 ETH
-        const ethAmount = ethers.parseEther("1"); // Reduced from 1 ETH to 0.1 ETH
-        
-        // Check if we have enough balance for purchase
-        const newBalance = await provider.getBalance(wallet.address);
-        if (newBalance < ethAmount) {
-            throw new Error(`Insufficient balance for purchase. Need ${ethers.formatEther(ethAmount)} ETH`);
-        }
+        // Buy 1 ETH worth of tokens
+        console.log("\nBuying tokens with 1 ETH:");
+        console.log("------------------------");
+        await buyTokens(curve, token, wallet.address, ethers.parseEther("1"));
 
-        const estimatedTokens = await bondingCurve.calculateTokensForEth(ethAmount);
-        console.log("\nEstimated tokens for 0.1 ETH:", ethers.formatEther(estimatedTokens));
+        // Get state after first buy
+        console.log("\nState After 1 ETH Purchase:");
+        console.log("------------------------");
+        const stateAfterBuy = await getState(token, curve, wallet.address);
+        logState(stateAfterBuy);
 
-        // Buy tokens
-        const buyTx = await bondingCurve.buy(
-            estimatedTokens, // minTokens
-            wallet.address,  // buyer
-            { 
-                value: ethAmount,
-                gasLimit: 500000 // Added explicit gas limit
-            }
-        );
-        console.log("Buy transaction hash:", buyTx.hash);
+        // Buy 1 ETH worth of tokens
+        console.log("\nBuying tokens with 1 ETH:");
+        console.log("------------------------");
+        await buyTokens(curve, token, wallet.address, ethers.parseEther("1"));
 
-        // Wait for transaction to be mined
-        const buyReceipt = await buyTx.wait();
-        
-        // Get buy event details
-        const buyEvent = buyReceipt.logs.find(
-            log => log.fragment && log.fragment.name === 'Buy'
-        );
-        const tokensBought = buyEvent.args[1];
-        const ethPaid = buyEvent.args[2];
+        // Get state after second buy
+        console.log("\nState After 1 ETH Purchase:");
+        console.log("------------------------");
+        const stateAfterSecondBuy = await getState(token, curve, wallet.address);
+        logState(stateAfterSecondBuy);
 
-        console.log("\nPurchase successful!");
-        console.log("Tokens bought:", ethers.formatEther(tokensBought));
-        console.log("ETH paid:", ethers.formatEther(ethPaid));
+        // Approve tokens for selling
+        console.log("\nApproving tokens for selling...");
+        await token.approve(curveAddress, ethers.MaxUint256);
 
-        // Get new balance
-        const newTokenBalance = await token.balanceOf(wallet.address);
-        console.log("\nNew token balance:", ethers.formatEther(newTokenBalance));
-        console.log("Balance increase:", ethers.formatEther(newTokenBalance - initialBalance));
+        // Sell 20% of tokens
+        const balance = await token.balanceOf(wallet.address);
+        const sellAmount = balance * 20n / 100n;
+        console.log("\nSelling 20% of tokens:", ethers.formatEther(sellAmount), "tokens");
+        console.log("------------------------");
+        await sellTokens(curve, token, sellAmount);
 
-        // Get new price
-        const newPrice = await bondingCurve.getCurrentPrice();
-        console.log("\nNew price:", ethers.formatEther(newPrice), "ETH per token");
-        console.log("Price increase:", ethers.formatEther(newPrice - currentPrice), "ETH");
-
-        // Get funding progress
-        const fundingRaised = await bondingCurve.getTotalFundingRaised();
-        const fundingGoal = await bondingCurve.FUNDING_GOAL();
-        const progress = (fundingRaised * 100n) / fundingGoal;
-        console.log("\nFunding progress:", Number(progress), "%");
+        // Get final state
+        console.log("\nFinal State After Sell:");
+        console.log("------------------------");
+        const finalState = await getState(token, curve, wallet.address);
+        logState(finalState);
 
     } catch (error) {
-        console.error("Error:", error);
-        if (error.data) {
-            console.error("Error data:", error.data);
-        }
+        console.error("\nError:", error);
+        process.exit(1);
+    }
+}
+
+async function getState(token, curve, address) {
+    const tokenBalance = await token.balanceOf(address);
+    const totalSupply = await curve.totalSupply();
+    const currentPrice = await curve.getCurrentPrice();
+    const poolBalance = await curve.getPoolBalance();
+    const marketCap = await curve.getTotalMarketCap();
+    const fundingRaised = await curve.getTotalFundingRaised();
+    const fundingGoal = await curve.FUNDING_GOAL();
+
+    return {
+        tokenBalance,
+        totalSupply,
+        currentPrice,
+        poolBalance,
+        marketCap,
+        fundingRaised,
+        fundingGoal
+    };
+}
+
+function logState(state) {
+    console.log("Token Balance:", ethers.formatEther(state.tokenBalance));
+    console.log("Total Supply:", ethers.formatEther(state.totalSupply));
+    console.log("Current Price:", ethers.formatEther(state.currentPrice), "ETH");
+    console.log("Pool Balance:", ethers.formatEther(state.poolBalance), "ETH");
+    console.log("Market Cap:", ethers.formatEther(state.marketCap), "ETH");
+    console.log("Funding Raised:", ethers.formatEther(state.fundingRaised), "ETH");
+    console.log("Funding Progress:", Number((state.fundingRaised * 10000n) / state.fundingGoal) / 100, "%");
+}
+
+async function buyTokens(curve, token, address, amount) {
+    try {
+        const expectedTokens = await curve.calculateTokensForEth(amount);
+        console.log("Spending:", ethers.formatEther(amount), "ETH");
+        console.log("Expected tokens:", ethers.formatEther(expectedTokens));
+
+        const minTokens = expectedTokens * 95n / 100n; // 5% slippage tolerance
+        
+        const tx = await curve.buy(
+            minTokens,
+            address,
+            {
+                value: amount,
+                gasLimit: 1000000
+            }
+        );
+
+        const receipt = await tx.wait();
+        const buyEvent = receipt.logs.find(log => log.fragment && log.fragment.name === 'Buy');
+        const tokensReceived = buyEvent.args[1];
+        
+        console.log("Tokens received:", ethers.formatEther(tokensReceived));
+        return tokensReceived;
+    } catch (error) {
+        console.error("Buy failed:", error.message);
+        throw error;
+    }
+}
+
+async function sellTokens(curve, token, amount) {
+    try {
+        const expectedEth = await curve.calculateEthForTokens(amount);
+        console.log("Selling:", ethers.formatEther(amount), "tokens");
+        console.log("Expected ETH:", ethers.formatEther(expectedEth));
+
+        const minEth = expectedEth * 95n / 100n; // 5% slippage tolerance
+        
+        const tx = await curve.sell(amount, minEth);
+        const receipt = await tx.wait();
+        
+        const sellEvent = receipt.logs.find(log => log.fragment && log.fragment.name === 'Sell');
+        const ethReceived = sellEvent.args[2];
+        
+        console.log("ETH received:", ethers.formatEther(ethReceived));
+        return ethReceived;
+    } catch (error) {
+        console.error("Sell failed:", error.message);
+        throw error;
     }
 }
 
 main()
     .then(() => process.exit(0))
-    .catch((error) => {
+    .catch(error => {
         console.error(error);
         process.exit(1);
     }); 

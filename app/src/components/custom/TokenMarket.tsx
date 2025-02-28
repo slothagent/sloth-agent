@@ -3,37 +3,11 @@ import { Twitter, Globe, Search, Minus, Plus } from 'lucide-react'
 import { formatDistance } from 'date-fns'
 import { Button } from '../ui/button'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useTokensData } from '@/hooks/useWebSocketData'
+import { Token } from '@/models'
 
-interface Token {
-  _id: string
-  name: string
-  ticker: string
-  description: string
-  imageUrl: string
-  totalSupply: string
-  address: string
-  curveAddress: string
-  owner: string
-  createdAt: string
-  updatedAt: string
-  twitterUrl: string | null
-  websiteUrl: string | null
-  telegramUrl: string | null
-}
-
-const fetchTokens = async () => {
-  const response = await fetch('/api/token')
-  const result = await response.json()
-  return result.data
-}
-
-const formatMarketCap = (value?: number) => {
-  if (!value) return '$0'
-  return `$${value.toLocaleString()}`
-}
 
 const formatLaunchDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
@@ -71,7 +45,7 @@ const TokenCard = ({ token }: { token: Token }) => {
       <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors">
         <div className="flex items-start gap-4">
           <Image
-            src={token.imageUrl}
+            src={token.imageUrl || ''}
             alt={token.name}
             width={48}
             height={48}
@@ -108,7 +82,7 @@ const TokenCard = ({ token }: { token: Token }) => {
               </div>
               <div className="flex flex-col gap-2">
                   <span className="text-gray-400">LAUNCH TIME</span>
-                  <span className="text-gray-400">{formatLaunchDate(token.createdAt)}</span>
+                  <span className="text-gray-400">{formatLaunchDate(token.createdAt?.toString())}</span>
               </div>
             </div>
           </div>
@@ -170,7 +144,7 @@ const sortTokensByPriority = (tokens: Token[], query: string) => {
     }
 
     // Priority 5: Sắp xếp theo thời gian tạo nếu cùng mức độ ưu tiên
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
   })
 }
 
@@ -178,17 +152,17 @@ export default function AgentMarket() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllCategories, setShowAllCategories] = useState(false)
-  
-  const { data: tokens, isLoading } = useQuery({
-    queryKey: ['token'],
-    queryFn: () => fetchTokens(),
-    staleTime: 10 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchInterval: 10 * 1000,
-    retry: 1,
-  })
+  const { tokens: tokens, loading: tokensLoading } = useTokensData();
+  // const { data: tokens, isLoading } = useQuery({
+  //   queryKey: ['token'],
+  //   queryFn: () => fetchTokens(),
+  //   staleTime: 10 * 1000,
+  //   gcTime: 5 * 60 * 1000,
+  //   refetchOnWindowFocus: false,
+  //   refetchOnMount: false,
+  //   refetchInterval: 10 * 1000,
+  //   retry: 1,
+  // })
 
   const filteredTokens = useMemo(() => {
     if (!tokens) return []
@@ -239,7 +213,7 @@ export default function AgentMarket() {
 
   // console.log('Tokens:', tokens)
 
-  if (isLoading) {
+  if (tokensLoading) {
     return (
       <div className="flex flex-col pt-6">
         <div className="flex items-center justify-between">

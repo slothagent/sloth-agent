@@ -3,147 +3,129 @@ const { ethers } = require('hardhat');
 
 async function main() {
     try {
-        // Connect to the network using private key
+        // Connect to network
         const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-        
-        // Contract addresses of existing token and curve
-        const TOKEN_ADDRESS = "0xbAD87119C50e8c3B8f72fd65b4CBAaE00518C7ab";
-        const CURVE_ADDRESS = "0x18B65f3e741d3bc1Adf2C62146e9c135De29e849";
 
-        console.log("Connected wallet address:", wallet.address);
-
-        // Check wallet balance
         const balance = await provider.getBalance(wallet.address);
         console.log("\nWallet balance:", ethers.formatEther(balance), "ETH");
 
-        // Connect to Token contract
+        // Contract addresses
+        const TOKEN_ADDRESS = "0x35EEd3e24BC21ed874C0afCd032Ef30EA46F11Ce";
+        const CURVE_ADDRESS = "0x043b48160c59E204Fd6ec669c763645c715cE0bC";
+
+        // Connect to contracts
         const Token = await ethers.getContractFactory("ContractErc20");
         const token = Token.attach(TOKEN_ADDRESS).connect(wallet);
-        
-        // Get initial balance and total supply
-        const balanceBefore = await token.balanceOf(wallet.address);
-        const totalSupply = await token.totalSupply();
-        console.log("\nToken total supply:", ethers.formatEther(totalSupply));
-        console.log("Initial token balance:", ethers.formatEther(balanceBefore));
-        
-        // Connect to BondingCurve (AMM) contract
+
         const BondingCurve = await ethers.getContractFactory("BondingCurve");
-        const bondingCurve = BondingCurve.attach(CURVE_ADDRESS).connect(wallet);
+        const curve = BondingCurve.attach(CURVE_ADDRESS).connect(wallet);
 
-        // Get AMM stats
-        const currentPrice = await bondingCurve.getCurrentPrice();
-        const reserveBalance = await bondingCurve.reserveBalance();
-        const reserveWeight = await bondingCurve.reserveWeight();
-        const initialSupply = await bondingCurve.initialSupply();
-        const curveSupply = await bondingCurve.totalSupply();
+        // Get initial state with additional metrics
+        const initialBalance = await token.balanceOf(wallet.address);
+        const initialBuyPrice = await curve.getBuyPrice();
+        const initialSellPrice = await curve.getSellPrice();
+        const fundingRaised = await curve.fundingRaised();
+        const fundingGoal = await curve.FUNDING_GOAL();
+        const totalSupply = await curve.totalSupply();
+        const marketCap = await curve.getTotalMarketCap();
+
+        console.log("\nInitial state:");
+        console.log("Token balance:", ethers.formatEther(initialBalance));
+        console.log("Total supply:", ethers.formatEther(totalSupply));
+        console.log("Market cap:", ethers.formatEther(marketCap));
+        console.log("Buy price:", ethers.formatEther(initialBuyPrice));
+        console.log("Sell price:", ethers.formatEther(initialSellPrice));
+        console.log("Spread:", ethers.formatEther(initialBuyPrice - initialSellPrice));
+        console.log("Funding raised:", ethers.formatEther(fundingRaised));
+        console.log("Funding goal:", ethers.formatEther(fundingGoal));
+        console.log("Progress:", Number((fundingRaised * 100n) / fundingGoal), "%");
+
+        // Buy tokens with error handling for price impact
+        console.log("\nBuying tokens...");
+        const buyAmount = ethers.parseEther("1");
         
-        console.log("\nAMM Statistics:");
-        console.log("Current price:", ethers.formatEther(currentPrice), "ETH per token");
-        console.log("Reserve balance:", ethers.formatEther(reserveBalance), "ETH");
-        console.log("Reserve weight:", Number(reserveWeight) / 10000, "%");
-        console.log("Initial supply:", ethers.formatEther(initialSupply));
-        console.log("Current curve supply:", ethers.formatEther(curveSupply));
-        console.log("Available supply:", ethers.formatEther(initialSupply - curveSupply));
+        try {
+            // Calculate tokens with safety checks
+            const estimatedTokens = await curve.calculateTokensForEth(buyAmount);
+            console.log("Spending:", ethers.formatEther(buyAmount), "ETH");
+            console.log("Estimated tokens:", ethers.formatEther(estimatedTokens));
 
-        // Get funding status
-        const fundingRaised = await bondingCurve.getTotalFundingRaised();
-        const fundingGoal = await bondingCurve.FUNDING_GOAL();
-        const progress = (fundingRaised * 100n) / fundingGoal;
-        console.log("\nFunding progress:", Number(progress), "%");
-        console.log("Total raised:", ethers.formatEther(fundingRaised), "ETH");
-        console.log("Funding goal:", ethers.formatEther(fundingGoal), "ETH");
+            // Set minimum tokens to 98% of estimated (2% slippage tolerance for safety)
+            const minTokens = estimatedTokens * 98n / 100n;
+            console.log("Min tokens:", ethers.formatEther(minTokens));
 
-        // Start with smaller amount to test
-        let ethAmount = ethers.parseEther("2"); // Start with 0.1 ETH
-        console.log("\nTesting purchase with:", ethers.formatEther(ethAmount), "ETH");
-        
-        // Calculate expected tokens
-        let estimatedTokens = await bondingCurve.calculateTokensForEth(ethAmount);
-        console.log("Estimated tokens to receive:", ethers.formatEther(estimatedTokens));
+            // Calculate expected price impact
+            const expectedPrice = (buyAmount * ethers.parseEther("1")) / estimatedTokens;
+            const currentPrice = await curve.getBuyPrice();
+            const priceImpact = ((expectedPrice - currentPrice) * 100n) / currentPrice;
+            console.log("Expected price impact:", Number(priceImpact) / 100, "%");
 
-        if (estimatedTokens === 0n) {
-            console.log("\nTrying to adjust ETH amount to get valid token amount...");
-            // Try increasing ETH amount until we get valid token amount or hit 1 ETH limit
-            while (estimatedTokens === 0n && ethAmount < ethers.parseEther("2")) {
-                ethAmount = ethAmount * 2n;
-                estimatedTokens = await bondingCurve.calculateTokensForEth(ethAmount);
-                console.log(`For ${ethers.formatEther(ethAmount)} ETH: ${ethers.formatEther(estimatedTokens)} tokens`);
+            // Execute buy with higher gas limit and proper error handling
+            console.log("\nExecuting buy...");
+            const buyTx = await curve.buy(
+                minTokens,
+                wallet.address,
+                {
+                    value: buyAmount,
+                    gasLimit: 1000000 // Increased for complex calculations
+                }
+            );
+
+            console.log("Transaction sent:", buyTx.hash);
+            const buyReceipt = await buyTx.wait();
+            
+            if (buyReceipt.status === 0) {
+                throw new Error("Transaction failed");
             }
-        }
 
-        if (estimatedTokens === 0n) {
-            throw new Error("Cannot calculate valid token amount even with 1 ETH");
-        }
+            // Get buy event for exact tokens received
+            const buyEvent = buyReceipt.logs.find(
+                log => log.fragment && log.fragment.name === 'Buy'
+            );
+            const tokensReceived = buyEvent.args[1];
+            console.log("Transaction confirmed! Received:", ethers.formatEther(tokensReceived), "tokens");
 
-        // Check if we have enough balance
-        if (balance < ethAmount) {
-            throw new Error(`Insufficient balance. Need ${ethers.formatEther(ethAmount)} ETH`);
-        }
+            // Get updated state with all metrics
+            const newBalance = await token.balanceOf(wallet.address);
+            const newBuyPrice = await curve.getBuyPrice();
+            const newSellPrice = await curve.getSellPrice();
+            const newFundingRaised = await curve.fundingRaised();
+            const newTotalSupply = await curve.totalSupply();
+            const newMarketCap = await curve.getTotalMarketCap();
 
-        // Buy tokens through AMM
-        console.log("\nExecuting purchase through AMM...");
-        console.log(`Buying with ${ethers.formatEther(ethAmount)} ETH`);
-        console.log(`Minimum tokens to receive: ${ethers.formatEther(estimatedTokens)}`);
+            console.log("\nAfter purchase:");
+            console.log("New balance:", ethers.formatEther(newBalance));
+            console.log("Total supply:", ethers.formatEther(newTotalSupply));
+            console.log("Market cap:", ethers.formatEther(newMarketCap));
+            console.log("Tokens received:", ethers.formatEther(newBalance - initialBalance));
+            console.log("New buy price:", ethers.formatEther(newBuyPrice));
+            console.log("New sell price:", ethers.formatEther(newSellPrice));
+            console.log("Price impact:", ethers.formatEther(newBuyPrice - initialBuyPrice));
+            console.log("New spread:", ethers.formatEther(newBuyPrice - newSellPrice));
+            console.log("New funding:", ethers.formatEther(newFundingRaised));
+            console.log("Progress:", Number((newFundingRaised * 100n) / fundingGoal), "%");
 
-        const buyTx = await bondingCurve.buy(
-            estimatedTokens, // minTokens
-            wallet.address,  // buyer
-            { 
-                value: ethAmount,
-                gasLimit: 500000 // Added explicit gas limit
+        } catch (error) {
+            console.error("\nTransaction failed:");
+            if (error.data) {
+                // Handle specific contract errors
+                const reason = error.data.message || error.message;
+                console.error("Contract error:", reason);
+            } else {
+                console.error("Error:", error.message);
             }
-        );
-        console.log("Transaction hash:", buyTx.hash);
-
-        // Wait for transaction to be mined
-        const buyReceipt = await buyTx.wait();
-        console.log("Transaction confirmed!");
-        
-        // Get buy event details
-        const buyEvent = buyReceipt.logs.find(
-            log => log.fragment && log.fragment.name === 'Buy'
-        );
-        const tokensBought = buyEvent.args[1];
-        const ethPaid = buyEvent.args[2];
-
-        console.log("\nPurchase successful!");
-        console.log("Tokens received:", ethers.formatEther(tokensBought));
-        console.log("ETH paid:", ethers.formatEther(ethPaid));
-        console.log("Effective price per token:", ethers.formatEther(ethPaid) / ethers.formatEther(tokensBought), "ETH");
-
-        // Check new balance
-        const balanceAfter = await token.balanceOf(wallet.address);
-        console.log("\nNew token balance:", ethers.formatEther(balanceAfter));
-        console.log("Balance increase:", ethers.formatEther(balanceAfter - balanceBefore));
-
-        // Get updated AMM stats
-        const newPrice = await bondingCurve.getCurrentPrice();
-        const newReserveBalance = await bondingCurve.reserveBalance();
-        
-        console.log("\nUpdated AMM Statistics:");
-        console.log("New price:", ethers.formatEther(newPrice), "ETH per token");
-        console.log("Price increase:", ethers.formatEther(newPrice - currentPrice), "ETH");
-        console.log("New reserve balance:", ethers.formatEther(newReserveBalance), "ETH");
-
-        // Get new funding progress
-        const newFundingRaised = await bondingCurve.getTotalFundingRaised();
-        const newProgress = (newFundingRaised * 100n) / fundingGoal;
-        console.log("\nNew funding progress:", Number(newProgress), "%");
-
+            throw error;
+        }
     } catch (error) {
         console.error("Error:", error);
-        if (error.data) {
-            console.error("Error data:", error.data);
-        }
+        process.exit(1);
     }
 }
 
-// Uncomment the function you want to use
 main()
-    // buySpecificAmount()
     .then(() => process.exit(0))
-    .catch((error) => {
+    .catch(error => {
         console.error(error);
         process.exit(1);
     }); 

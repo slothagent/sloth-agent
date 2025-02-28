@@ -1,205 +1,390 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("BondingCurve", function () {
-  let bondingCurve;
-  let owner;
-  let addr1;
-  let addr2;
-  let addrs;
+describe("Factory and BondingCurve", function () {
+    let Factory;
+    let factory;
+    let owner;
+    let buyer;
+    let seller;
+    let token;
+    let curve;
 
-  // Constants from the contract
-  const MEMETOKEN_CREATION_PLATFORM_FEE = ethers.parseEther("0.003");
-  const MEMECOIN_FUNDING_GOAL = ethers.parseEther("24");
-  const DECIMALS = ethers.parseUnits("1", 18);
-  const MAX_SUPPLY = ethers.parseUnits("1000000", 18);
-  const INIT_SUPPLY = MAX_SUPPLY * BigInt(2) / BigInt(100); // 2% of MAX_SUPPLY
-
-  beforeEach(async function () {
-    // Get signers
-    [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
-
-    // Deploy BondingCurve contract
-    const BondingCurve = await ethers.getContractFactory("BondingCurve");
-    bondingCurve = await BondingCurve.deploy();
-    await bondingCurve.waitForDeployment();
-  });
-
-  describe("Token Creation", function () {
-    it("Should create a new meme token with correct parameters", async function () {
-      const tokenName = "Test Meme Token";
-      const tokenSymbol = "TMT";
-      const imageUrl = "https://example.com/image.png";
-      const description = "Test meme token description";
-      const contractURI = "https://example.com/metadata.json";
-
-      // Create token with platform fee
-      await expect(bondingCurve.createMemeToken(
-        tokenName,
-        tokenSymbol,
-        imageUrl,
-        description,
-        contractURI,
-        { value: MEMETOKEN_CREATION_PLATFORM_FEE }
-      )).to.emit(bondingCurve, "MemeTokenCreated");
-
-      // Get all tokens and verify the created token
-      const allTokens = await bondingCurve.getAllMemeTokens();
-      expect(allTokens.length).to.equal(1);
-      expect(allTokens[0].name).to.equal(tokenName);
-      expect(allTokens[0].symbol).to.equal(tokenSymbol);
-      expect(allTokens[0].description).to.equal(description);
-      expect(allTokens[0].tokenImageUrl).to.equal(imageUrl);
-      expect(allTokens[0].fundingRaised).to.equal(0);
-      expect(allTokens[0].creatorAddress).to.equal(owner.address);
-    });
-
-    it("Should fail to create token without platform fee", async function () {
-      await expect(bondingCurve.createMemeToken(
-        "Test Token",
-        "TT",
-        "url",
-        "desc",
-        "uri"
-      )).to.be.revertedWith("Fee not paid for memetoken creation");
-    });
-  });
-
-  describe("Token Purchase", function () {
-    let memeTokenAddress;
+    // Constants from contracts
+    const INITIAL_PRICE = ethers.parseEther("0.0001"); // 0.0001 ETH
+    const FUNDING_GOAL = ethers.parseEther("400000"); // 400,000 ETH
+    const INITIAL_SUPPLY = ethers.parseEther("1000000000"); // 1 billion tokens
 
     beforeEach(async function () {
-      // Create a token before each test
-      const tx = await bondingCurve.createMemeToken(
-        "Test Token",
-        "TT",
-        "url",
-        "desc",
-        "uri",
-        { value: MEMETOKEN_CREATION_PLATFORM_FEE }
-      );
-      const receipt = await tx.wait();
-      const event = receipt.logs.find(log => 
-        log.fragment && log.fragment.name === 'MemeTokenCreated'
-      );
-      memeTokenAddress = event.args[0];
+        // Get signers
+        [owner, buyer, seller] = await ethers.getSigners();
+
+        // Deploy Factory
+        Factory = await ethers.getContractFactory("Factory");
+        factory = await Factory.deploy();
+        await factory.waitForDeployment();
+
+        // Create new token and curve with 1 ETH buy amount
+        const tx = await factory.connect(owner).createTokenAndCurve(
+            "Test Token",
+            "TEST",
+            ethers.parseEther("1"), // buyAmount parameter - 1 ETH
+            { value: ethers.parseEther("2") } // 1 ETH for creation fee + 1 ETH for buying
+        );
+        const receipt = await tx.wait();
+
+        // Get addresses from event
+        const createEvent = receipt.logs.find(
+            log => log.fragment && log.fragment.name === 'TokenAndCurveCreated'
+        );
+        const tokenAddress = createEvent.args[0];
+        const curveAddress = createEvent.args[1];
+
+        // Get contract instances
+        const Token = await ethers.getContractFactory("ContractErc20");
+        token = Token.attach(tokenAddress);
+
+        const BondingCurve = await ethers.getContractFactory("BondingCurve");
+        curve = BondingCurve.attach(curveAddress);
     });
 
-    it("Should allow buying tokens with correct ETH amount", async function () {
-      const tokenQty = BigInt(100); // Amount of tokens to buy
-      const estimatedCost = await bondingCurve.calculateCost(0n, tokenQty);
-      
-      await expect(bondingCurve.connect(addr1).buyMemeToken(
-        memeTokenAddress,
-        tokenQty,
-        { value: estimatedCost }
-      )).to.emit(bondingCurve, "Buy");
-
-      // Get token contract using the correct path
-      const TokenERC20 = await ethers.getContractFactory("contracts/Token.sol:TokenERC20");
-      const tokenContract = TokenERC20.attach(memeTokenAddress);
-      
-      // Check buyer's balance
-      const balance = await tokenContract.balanceOf(addr1.address);
-      expect(balance).to.equal(tokenQty * DECIMALS);
+    describe("Initial State", function () {
+        it("Should set correct initial values", async function () {
+            expect(await token.name()).to.equal("Test Token");
+            expect(await token.symbol()).to.equal("TEST");
+            expect(await curve.INITIAL_PRICE()).to.equal(INITIAL_PRICE);
+            expect(await curve.FUNDING_GOAL()).to.equal(FUNDING_GOAL);
+            expect(await curve.totalSupply()).to.be.gt(0);
+        });
     });
 
-    it("Should fail when trying to buy more than available supply", async function () {
-      const tooManyTokens = BigInt(1000001); // More than MAX_SUPPLY
-      
-      await expect(bondingCurve.connect(addr1).buyMemeToken(
-        memeTokenAddress,
-        tooManyTokens,
-        { value: ethers.parseEther("1000") }
-      )).to.be.revertedWith("Insufficient supply");
+    describe("Buying Tokens", function () {
+        it("Should show price impact with large and small purchases", async function () {
+            const formatEther = (bn) => ethers.formatEther(bn);
+            
+            // First purchase - 100 ETH
+            const buyAmount = ethers.parseEther("100");
+            
+            // Get initial states
+            const initialPrice = await curve.getCurrentPrice();
+            const initialSupply = await curve.totalSupply();
+            
+            console.log("\nInitial State:");
+            console.log("------------------------");
+            console.log(`Initial price: ${formatEther(initialPrice)} ETH`);
+            console.log(`Initial supply: ${formatEther(initialSupply)}`);
+
+            // Calculate expected tokens for 100 ETH
+            const expectedTokens = await curve.calculateTokensForEth(buyAmount);
+            console.log(`\nFirst Purchase (100 ETH):`);
+            console.log(`Expected tokens: ${formatEther(expectedTokens)}`);
+            console.log(`Effective price per token: ${formatEther(buyAmount * ethers.parseEther("1") / expectedTokens)} ETH`);
+            
+            // Execute first buy with higher slippage tolerance
+            await curve.connect(buyer).buy(
+                expectedTokens * 95n / 100n, // 5% slippage tolerance
+                buyer.address,
+                { value: buyAmount }
+            );
+
+            // Get states after first buy
+            const priceAfterFirstBuy = await curve.getCurrentPrice();
+            const supplyAfterFirstBuy = await curve.totalSupply();
+            const firstBuyBalance = await token.balanceOf(buyer.address);
+
+            console.log("\nAfter First Buy (100 ETH):");
+            console.log(`Price after buy: ${formatEther(priceAfterFirstBuy)} ETH`);
+            console.log(`Price increase: ${formatEther(priceAfterFirstBuy - initialPrice)} ETH`);
+            console.log(`Tokens received: ${formatEther(firstBuyBalance)}`);
+            console.log(`Total supply: ${formatEther(supplyAfterFirstBuy)}`);
+
+            // Second purchase - 1 ETH
+            const secondBuyAmount = ethers.parseEther("1");
+            
+            // Calculate expected tokens for 1 ETH
+            const expectedTokens2 = await curve.calculateTokensForEth(secondBuyAmount);
+            console.log(`\nSecond Purchase (1 ETH):`);
+            console.log(`Expected tokens: ${formatEther(expectedTokens2)}`);
+            console.log(`Effective price per token: ${formatEther(secondBuyAmount * ethers.parseEther("1") / expectedTokens2)} ETH`);
+            
+            // Execute second buy
+            await curve.connect(buyer).buy(
+                expectedTokens2 * 98n / 100n, // 2% slippage tolerance
+                buyer.address,
+                { value: secondBuyAmount }
+            );
+
+            // Get final states
+            const finalPrice = await curve.getCurrentPrice();
+            const finalSupply = await curve.totalSupply();
+            const finalBalance = await token.balanceOf(buyer.address);
+            const secondBuyTokens = finalBalance - firstBuyBalance;
+
+            console.log("\nAfter Second Buy (1 ETH):");
+            console.log(`Final price: ${formatEther(finalPrice)} ETH`);
+            console.log(`Price increase from first buy: ${formatEther(finalPrice - priceAfterFirstBuy)} ETH`);
+            console.log(`Additional tokens received: ${formatEther(secondBuyTokens)}`);
+            console.log(`Total tokens held: ${formatEther(finalBalance)}`);
+            console.log(`Final total supply: ${formatEther(finalSupply)}`);
+
+            // Comparison stats
+            console.log("\nComparison Stats:");
+            console.log(`Tokens per ETH (first buy): ${formatEther(firstBuyBalance / 100n)}`);
+            console.log(`Tokens per ETH (second buy): ${formatEther(secondBuyTokens)}`);
+            console.log(`Price increase percentage: ${((finalPrice - initialPrice) * 100n / initialPrice).toString()}%`);
+
+            // Verify expected behaviors
+            expect(finalPrice).to.be.gt(priceAfterFirstBuy);
+            expect(finalPrice).to.be.gt(initialPrice);
+            expect(secondBuyTokens).to.be.lt(firstBuyBalance / 100n); // Should get fewer tokens per ETH on second buy
+        });
+
+        it("Should fail when sending 0 ETH", async function () {
+            await expect(
+                curve.connect(buyer).buy(0, buyer.address, { value: 0 })
+            ).to.be.revertedWith("Must send ETH");
+        });
     });
 
-    it("Should fail when not enough ETH is sent", async function () {
-      const tokenQty = BigInt(100);
-      const estimatedCost = await bondingCurve.calculateCost(0n, tokenQty);
-      const tooLittleETH = estimatedCost - ethers.parseEther("0.1"); // Less than required
-      
-      await expect(bondingCurve.connect(addr1).buyMemeToken(
-        memeTokenAddress,
-        tokenQty,
-        { value: tooLittleETH }
-      )).to.be.revertedWith("Insufficient ETH sent");
-    });
-  });
+    describe("Selling Tokens", function () {
+        beforeEach(async function () {
+            // Buy tokens first
+            await curve.connect(buyer).buy(
+                0, // Min tokens
+                buyer.address,
+                { value: ethers.parseEther("1") }
+            );
 
-  describe("Price Calculation", function () {
-    it("Should calculate correct price for different quantities", async function () {
-      // Test various token quantities
-      const quantities = [1n, 10n, 100n, 1000n];
-      
-      for (const qty of quantities) {
-        const price = await bondingCurve.calculateCost(0n, qty);
-        expect(price).to.be.gt(0);
-        
-        // Price should increase with quantity
-        if (qty > 1n) {
-          const smallerPrice = await bondingCurve.calculateCost(0n, qty - 1n);
-          expect(price).to.be.gt(smallerPrice);
-        }
-      }
-    });
+            // Approve maximum amount for selling
+            await token.connect(buyer).approve(curve.target, ethers.MaxUint256);
+        });
 
-    it("Should have increasing marginal prices", async function () {
-      // Test that price increases are accelerating (convex curve)
-      const price1 = await bondingCurve.calculateCost(0n, 1n);
-      const price10 = await bondingCurve.calculateCost(0n, 10n);
-      const price20 = await bondingCurve.calculateCost(0n, 20n);
-      
-      const increase1to10 = price10 - price1;
-      const increase10to20 = price20 - price10;
-      
-      expect(increase10to20).to.be.gt(increase1to10);
-    });
-  });
+        it("Should allow selling tokens", async function () {
+            // Get user's token balance first
+            const userBalance = await token.balanceOf(buyer.address);
+            // Sell 50% of balance
+            const tokenAmount = userBalance / 2n;
+            
+            // Get initial states
+            const initialEthBalance = await ethers.provider.getBalance(buyer.address);
+            const initialTokenBalance = await token.balanceOf(buyer.address);
+            
+            // Calculate expected ETH
+            const expectedEth = await curve.calculateEthForTokens(tokenAmount);
+            
+            // Execute sell
+            await curve.connect(buyer).sell(
+                tokenAmount,
+                expectedEth * 99n / 100n // 1% slippage tolerance
+            );
 
-  describe("Funding Goal", function () {
-    let memeTokenAddress;
+            // Check final states
+            const finalTokenBalance = await token.balanceOf(buyer.address);
+            expect(initialTokenBalance - finalTokenBalance).to.equal(tokenAmount);
+            
+            // Account for gas costs in ETH balance check
+            const finalEthBalance = await ethers.provider.getBalance(buyer.address);
+            expect(finalEthBalance).to.be.gt(initialEthBalance);
+        });
 
-    beforeEach(async function () {
-      const tx = await bondingCurve.createMemeToken(
-        "Test Token",
-        "TT",
-        "url",
-        "desc",
-        "uri",
-        { value: MEMETOKEN_CREATION_PLATFORM_FEE }
-      );
-      const receipt = await tx.wait();
-      const event = receipt.logs.find(log => 
-        log.fragment && log.fragment.name === 'MemeTokenCreated'
-      );
-      memeTokenAddress = event.args[0];
+        it("Should fail when selling more than balance", async function () {
+            const balance = await token.balanceOf(buyer.address);
+            await expect(
+                curve.connect(buyer).sell(balance + 1n, 0)
+            ).to.be.revertedWithCustomError(token, "ERC20InsufficientBalance");
+        });
     });
 
-    it("Should emit FundingGoalReached event when goal is met", async function () {
-      // Buy enough tokens to reach funding goal
-      const largeAmount = BigInt(1000);
-      await expect(bondingCurve.connect(addr1).buyMemeToken(
-        memeTokenAddress,
-        largeAmount,
-        { value: MEMECOIN_FUNDING_GOAL }
-      )).to.emit(bondingCurve, "FundingGoalReached");
+    describe("Price Impact and Token Distribution", function () {
+        it("Should show correct price and token changes across multiple purchases", async function () {
+            // Helper function to format numbers for logging
+            const formatEther = (bn) => ethers.formatEther(bn);
+            
+            // Make multiple purchases and track changes
+            const purchases = [
+                ethers.parseEther("1"),    // 1 ETH
+                ethers.parseEther("1"),    // 1 ETH
+                ethers.parseEther("1"),    // 1 ETH
+            ];
+
+            console.log("\nTesting multiple purchases:");
+            console.log("------------------------");
+
+            let totalTokensBought = 0n;
+            
+            for(let i = 0; i < purchases.length; i++) {
+                const purchaseAmount = purchases[i];
+                
+                // Get price before purchase
+                const preBuyPrice = await curve.getCurrentPrice();
+                
+                // Calculate expected tokens
+                const expectedTokens = await curve.calculateTokensForEth(purchaseAmount);
+                
+                // Execute purchase
+                await curve.connect(buyer).buy(
+                    expectedTokens * 98n / 100n, // 2% slippage tolerance
+                    buyer.address,
+                    { value: purchaseAmount }
+                );
+
+                // Get price after purchase
+                const postBuyPrice = await curve.getCurrentPrice();
+                
+                // Get actual tokens received
+                const buyerBalance = await token.balanceOf(buyer.address);
+                const tokensBought = buyerBalance - totalTokensBought;
+                totalTokensBought = buyerBalance;
+
+                console.log(`\nPurchase ${i + 1} (${formatEther(purchaseAmount)} ETH):`);
+                console.log(`Pre-buy price: ${formatEther(preBuyPrice)} ETH`);
+                console.log(`Post-buy price: ${formatEther(postBuyPrice)} ETH`);
+                console.log(`Price increase: ${formatEther(postBuyPrice - preBuyPrice)} ETH`);
+                console.log(`Tokens received: ${formatEther(tokensBought)}`);
+                console.log(`Effective price per token: ${formatEther(purchaseAmount * ethers.parseEther("1") / tokensBought)} ETH`);
+                
+                // Verify price increased
+                expect(postBuyPrice).to.be.gt(preBuyPrice);
+                
+                // Verify tokens received is close to expected (within 2%)
+                const tokenDifference = expectedTokens - tokensBought;
+                expect(tokenDifference).to.be.lt(expectedTokens * 2n / 100n);
+            }
+
+            // Test final market stats
+            const finalSupply = await curve.totalSupply();
+            const finalPrice = await curve.getCurrentPrice();
+            const marketCap = await curve.getTotalMarketCap();
+
+            console.log("\nFinal Market Stats:");
+            console.log("------------------------");
+            console.log(`Total Supply: ${formatEther(finalSupply)}`);
+            console.log(`Final Price: ${formatEther(finalPrice)} ETH`);
+            console.log(`Market Cap: ${formatEther(marketCap)} ETH`);
+        });
     });
 
-    it("Should prevent purchases after funding goal is met", async function () {
-      // First purchase to reach funding goal
-      await bondingCurve.connect(addr1).buyMemeToken(
-        memeTokenAddress,
-        BigInt(1000),
-        { value: MEMECOIN_FUNDING_GOAL }
-      );
+    describe("Price Impact with Buy and Sell", function () {
+        it("Should show price changes after buys and sells", async function () {
+            const formatEther = (bn) => ethers.formatEther(bn);
+            
+            // First buy some tokens with smaller amount
+            const buyAmount = ethers.parseEther("0.1");
+            
+            console.log("\nInitial Purchase:");
+            console.log("------------------------");
+            
+            // Get initial price and reserve
+            const initialPrice = await curve.getCurrentPrice();
+            const initialReserve = await curve.reserveBalance();
+            console.log(`Initial price: ${formatEther(initialPrice)} ETH`);
+            console.log(`Initial reserve: ${formatEther(initialReserve)} ETH`);
+            
+            // Calculate and log expected tokens before buy
+            const expectedTokens = await curve.calculateTokensForEth(buyAmount);
+            console.log(`Expected tokens for ${formatEther(buyAmount)} ETH: ${formatEther(expectedTokens)}`);
+            
+            // Buy tokens
+            await curve.connect(buyer).buy(
+                expectedTokens * 98n / 100n,
+                buyer.address,
+                { value: buyAmount }
+            );
+            
+            // Ensure approval for selling
+            const balance = await token.balanceOf(buyer.address);
+            await token.connect(buyer).approve(curve.target, balance);
 
-      // Attempt to purchase after goal is met
-      await expect(bondingCurve.connect(addr2).buyMemeToken(
-        memeTokenAddress,
-        BigInt(10),
-        { value: ethers.parseEther("1") }
-      )).to.be.revertedWith("Funding goal met");
+            // Get states after buy
+            const priceAfterBuy = await curve.getCurrentPrice();
+            const tokensBought = await token.balanceOf(buyer.address);
+            const reserveAfterBuy = await curve.reserveBalance();
+            
+            console.log(`\nAfter buying ${formatEther(buyAmount)} ETH:`);
+            console.log(`Price after buy: ${formatEther(priceAfterBuy)} ETH`);
+            console.log(`Price increase: ${formatEther(priceAfterBuy - initialPrice)} ETH`);
+            console.log(`Tokens bought: ${formatEther(tokensBought)}`);
+            console.log(`Reserve after buy: ${formatEther(reserveAfterBuy)} ETH`);
+            
+            // Now sell a smaller portion of tokens
+            console.log("\nSelling 20% of tokens:");
+            console.log("------------------------");
+            
+            const tokensToSell = tokensBought * 20n / 100n;
+            
+            // Log states before sell
+            console.log(`Tokens to sell: ${formatEther(tokensToSell)}`);
+            
+            // Get expected ETH return and log
+            const expectedEth = await curve.calculateEthForTokens(tokensToSell);
+            console.log(`Expected ETH return: ${formatEther(expectedEth)}`);
+            
+            // Get price before sell
+            const priceBeforeSell = await curve.getCurrentPrice();
+            console.log(`Price before sell: ${formatEther(priceBeforeSell)} ETH`);
+            
+            // Execute sell
+            await curve.connect(buyer).sell(
+                tokensToSell,
+                expectedEth * 99n / 100n
+            );
+            
+            // Get states after sell
+            const priceAfterSell = await curve.getCurrentPrice();
+            const reserveAfterSell = await curve.reserveBalance();
+            
+            console.log(`Price after sell: ${formatEther(priceAfterSell)} ETH`);
+            console.log(`Price decrease: ${formatEther(priceBeforeSell - priceAfterSell)} ETH`);
+            console.log(`Reserve after sell: ${formatEther(reserveAfterSell)} ETH`);
+            console.log(`ETH received: ${formatEther(expectedEth)}`);
+            
+            // Verify price changes
+            expect(priceAfterSell).to.be.lt(priceBeforeSell, "Price should decrease after sell");
+            expect(priceAfterSell).to.be.gt(initialPrice, "Final price should be higher than initial");
+            expect(reserveAfterSell).to.be.lt(reserveAfterBuy, "Reserve should decrease after sell");
+        });
     });
-  });
+
+    describe("Pool Balance", function () {
+        it("Should track pool balance correctly", async function () {
+            const formatEther = (bn) => ethers.formatEther(bn);
+            
+            // Get initial pool balance
+            const initialBalance = await curve.getPoolBalance();
+            console.log(`Initial pool balance: ${formatEther(initialBalance)} ETH`);
+
+            // Buy tokens
+            const buyAmount = ethers.parseEther("1");
+            const expectedTokens = await curve.calculateTokensForEth(buyAmount);
+            
+            await curve.connect(buyer).buy(
+                expectedTokens * 95n / 100n,
+                buyer.address,
+                { value: buyAmount }
+            );
+
+            // Ensure approval for selling
+            const balance = await token.balanceOf(buyer.address);
+            await token.connect(buyer).approve(curve.target, balance);
+
+            // Check pool balance after buy
+            const balanceAfterBuy = await curve.getPoolBalance();
+            console.log(`Pool balance after buy: ${formatEther(balanceAfterBuy)} ETH`);
+            expect(balanceAfterBuy).to.equal(initialBalance + buyAmount);
+
+            // Sell some tokens
+            const tokenAmount = expectedTokens / 2n;
+            const expectedEth = await curve.calculateEthForTokens(tokenAmount);
+            
+            await curve.connect(buyer).sell(
+                tokenAmount,
+                expectedEth * 95n / 100n
+            );
+
+            // Check pool balance after sell
+            const balanceAfterSell = await curve.getPoolBalance();
+            console.log(`Pool balance after sell: ${formatEther(balanceAfterSell)} ETH`);
+            expect(balanceAfterSell).to.equal(balanceAfterBuy - expectedEth);
+        });
+    });
 }); 

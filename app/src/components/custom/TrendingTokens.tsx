@@ -5,12 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Agent } from "@/types/agent";
 import { TokenMetrics } from "@/models/agentMetrics";
 import { useQuery } from "@tanstack/react-query";
 import TableToken from "./TableToken";
+import { useTokensData } from "@/hooks/useWebSocketData";
 
 
 type TokenWithMetrics = Agent & {
@@ -84,9 +85,11 @@ const fetchTokens = async (page: number, pageSize: number): Promise<PaginatedRes
 
 const TableSkeleton = () => {
   return (
-    <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
-      <Table>
-        <TableHeader>
+    <div className="flex h-full flex-col">
+      <h2 className="text-2xl mt-6 font-bold mb-4 text-white">Tokens Index</h2>
+      <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
           <TableRow className="border-b border-gray-800 hover:bg-transparent">
             <TableHead className="font-mono text-gray-400">Token</TableHead>
             <TableHead className="font-mono text-gray-400">Age</TableHead>
@@ -166,6 +169,7 @@ const TableSkeleton = () => {
         </TableBody>
       </Table>
     </Card>
+    </div>
   );
 };
 
@@ -173,38 +177,40 @@ const TrendingTokens: React.FC = () => {
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
+  const { tokens, loading: tokensLoading } = useTokensData();
 
-  const { data, isLoading, isFetching, error } = useQuery({
-    queryKey: ['tokens', currentPage, pageSize],
-    queryFn: () => fetchTokens(currentPage, pageSize),
-    staleTime: 60 * 1000, // Consider data fresh for 60 seconds
-    gcTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    retry: 1,
-  });
+  // Implement client-side pagination
+  const paginatedTokens = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return tokens.slice(startIndex, endIndex);
+  }, [tokens, currentPage, pageSize]);
 
-  const tokens = data?.data || [];
-  const metadata = data?.metadata || {
-    currentPage: 1,
-    totalPages: 1,
-    totalCount: 0,
-    pageSize: pageSize
-  };
+  // Calculate pagination metadata
+  const metadata = useMemo(() => {
+    return {
+      currentPage,
+      totalPages: Math.ceil(tokens.length / pageSize),
+      totalCount: tokens.length,
+      pageSize
+    };
+  }, [tokens.length, currentPage, pageSize]);
 
+  if (tokensLoading) {
+    return <TableSkeleton />;
+  }
 
-
-  if (error) {
+  if (tokens.length === 0) {
     return (
       <div className="text-center py-8">
-        <h2 className="text-2xl mt-8 font-bold mb-4 text-white">Error Loading Tokens</h2>
-        <p className="text-gray-400 mb-4">{error instanceof Error ? error.message : 'An error occurred while loading tokens'}</p>
+        <h2 className="text-2xl mt-8 font-bold mb-4 text-white">No Tokens Found</h2>
+        <p className="text-gray-400 mb-4">There are currently no tokens available.</p>
         <Button
           variant="outline"
           className="border border-gray-600 text-gray-400 hover:bg-gray-800 rounded-lg"
           onClick={() => window.location.reload()}
         >
-          Retry
+          Refresh
         </Button>
       </div>
     );
@@ -213,61 +219,57 @@ const TrendingTokens: React.FC = () => {
   return (
     <div>
       <h2 className="text-2xl mt-6 font-bold mb-4 text-white">Tokens Index</h2>
-      {isLoading ? (
-        <TableSkeleton />
-      ) : (
-        <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b w-auto border-gray-800 hover:bg-transparent">
-                <TableHead className="text-gray-400">Token</TableHead>
-                <TableHead className="text-gray-400">Age</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Liq $/MC</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">MindShare</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Holders</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Smart $/KOL</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">24h TXs</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">24h Vol</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Price</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Δ7D</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Market Cap</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Volume</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Followers</TableHead>
-                <TableHead className="text-right text-gray-400 text-nowrap">Top Tweets</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tokens.map((token) => (
-                <TableToken key={token._id?.toString() || ''} token={token} />
-              ))}
-            </TableBody>
-          </Table>
-          
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
-            <div className="flex-1 text-xs md:text-sm text-gray-400">
-              Page {metadata.currentPage} of {metadata.totalPages}
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                className="text-gray-400 hover:bg-[#1C2333] hover:text-white rounded-lg"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1 || isFetching}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                className="text-gray-400 hover:bg-[#1C2333] hover:text-white rounded-lg"
-                onClick={() => setCurrentPage(prev => Math.min(metadata.totalPages, prev + 1))}
-                disabled={currentPage === metadata.totalPages || isFetching}
-              >
-                Next
-              </Button>
-            </div>
+      <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b w-auto border-gray-800 hover:bg-transparent">
+              <TableHead className="text-gray-400">Token</TableHead>
+              <TableHead className="text-gray-400">Age</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Liq $/MC</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">MindShare</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Holders</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Smart $/KOL</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">24h TXs</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">24h Vol</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Price</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Δ7D</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Market Cap</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Volume</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Followers</TableHead>
+              <TableHead className="text-right text-gray-400 text-nowrap">Top Tweets</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedTokens.map((token) => (
+              <TableToken key={token._id?.toString() || ''} token={token} />
+            ))}
+          </TableBody>
+        </Table>
+        
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
+          <div className="flex-1 text-xs md:text-sm text-gray-400">
+            Page {metadata.currentPage} of {metadata.totalPages} ({metadata.totalCount} tokens)
           </div>
-        </Card>
-      )}
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              className="text-gray-400 hover:bg-[#1C2333] hover:text-white rounded-lg"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              className="text-gray-400 hover:bg-[#1C2333] hover:text-white rounded-lg"
+              onClick={() => setCurrentPage(prev => Math.min(metadata.totalPages, prev + 1))}
+              disabled={currentPage === metadata.totalPages || metadata.totalPages === 0}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };

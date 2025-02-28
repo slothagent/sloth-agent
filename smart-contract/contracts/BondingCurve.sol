@@ -30,12 +30,16 @@ contract BondingCurve is Ownable, ReentrancyGuard {
     uint256 public reserveBalance; // Current ETH reserve balance
     bool public fundingGoalReached; // Flag to track if funding goal is reached
     uint256 public fundingEndTime; // Timestamp when funding goal was reached
+    uint256 public constant KMAX = 1e10;  // Giảm lại để tránh tràn số
+    uint256 public constant FEE = 1e16;   // 1% fee
 
     // Events
     event Buy(address indexed buyer, uint256 tokenAmount, uint256 paymentAmount);
     event Sell(address indexed seller, uint256 tokenAmount, uint256 paymentAmount);
     event FundingRaised(uint256 amount);
     event FundingGoalReached(uint256 timestamp);
+    event UpdateInfo(uint256 newPrice, uint256 newSupply, uint256 newTotalMarketCap, uint256 newFundingRaised);
+    event PoolBalanceUpdated(uint256 newBalance);
 
     constructor(
         address _token,
@@ -134,21 +138,25 @@ contract BondingCurve is Ownable, ReentrancyGuard {
      * @return Current price in wei
      */
     function getCurrentPrice() public view returns (uint256) {
-        if (totalSupply == 0) {
-            return INITIAL_PRICE;
-        }
+        if (totalSupply == 0) return INITIAL_PRICE;
+        return _calculatePrice(reserveBalance);
+    }
 
-        // Calculate (S/S₀)
-        uint256 supplyRatio = (totalSupply * PRECISION) / initialSupply;
-        
-        // Calculate (1-F)/F where F is reserveWeight/MAX_RESERVE_RATIO
-        uint256 exponent = ((MAX_RESERVE_RATIO - reserveWeight) * PRECISION) / reserveWeight;
-        
-        // Calculate (S/S₀)^((1-F)/F)
-        uint256 priceRatio = pow(supplyRatio, exponent);
-        
-        // Calculate final price: R₀ * priceRatio / PRECISION
-        return (INITIAL_RESERVE * priceRatio) / PRECISION;
+    /**
+     * @dev Get total market capitalization in ETH
+     * @return Total market cap in wei
+     */
+    function getTotalMarketCap() public view returns (uint256) {
+        if (totalSupply == 0) return 0;
+        return getCurrentPrice() * totalSupply / PRECISION;
+    }
+
+    /**
+     * @dev Get total funding raised
+     * @return Total funding in wei
+     */
+    function getTotalFundingRaised() public view returns (uint256) {
+        return fundingRaised;
     }
 
     /**
@@ -159,47 +167,30 @@ contract BondingCurve is Ownable, ReentrancyGuard {
     function calculateTokensForEth(uint256 ethAmount) public view returns (uint256) {
         require(ethAmount > 0, "ETH amount must be positive");
 
-        // For initial purchase
+        // Với lần mua đầu tiên
         if (totalSupply == 0) {
             return (ethAmount * PRECISION) / INITIAL_PRICE;
         }
 
-        // Using Bancor Formula:
-        // T = S * ((1 + E/R)^(W/MAX_WEIGHT) - 1)
-        // Where:
-        // T = Tokens to receive
-        // S = Current total supply
-        // E = ETH being paid
-        // R = Current reserve balance
-        // W = Reserve weight
-
-        // First calculate the effective price based on current supply
-        uint256 currentPrice = getCurrentPrice();
+        // Tính giá trước khi mua
+        uint256 priceBeforeBuy = getCurrentPrice();
         
-        // Base token amount at current price
-        uint256 baseTokens = (ethAmount * PRECISION) / currentPrice;
+        // Tính giá sau khi mua
+        uint256 newReserveBalance = reserveBalance + ethAmount;
+        uint256 priceAfterBuy = _calculatePrice(newReserveBalance);
         
-        // Apply bonding curve effect
-        // Calculate percentage of reserve being added
-        uint256 reserveRatio = (ethAmount * PRECISION) / reserveBalance;
+        // Tính số token dựa trên giá trung bình
+        uint256 avgPrice = (priceBeforeBuy + priceAfterBuy) / 2;
+        uint256 tokensEstimate = (ethAmount * PRECISION) / avgPrice;
         
-        // Apply reserve weight effect
-        uint256 weight = (reserveWeight * PRECISION) / MAX_RESERVE_RATIO;
-        
-        // Calculate price impact
-        uint256 priceImpact = (reserveRatio * weight) / PRECISION;
-        
-        // Adjust tokens based on price impact
-        uint256 tokensToReceive = (baseTokens * (PRECISION - priceImpact)) / PRECISION;
-
-        // Ensure we don't exceed available supply
+        // Giới hạn số lượng
         uint256 availableSupply = initialSupply - totalSupply;
-        if (tokensToReceive > availableSupply) {
-            tokensToReceive = availableSupply;
+        if (tokensEstimate > availableSupply) {
+            tokensEstimate = availableSupply;
         }
-
-        require(tokensToReceive > 0, "Token calculation resulted in zero");
-        return tokensToReceive;
+        
+        require(tokensEstimate > 0, "Token calculation resulted in zero");
+        return tokensEstimate;
     }
 
     /**
@@ -211,23 +202,34 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         require(tokenAmount > 0, "Token amount must be positive");
         require(tokenAmount <= totalSupply, "Insufficient supply");
 
-        // Get current price
-        uint256 currentPrice = getCurrentPrice();
+        // Bán toàn bộ token
+        if (totalSupply == tokenAmount) {
+            return reserveBalance;
+        }
+
+        // Tính giá trước khi bán
+        uint256 priceBeforeSell = getCurrentPrice();
         
-        // Base ETH amount at current price
-        uint256 baseEth = (tokenAmount * currentPrice) / PRECISION;
+        // Ước tính ethAmount sẽ rút ra
+        uint256 estimatedEth = (tokenAmount * priceBeforeSell) / PRECISION;
+        uint256 newReserveBalance = reserveBalance > estimatedEth ? reserveBalance - estimatedEth : 0;
         
-        // Calculate percentage of supply being sold
-        uint256 supplyRatio = (tokenAmount * PRECISION) / totalSupply;
+        // Tính giá sau khi bán
+        uint256 priceAfterSell = _calculatePrice(newReserveBalance);
         
-        // Apply reserve weight effect
-        uint256 weight = (reserveWeight * PRECISION) / MAX_RESERVE_RATIO;
+        // Tính ETH dựa trên giá trung bình
+        uint256 avgPrice = (priceBeforeSell + priceAfterSell) / 2;
+        uint256 ethEstimate = (tokenAmount * avgPrice) / PRECISION;
         
-        // Calculate price impact
-        uint256 priceImpact = (supplyRatio * weight) / PRECISION;
+        // Áp dụng fee
+        uint256 fee = (ethEstimate * FEE) / PRECISION;
+        ethEstimate = ethEstimate - fee;
         
-        // Adjust ETH based on price impact
-        return (baseEth * (PRECISION - priceImpact)) / PRECISION;
+        // Kiểm tra
+        require(ethEstimate <= reserveBalance, "Insufficient reserve");
+        require(ethEstimate > 0, "ETH calculation resulted in zero");
+        
+        return ethEstimate;
     }
 
     /**
@@ -248,7 +250,7 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         require(tokensToReceive > 0, "No tokens to receive");
         require(tokensToReceive >= minTokens, "Slippage too high");
         
-        // Check contract balance
+        // Check contract balance and allowance
         uint256 contractBalance = token.balanceOf(address(this));
         require(contractBalance >= tokensToReceive, "Insufficient token balance");
         
@@ -260,8 +262,14 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         fundingRaised += msg.value;
         reserveBalance += msg.value;
 
+        // Emit pool balance update
+        emit PoolBalanceUpdated(reserveBalance);
+
         // Transfer tokens to buyer
         token.safeTransfer(buyer, tokensToReceive);
+
+        // Emit price update after state changes
+        emit UpdateInfo(getCurrentPrice(), totalSupply, getTotalMarketCap(), fundingRaised);
 
         // Check if funding goal is reached
         if (fundingRaised >= FUNDING_GOAL && !fundingGoalReached) {
@@ -285,7 +293,7 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         
         uint256 ethToReceive = calculateEthForTokens(tokenAmount);
         require(ethToReceive >= minEth, "Below min return");
-        require(reserveBalance >= ethToReceive, "Insufficient reserve");
+        require(address(this).balance >= ethToReceive, "Insufficient contract balance");
         
         // Transfer tokens from seller
         token.safeTransferFrom(msg.sender, address(this), tokenAmount);
@@ -294,28 +302,16 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         totalSupply -= tokenAmount;
         reserveBalance -= ethToReceive;
         
-        // Transfer ETH to seller
+        // Emit pool balance update
+        emit PoolBalanceUpdated(reserveBalance);
+        
+        // Transfer ETH to seller using call
         (bool success, ) = msg.sender.call{value: ethToReceive}("");
         require(success, "ETH transfer failed");
         
+        // Emit events
+        emit UpdateInfo(getCurrentPrice(), totalSupply, getTotalMarketCap(), fundingRaised);
         emit Sell(msg.sender, tokenAmount, ethToReceive);
-    }
-
-    /**
-     * @dev Get total market capitalization in ETH
-     * @return Total market cap in wei
-     */
-    function getTotalMarketCap() external view returns (uint256) {
-        if (totalSupply == 0) return 0;
-        return getCurrentPrice() * totalSupply / PRECISION;
-    }
-
-    /**
-     * @dev Get total funding raised
-     * @return Total funding in wei
-     */
-    function getTotalFundingRaised() external view returns (uint256) {
-        return fundingRaised;
     }
 
     /**
@@ -390,6 +386,39 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         return !fundingGoalReached && fundingRaised < FUNDING_GOAL;
     }
 
+    /**
+     * @dev Get current ETH balance in the pool
+     * @return Amount of ETH in wei
+     */
+    function getPoolBalance() public view returns (uint256) {
+        return address(this).balance;  // Return actual ETH balance of contract
+    }
+
+    // Add function to check both balances
+    function checkBalances() public view returns (uint256 actualBalance, uint256 reserveBalance_) {
+        return (address(this).balance, reserveBalance);
+    }
+
     // Function to receive ETH
     receive() external payable {}
+
+    // Thêm hàm helper để tính toán giá
+    function _calculatePrice(uint256 reserveAmount) internal pure returns (uint256) {
+        // Sử dụng công thức đơn giản hơn để tránh tràn số
+        // P = P0 * (1 + reserveAmount/INITIAL_RESERVE)
+        
+        if (reserveAmount <= INITIAL_RESERVE) {
+            // Nếu reserve nhỏ hơn hoặc bằng INITIAL_RESERVE, giá tăng tuyến tính
+            uint256 ratio = (reserveAmount * PRECISION) / INITIAL_RESERVE;
+            return (INITIAL_PRICE * (PRECISION + ratio)) / PRECISION;
+        } else {
+            // Nếu reserve lớn hơn INITIAL_RESERVE, giá tăng chậm hơn
+            uint256 basePrice = INITIAL_PRICE * 2; // Giá tại INITIAL_RESERVE
+            uint256 excessReserve = reserveAmount - INITIAL_RESERVE;
+            uint256 excessRatio = (excessReserve * PRECISION) / INITIAL_RESERVE;
+            uint256 sqrtRatio = Math.sqrt((excessRatio * PRECISION) / 10) + PRECISION;
+            
+            return (basePrice * sqrtRatio) / PRECISION;
+        }
+    }
 } 
