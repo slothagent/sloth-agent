@@ -25,14 +25,17 @@ import { parseEther, formatUnits, parseUnits } from "ethers";
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import Launching from '@/components/custom/Launching';
 import { decodeEventLog } from 'viem';
-import { factoryAbi } from '@/abi/factoryAbi';
+
+
 
 const TokenDetails: NextPage = () => {
     const { address: tokenAddress } = useParams();
     const { address } = useAccount();
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
-    const [timeRange, setTimeRange] = useState('24h');
+    const [timeRange, setTimeRange] = useState('30d');
+    const [txHash, setTxHash] = useState<string | null>(null);
+
     const { data: balance, refetch: refetchBalance } = useBalance({
         address: address,
     });
@@ -102,6 +105,94 @@ const TokenDetails: NextPage = () => {
 
     // console.log('tokenData', tokenData);
 
+    const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
+        hash: txHash as `0x${string}`,
+    });
+    
+    // console.log('Receipt:', receipt);
+
+    // Handle transaction receipt
+    useEffect(() => {
+        const processReceipt = async () => {
+            if (receipt) {
+                const loadingToast = toast.loading('Processing...');
+                try {
+                    // Find the token address from the logs
+                    const eventLog = receipt.logs.find(log => {
+                        try {
+                            const decoded = decodeEventLog({
+                                abi: bondingCurveAbi,
+                                data: log.data,
+                                topics: log.topics,
+                            });
+                            // console.log('Decoded:', decoded);
+                            return decoded.eventName === 'UpdateInfo';
+                        } catch {
+                            return false;
+                        }
+                    });
+
+                    if (eventLog) {
+                        const decoded = decodeEventLog({
+                            abi: bondingCurveAbi,
+                            data: eventLog.data,
+                            topics: eventLog.topics,
+                        });
+                        
+                        const { newPrice, newSupply, newTotalMarketCap, newFundingRaised } = decoded.args as any;
+                        
+                        // console.log('newPrice', newPrice);
+                        // console.log('newSupply', newSupply);
+                        // console.log('newTotalMarketCap', newTotalMarketCap);
+                        // console.log('newFundingRaised', newFundingRaised);
+
+                        await fetch('/api/transactions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                userAddress: address,
+                                tokenAddress: tokenData?.address,
+                                price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
+                                amountToken: parseFloat(amount||"0"),
+                                transactionType: 'BUY',
+                                transactionHash: txHash as `0x${string}`,
+                                totalSupply: parseFloat(newSupply||"0"),
+                                marketCap: parseFloat(newTotalMarketCap||"0")
+                            }),
+                        });
+                        setAmount(null);
+                        toast.success('Buy successful!', { id: loadingToast });
+
+                    }else{
+                        console.log('receipt', eventLog);
+                        const decoded = decodeEventLog({
+                            abi: bondingCurveAbi,
+                            data: receipt.logs[0].data,
+                            topics: receipt.logs[0].topics,
+                        });
+                        console.log('eventLog', decoded);
+                        console.log('No event log found');
+                    }
+                } catch (error) {
+                    console.error('Error processing transaction receipt:', error);
+                    toast.error('Error processing transaction receipt');
+                }
+            }
+        };
+
+        processReceipt();
+    }, [receipt]);
+
+    // Handle confirmation error
+    useEffect(() => {
+        if (isConfirmationError) {
+            console.error('Transaction confirmation failed');
+            toast.error('Transaction confirmation failed');
+        }
+    }, [isConfirmationError]);
+
     const {data: totalSupply,refetch: refetchTotalSupply} = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
@@ -164,7 +255,7 @@ const TokenDetails: NextPage = () => {
         refetchInterval: 5000, // Refetch every 5 seconds
     });
 
-    // console.log('transactionHistory', transactionHistory);
+    // /console.log('transactionHistory', transactionHistory);
     
     const handleTimeRangeChange = (value: string) => {
         setTimeRange(value);
@@ -181,7 +272,6 @@ const TokenDetails: NextPage = () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
         if (BigInt(tokensToReceive||0) <= 0) return toast.error('Insufficient tokens to receive');
-        if (Number(amount) < Number(currentPriceInEther)) return toast.error('Insufficient funds');
 
         const loadingToast = toast.loading('Buying...');
         try {
@@ -196,31 +286,8 @@ const TokenDetails: NextPage = () => {
                 value: parseEther(amount||"0"),
                 args: [BigInt(tokensToReceive||0), address as `0x${string}`]
             });
-            // Save price history after successful transaction
-            await fetch('/api/transactions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userAddress: address,
-                    tokenAddress: tokenData?.address,
-                    price: parseFloat(currentPriceInEther),
-                    amountToken: parseFloat(amount||"0"),
-                    transactionType: 'BUY',
-                    transactionHash: tx as `0x${string}`,
-                    totalSupply: parseFloat(totalSupply?.toString()||"0"),
-                    marketCap: parseFloat(totalMarketCap?.toString()||"0")
-                }),
-            });
-            await refetchTotalSupply();
-            await refetchTotalMarketCap();
-            await refetchTransactionHistory();
-            await refetchCurrentPrice();
-            await refetchFundingRaised();
-            await refetchBalance();
-            setAmount(null);
-            toast.success('Buy successful!', { id: loadingToast });
+            setTxHash(tx as `0x${string}`);
+            toast.success("Please wait for the transaction to be confirmed", { id: loadingToast });
         } catch (error: any) {
             console.error('Buy error:', error);
             if (error.code === 4001 || error.message?.includes('User rejected')) {

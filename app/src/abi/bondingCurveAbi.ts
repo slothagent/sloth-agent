@@ -154,6 +154,37 @@ export const bondingCurveAbi = [
 		"type": "event"
 	},
 	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newPrice",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newSupply",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newTotalMarketCap",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newFundingRaised",
+				"type": "uint256"
+			}
+		],
+		"name": "UpdateInfo",
+		"type": "event"
+	},
+	{
 		"inputs": [],
 		"name": "FUNDING_GOAL",
 		"outputs": [

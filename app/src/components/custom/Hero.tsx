@@ -187,7 +187,7 @@ const Hero: React.FC = () => {
               <Card className="bg-[#161B28] border-none rounded-lg p-4">
                 <h4 className="text-gray-400 mb-2">Total Volume</h4>
                 <p className="text-2xl font-semibold text-white">
-                  {isLoading ? <Skeleton className="h-8 w-20" /> : `$${totalVolume.volume.toFixed(2)}`}
+                  {isLoading ? <Skeleton className="h-8 w-20" /> : `$${totalVolume ? totalVolume.volume.toFixed(2) : 0}`}
                 </p>
               </Card>
             </div>

@@ -5,7 +5,7 @@ import { Coins, Upload } from 'lucide-react';
 import { uploadImageToPinata } from '@/utils/pinata';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { useAccount, useReadContract, useWriteContract, usePublicClient, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, usePublicClient, useWaitForTransactionReceipt, useBalance } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { Button } from '../ui/button';
 import { parseEther, parseUnits, decodeEventLog } from 'viem';
@@ -31,6 +31,10 @@ const CreateToken: React.FC = () => {
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
 
+    const { data: balance, refetch: refetchBalance } = useBalance({
+        address: OwnerAddress,
+    });
+    
     const router = useRouter(); 
 
     // Validation states
@@ -288,6 +292,14 @@ const CreateToken: React.FC = () => {
             toast.error('Please connect your wallet');
             return;
         }
+
+        // console.log('balance', Number(balance?.value)/10**18);
+
+        if (balance?.value && Number(balance.value)/10**18 < 1) {
+            toast.error('Insufficient balance');
+            return;
+        }
+
         if (!validateForm()) {
             toast.error('Please fill all the fields');
             return;
@@ -709,7 +721,7 @@ const CreateToken: React.FC = () => {
                                             <div className="flex items-center justify-between text-sm text-gray-400">
                                                 <span>Total Supply:</span>
                                                 <span className="font-medium text-white">
-                                                    {totalSupply ? formatNumber(totalSupply) : '0'} {ticker || 'SYMBOL'}
+                                                    800.000.000 {ticker || 'SYMBOL'}
                                                 </span>
                                             </div>
                                         </div>
