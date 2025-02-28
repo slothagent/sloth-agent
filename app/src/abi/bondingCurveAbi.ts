@@ -132,6 +132,19 @@ export const bondingCurveAbi = [
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newBalance",
+				"type": "uint256"
+			}
+		],
+		"name": "PoolBalanceUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
 				"indexed": true,
 				"internalType": "address",
 				"name": "seller",
@@ -186,6 +199,19 @@ export const bondingCurveAbi = [
 	},
 	{
 		"inputs": [],
+		"name": "FEE",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "FUNDING_GOAL",
 		"outputs": [
 			{
@@ -226,6 +252,19 @@ export const bondingCurveAbi = [
 	{
 		"inputs": [],
 		"name": "INITIAL_SUPPLY",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "KMAX",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -312,6 +351,24 @@ export const bondingCurveAbi = [
 			{
 				"internalType": "uint256",
 				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "checkBalances",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "actualBalance",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "reserveBalance_",
 				"type": "uint256"
 			}
 		],
@@ -429,6 +486,19 @@ export const bondingCurveAbi = [
 				"internalType": "uint256[]",
 				"name": "",
 				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getPoolBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",

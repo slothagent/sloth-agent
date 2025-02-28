@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input';
 import { NextPage } from 'next';
 import { useReadContract, useWriteContract, useAccount,useBalance, useWaitForTransactionReceipt } from 'wagmi';
 import { toast } from 'react-hot-toast';
-import { parseEther, formatUnits, parseUnits } from "ethers";
+import { parseEther, formatUnits, parseUnits, MaxUint256 } from "ethers";
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import Launching from '@/components/custom/Launching';
 import { decodeEventLog } from 'viem';
@@ -157,6 +157,12 @@ const TokenDetails: NextPage = () => {
                                     totalSupply: parseFloat(newSupply||"0"),
                                     marketCap: parseFloat(newTotalMarketCap||"0")
                                 }),
+                            });
+                            await writeContractAsync({
+                                address: tokenData?.address as `0x${string}`,
+                                abi: tokenAbi,
+                                functionName: 'approve',
+                                args: [tokenData?.curveAddress as `0x${string}`, MaxUint256]
                             });
                             setAmount(null);
                             await refetchBalanceOfToken();
@@ -437,7 +443,7 @@ const TokenDetails: NextPage = () => {
                         <div className="w-full lg:flex hidden flex-col">
                             <div className="lg:flex w-full items-center">                        
                                 <div className="lg:flex items-center gap-3 h-full hidden">
-                                    <Image 
+                                    <img 
                                         src={tokenData?.imageUrl}
                                         alt="Token Logo"
                                         className="w-28 h-28 rounded-xl"

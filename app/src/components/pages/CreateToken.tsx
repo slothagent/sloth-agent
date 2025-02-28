@@ -15,7 +15,7 @@ import { DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Dialog } from '../ui/dialog';
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import { tokenAbi } from '@/abi/tokenAbi';
-
+import { MaxUint256 } from 'ethers';
 
 const CreateToken: React.FC = () => {
 
@@ -289,7 +289,8 @@ const CreateToken: React.FC = () => {
 
                         // If amount > 0, call handleBuy
                         console.log(amount)
-                        if(eventLog2){
+                        if(eventLog2&&amount){
+                            const toastId = toast.loading('Buying token...');
                             const decoded = decodeEventLog({
                                 abi: bondingCurveAbi,
                                 data: eventLog2.data,
@@ -315,6 +316,15 @@ const CreateToken: React.FC = () => {
                                     marketCap: parseFloat(formatUnits(newTotalMarketCap || BigInt(0), 18))
                                 }),
                             });
+                            await writeContractAsync({
+                                address: token as `0x${string}`,
+                                abi: tokenAbi,
+                                functionName: 'approve',
+                                args: [bondingCurve as `0x${string}`, MaxUint256]
+                            });
+                            setAmount(null);
+                            toast.dismiss(toastId);
+                            toast.success('Token bought successfully!');
                             router.push(`/token/${token}`);
                         }
                     } 
@@ -406,6 +416,7 @@ const CreateToken: React.FC = () => {
 
 
     const createToken = async (address: string, curveAddress: string) => {
+        const loadingToast = toast.loading('Creating token...');
         try {
             // Prepare the payload with default values for null fields
             const payload = {
@@ -439,13 +450,13 @@ const CreateToken: React.FC = () => {
                 return;
             }
 
-            toast.success('Token created successfully!');
+            toast.success('Token created successfully!', { id: loadingToast });
             if(!amount){
                 router.push(`/token/${address}`);
             }
         } catch (error) {
             console.error('Error creating token:', error);
-            toast.error('An unexpected error occurred while creating the token');
+            toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
         }
     }
 
