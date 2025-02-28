@@ -150,7 +150,7 @@ const TransactionList: React.FC = () => {
       <div className="flex items-center justify-between p-4 mt-4 bg-[#161B28] rounded-lg">
         <Button
           variant="outline"
-          className="text-gray-400 hover:bg-[#1C2333] text-sm"
+          className="text-gray-400 hover:bg-[#1C2333] hover:text-white text-sm"
           onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
           disabled={currentPage === 1 || isLoading}
         >

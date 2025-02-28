@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { Twitter, Globe, Search } from 'lucide-react'
+import { Twitter, Globe, Search, Minus, Plus } from 'lucide-react'
 import { formatDistance } from 'date-fns'
 import { Button } from '../ui/button'
 import { useRouter } from 'next/navigation'
@@ -263,14 +263,14 @@ export default function AgentMarket() {
         <div className="flex items-center gap-2 mt-2">
           <Button 
             variant="outline" 
-            className="text-gray-400 hover:bg-gray-800 rounded-lg text-sm"
+            className="text-gray-400 hover:bg-[#1C2333] hover:text-white text-sm"
             onClick={() => router.push('/token')}
           >
             View More
           </Button>
         </div>
       </div>
-      <div className="flex items-center gap-4 mt-4 mb-2 p-4 rounded-lg">
+      <div className="flex items-center gap-4 mt-4 mb-2 rounded-lg">
         <div className="relative flex-1">
           <Search size={16} className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
           <input
@@ -288,7 +288,7 @@ export default function AgentMarket() {
             {visibleCategories.map((category) => (
               <button
                 key={category}
-                className="px-4 py-1.5 text-sm text-gray-400 border border-gray-800 rounded-full hover:bg-[#1C2333] transition-colors"
+                className="px-4 py-1.5 text-sm text-gray-400 border border-gray-800 hover:bg-[#1C2333] transition-colors"
               >
                 {category}
               </button>
@@ -297,10 +297,10 @@ export default function AgentMarket() {
           <div className='flex items-center'>
             <Button 
               variant="outline" 
-              className="text-gray-400 hover:bg-gray-800 rounded-xl text-sm"
+              className="text-gray-400 hover:bg-[#1C2333] hover:text-white` text-sm"
               onClick={() => setShowAllCategories(!showAllCategories)}
             >
-              {showAllCategories ? 'Show less' : 'Show more'}
+              {showAllCategories ? <Minus size={16} /> : <Plus size={16} />}
             </Button>
           </div>
         </div>

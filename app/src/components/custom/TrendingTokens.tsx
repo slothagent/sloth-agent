@@ -250,7 +250,7 @@ const TrendingTokens: React.FC = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
-                className="text-gray-400 hover:bg-gray-800 rounded-lg"
+                className="text-gray-400 hover:bg-[#1C2333] hover:text-white rounded-lg"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1 || isFetching}
               >
@@ -258,7 +258,7 @@ const TrendingTokens: React.FC = () => {
               </Button>
               <Button
                 variant="outline"
-                className="text-gray-400 hover:bg-gray-800 rounded-lg"
+                className="text-gray-400 hover:bg-[#1C2333] hover:text-white rounded-lg"
                 onClick={() => setCurrentPage(prev => Math.min(metadata.totalPages, prev + 1))}
                 disabled={currentPage === metadata.totalPages || isFetching}
               >
