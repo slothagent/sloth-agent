@@ -13,6 +13,7 @@ interface CreateTokenData {
   twitterUrl?: string;
   telegramUrl?: string;
   websiteUrl?: string;
+  categories?: string[];
 }
 
 export async function POST(req: Request) {
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
       twitterUrl: body.twitterUrl || undefined,
       telegramUrl: body.telegramUrl || undefined,
       websiteUrl: body.websiteUrl || undefined,
+      categories: body.categories || undefined,
     };
 
     // Create the token

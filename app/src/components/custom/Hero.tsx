@@ -74,7 +74,7 @@ const Hero: React.FC = () => {
     refetchOnWindowFocus: false,
   });
 
-  const {data: totalVolumeData, isLoading: totalVolumeLoading} = useQuery({
+  const {data: totalVolumeData} = useQuery({
     queryKey: ['totalVolume'],
     queryFn: () => fetchTotalVolume(),
     staleTime: 10 * 1000,

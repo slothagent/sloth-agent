@@ -8,11 +8,13 @@ import { useRouter } from 'next/navigation';
 import { useAccount, useReadContract, useWriteContract, usePublicClient, useWaitForTransactionReceipt, useBalance } from 'wagmi';
 import { factoryAbi } from '@/abi/factoryAbi';
 import { Button } from '../ui/button';
-import { parseEther, parseUnits, decodeEventLog } from 'viem';
+import { parseEther, parseUnits, decodeEventLog, formatUnits } from 'viem';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
 import { DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Dialog } from '../ui/dialog';
+import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
+import { tokenAbi } from '@/abi/tokenAbi';
 
 
 const CreateToken: React.FC = () => {
@@ -32,12 +34,27 @@ const CreateToken: React.FC = () => {
     const [txHash, setTxHash] = useState<string | null>(null);
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
+    const [amount, setAmount] = useState<string|null>(null);
+    const [transactionType, setTransactionType] = useState<string|null>(null);
+    const [tokenAddress, setTokenAddress] = useState<string|null>(null);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [isBuyOpen, setIsBuyOpen] = useState<boolean>(false);
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [currentTokenAddress, setCurrentTokenAddress] = useState<string|null>(null);
+
 
     const { data: balance, refetch: refetchBalance } = useBalance({
         address: OwnerAddress,
     });
     
-    const router = useRouter(); 
+    const router = useRouter();
+    
+    const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'balanceOf',
+        args: [OwnerAddress as `0x${string}`]
+    });
 
     // Validation states
     const [errors, setErrors] = useState<{
@@ -216,13 +233,6 @@ const CreateToken: React.FC = () => {
         }
     };
 
-    const formatNumber = (value: string) => {
-        // Remove any non-digit characters
-        const number = value.replace(/\D/g, '');
-        // Format with dots
-        return number.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    };
-
     // Watch for transaction confirmation
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
@@ -243,8 +253,20 @@ const CreateToken: React.FC = () => {
                                 data: log.data,
                                 topics: log.topics,
                             });
-                            // console.log('Decoded:', decoded);
                             return decoded.eventName === 'TokenAndCurveCreated';
+                        } catch {
+                            return false;
+                        }
+                    });
+
+                    const eventLog2 = receipt.logs.find(log => {
+                        try {
+                            const decoded = decodeEventLog({
+                                abi: bondingCurveAbi,
+                                data: log.data,
+                                topics: log.topics,
+                            });
+                            return decoded.eventName === 'UpdateInfo';
                         } catch {
                             return false;
                         }
@@ -258,24 +280,52 @@ const CreateToken: React.FC = () => {
                         });
                         
                         const { token, bondingCurve } = decoded.args as any;
-                        
                         // Create token in database with the token address
+                        console.log("token", token)
+                        console.log("bondingCurve", bondingCurve)
+                        setTokenAddress(token);
+                        setCurrentTokenAddress(bondingCurve);
+                        await refetchBalanceOfToken();
                         await createToken(token, bondingCurve);
-                    } else {
-                        // If we can't find the event log, try to get the token address from the receipt
-                        const tokenAddress = receipt.logs[0]?.address;
-                        const bondingCurve = receipt.logs[1]?.address;
-                        if (tokenAddress) {
-                            await createToken(tokenAddress, bondingCurve);
-                        } else {
-                            throw new Error('Could not find token address in transaction receipt');
+
+                        // If amount > 0, call handleBuy
+                        console.log(amount)
+                        if(eventLog2){
+                            const decoded = decodeEventLog({
+                                abi: bondingCurveAbi,
+                                data: eventLog2.data,
+                                topics: eventLog2.topics,
+                            });
+                            const { newPrice, newSupply, newTotalMarketCap } = decoded.args as any;
+                            await refetchBalanceOfToken();
+                            
+                            // Save transaction to database
+                            await fetch('/api/transactions', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    userAddress: OwnerAddress,
+                                    tokenAddress: token,
+                                    price: parseFloat(formatUnits(newPrice || BigInt(0), 18)),
+                                    amountToken: parseFloat(amount || "0"),
+                                    transactionType: 'BUY',
+                                    transactionHash: txHash as `0x${string}`,
+                                    totalSupply: parseFloat(formatUnits(newSupply || BigInt(0), 18)),
+                                    marketCap: parseFloat(formatUnits(newTotalMarketCap || BigInt(0), 18))
+                                }),
+                            });
+                            router.push(`/token/${token}`);
                         }
-                    }
+                    } 
+
+                    
                 } catch (error) {
                     console.error('Error processing transaction receipt:', error);
                     toast.error('Error processing transaction receipt');
                 }
-            }
+            } 
         };
 
         processReceipt();
@@ -289,7 +339,14 @@ const CreateToken: React.FC = () => {
         }
     }, [isConfirmationError]);
 
-    const handleCreateToken = async () => {
+    const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: bondingCurveAbi,
+        functionName: 'calculateTokensForEth',
+        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
+    });
+
+    const handleSubmit = async () => {
         if (!isConnected) {
             toast.error('Please connect your wallet');
             return;
@@ -307,6 +364,11 @@ const CreateToken: React.FC = () => {
             return;
         }
 
+        setIsBuyOpen(true);
+    }
+
+
+    const handleCreateToken = async () => {
         const loadingToast = toast.loading('Creating token...');
 
         try {
@@ -320,8 +382,8 @@ const CreateToken: React.FC = () => {
                     address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createTokenAndCurve',
-                    value: parseEther('1'),
-                    args: [tokenName, ticker]
+                    value: parseEther('1')+parseEther(amount||"0"),
+                    args: [tokenName, ticker, parseEther(amount||"0")]
                 });
                 
                 setTxHash(tx); // Save transaction hash
@@ -343,15 +405,9 @@ const CreateToken: React.FC = () => {
         }
     };
 
+
     const createToken = async (address: string, curveAddress: string) => {
-        const loadingToast = toast.loading('Creating token...');
         try {
-
-            if (!address) {
-                toast.error('Token address is required', { id: loadingToast });
-                return;
-            }
-
             // Prepare the payload with default values for null fields
             const payload = {
                 name: tokenName,
@@ -365,6 +421,7 @@ const CreateToken: React.FC = () => {
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
                 curveAddress: curveAddress,
+                categories: selectedCategories.join(',').toLowerCase()
             };
 
             // console.log('Sending payload:', payload); // Debug log
@@ -379,19 +436,19 @@ const CreateToken: React.FC = () => {
 
             if (!response.ok) {
                 const errorMessage = 'Failed to create token';
-                toast.error(errorMessage, { id: loadingToast });
+                toast.error(errorMessage);
                 return;
             }
 
-            toast.success('Token created successfully!', { id: loadingToast });
-            router.push(`/token/${address}`);
+            toast.success('Token created successfully!');
+            if(!amount){
+                router.push(`/token/${address}`);
+            }
         } catch (error) {
             console.error('Error creating token:', error);
-            toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
+            toast.error('An unexpected error occurred while creating the token');
         }
     }
-    const [isOpen, setIsOpen] = useState(false);
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
     const categories = {
         Origin: [
@@ -437,6 +494,15 @@ const CreateToken: React.FC = () => {
                 : [...prev, category]
         );
     };
+
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // Only allow numbers and decimal points
+        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+            setAmount(value);
+        }
+    };
+
     return (
         <main className="min-h-screen bg-[#0B0E17]">
             <div className="">
@@ -767,8 +833,7 @@ const CreateToken: React.FC = () => {
                         
                         <div className="flex items-center justify-end">
                             <button
-                                onClick={handleCreateToken}
-                                disabled={isPending}
+                                onClick={handleSubmit}
                                 className="flex justify-end items-end gap-2 px-6 py-2 bg-[#2196F3] text-white rounded hover:bg-[#1E88E5] transition-colors duration-200"
                             >
                                 Create Token
@@ -820,7 +885,49 @@ const CreateToken: React.FC = () => {
                                                     800.000.000 {ticker || 'SYMBOL'}
                                                 </span>
                                             </div>
+                                            {/* <Button
+                                                onClick={() => setIsBuyOpen(true)}
+                                                className="w-full mt-4 bg-[#2196F3] text-white hover:bg-[#1E88E5]"
+                                            >
+                                                Buy Token
+                                            </Button> */}
                                         </div>
+
+                                        <Dialog open={isBuyOpen} onOpenChange={setIsBuyOpen}>
+                                            <DialogContent className="bg-[#0B0E17] text-white border-[#1F2937] max-w-md">
+                                                <DialogHeader>
+                                                    <DialogTitle className="text-xl font-bold text-white">Buy {tokenName || 'Token'}</DialogTitle>
+                                                    <small className='text-sm text-gray-400'>It is optional but buying a small amount of coins helps protect your coin from snipers.</small>
+                                                </DialogHeader>
+                                                <div className="space-y-4 mt-10">
+                                                    <div className='space-y-2 flex flex-col'>
+                                                        <label className="text-lg font-medium">Enter BNB amount (optional)</label>
+                                                        <span className="text-sm text-gray-400">Balance: {balance?.value ? Number(balance.value)/10**18 : 0} S</span>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Input
+                                                            type="text"
+                                                            value={amount || ''}
+                                                            onChange={handleAmountChange}
+                                                            placeholder="0.0"
+                                                            className="w-full bg-[#161B28] border-[#1F2937] text-white placeholder:text-gray-500"
+                                                        />
+                                                        {tokensToReceive && (
+                                                            <p className="text-sm text-gray-400">
+                                                                You will receive: {Number(tokensToReceive)/10**18} {ticker || 'tokens'}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <Button
+                                                        onClick={handleCreateToken}
+                                                        disabled={isPending}
+                                                        className="w-full bg-[#2196F3] text-white hover:bg-[#1E88E5] disabled:bg-gray-600 disabled:cursor-not-allowed"
+                                                    >
+                                                        Create Token
+                                                    </Button>
+                                                </div>
+                                            </DialogContent>
+                                        </Dialog>
 
                                         {(twitterUrl || telegramUrl || websiteUrl) && (
                                             <div className="mt-4 pt-4 border-t border-[#1F2937]">

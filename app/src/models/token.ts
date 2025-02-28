@@ -16,6 +16,7 @@ export interface Token {
   websiteUrl?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  categories?: string[];
 }
 
 export class TokenModel {

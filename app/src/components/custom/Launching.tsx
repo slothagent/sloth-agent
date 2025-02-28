@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge } from '../ui/badge';
+import { formatNumber } from '@/utils/utils';
 
 interface BondingCurveHolder {
     address: string;
@@ -34,13 +35,13 @@ const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol}
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-gray-400 text-sm mb-1">Current Target MarketCap</h3>
-                        <div className="text-3xl font-bold">{totalMarketCap}</div>
+                        <div className="text-3xl font-bold">{formatNumber(Number(totalMarketCap)/10**18)}</div>
                         <div className="text-[#93E905] text-sm">USD</div>
                     </div>
 
                     <div>
                         <h3 className="text-gray-400 text-sm mb-1">Tokens on Bonding Curve</h3>
-                        <div className="text-3xl font-bold">{totalSupply}</div>
+                        <div className="text-3xl font-bold">{formatNumber(Number(totalSupply)/10**18)}</div>
                         <div className="text-[#93E905] text-sm">{symbol}</div>
                     </div>
                 </div>
