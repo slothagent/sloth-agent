@@ -1,19 +1,23 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from 'next/image';
 import { Upload, Sparkles, Pencil, User, Shirt, Package, Footprints, Crown, Smile, X, Check } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface VisualSystemProps {
-    systemType: string;
     imageUrl: string;
     avatarEnabled: boolean;
-    onSystemTypeChange: (value: string) => void;
     onUploadImage: (file: File) => Promise<string>;
     onGenerateImage: () => Promise<void>;
     onAvatarToggle: (enabled: boolean) => void;
     selectedAvatar?: string;
     onAvatarSelect?: (avatarId: string) => void;
+    isGenerating: boolean;
+    onValidationChange?: (isValid: boolean) => void;
+    showValidation?: boolean;
+    imagePrompt: string;
+    setImagePrompt: (prompt: string) => void;
 }
 
 interface AvatarCustomization {
@@ -26,20 +30,24 @@ interface AvatarCustomization {
 }
 
 const VisualSystem: React.FC<VisualSystemProps> = ({
-    systemType,
     imageUrl,
     avatarEnabled,
-    onSystemTypeChange,
     onUploadImage,
     onGenerateImage,
     onAvatarToggle,
     selectedAvatar,
     onAvatarSelect,
+    isGenerating,
+    onValidationChange,
+    showValidation = false,
+    imagePrompt,
+    setImagePrompt
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
     const [selectedSkinTone, setSelectedSkinTone] = useState<string>('all');
     const [selectedCategory, setSelectedCategory] = useState<string>('body');
+    const [activeTab, setActiveTab] = useState<'upload' | 'generate'>('upload');
     const [avatarCustomization, setAvatarCustomization] = useState<AvatarCustomization>({
         skinTone: 'default',
         selectedCategory: 'body',
@@ -48,6 +56,38 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
         accessories: [],
         expression: 'neutral'
     });
+    const [previewUrl, setPreviewUrl] = useState<string>('');
+    const [error, setError] = useState<string>('');
+
+    const validateFields = () => {
+        let isValid = true;
+        let errorMessage = '';
+
+        if (!avatarEnabled && !imageUrl) {
+            isValid = false;
+            if (showValidation) {
+                errorMessage = 'Please upload or generate an image for your agent';
+            }
+        }
+
+        if (avatarEnabled && !selectedAvatar) {
+            isValid = false;
+            if (showValidation) {
+                errorMessage = 'Please select an avatar for your agent';
+            }
+        }
+
+        setError(errorMessage);
+        if (onValidationChange) {
+            onValidationChange(isValid);
+        }
+
+        return isValid;
+    };
+
+    useEffect(() => {
+        validateFields();
+    }, [imageUrl, avatarEnabled, selectedAvatar, showValidation]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -143,78 +183,151 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
         }
     };
 
+
     return (
         <div className="space-y-6">
+            {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500 rounded text-red-500 text-sm">
+                    {error}
+                </div>
+            )}
             <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-400">Agent Image</label>
-                <div 
-                    className="relative border-2 border-dashed border-[#1F2937] rounded-lg p-6 bg-[#0B0E17] hover:border-[#2196F3] transition-colors duration-200"
-                    onDrop={handleDrop}
-                    onDragOver={handleDragOver}
-                >
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="image/*"
-                        className="hidden"
-                    />
-                    
-                    {imageUrl ? (
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="relative w-32 h-32 rounded-lg overflow-hidden">
-                                <Image
-                                    src={imageUrl}
-                                    alt="Agent"
-                                    fill
-                                    className="object-cover"
-                                />
-                            </div>
-                            <Button
-                                onClick={() => fileInputRef.current?.click()}
-                                variant="outline"
-                                className="bg-[#161B28] text-gray-400 hover:bg-[#1C2333] hover:text-white border border-[#1F2937]"
-                            >
-                                <Upload className="w-4 h-4 mr-2" />
-                                Change Image
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="w-32 h-32 rounded-lg bg-[#161B28] border border-[#1F2937] flex items-center justify-center">
-                                <Upload className="w-8 h-8 text-gray-400" />
-                            </div>
-                            <div className="text-center">
+                <div className="mb-4 border-b border-[#1F2937]">
+                    <div className="flex">
+                        <button
+                            onClick={() => setActiveTab('upload')}
+                            className={`px-4 py-2 ${
+                                activeTab === 'upload'
+                                ? 'text-white border-b-2 border-white'
+                                : 'text-gray-400 hover:text-gray-300'
+                            }`}
+                        >
+                            Upload Image
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('generate')}
+                            className={`px-4 py-2 ${
+                                activeTab === 'generate'
+                                ? 'text-white border-b-2 border-white'
+                                : 'text-gray-400 hover:text-gray-300'
+                            }`}
+                        >
+                            Generate Image
+                        </button>
+                    </div>
+                </div>
+
+                {activeTab === 'upload' ? (
+                    <div 
+                        className="relative border-2 border-dashed border-[#1F2937] rounded-lg p-6 bg-[#0B0E17] hover:border-[#2196F3] transition-colors duration-200"
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                    >
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            accept="image/*"
+                            className="hidden"
+                        />
+                        
+                        {imageUrl ? (
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="relative w-32 h-32 rounded-lg overflow-hidden">
+                                    <img
+                                        src={imageUrl}
+                                        alt="Agent"
+                                        className="object-cover"
+                                    />
+                                </div>
                                 <Button
                                     onClick={() => fileInputRef.current?.click()}
                                     variant="outline"
-                                    className="mb-2 bg-[#161B28] text-gray-400 hover:bg-[#1C2333] hover:text-white border border-[#1F2937]"
+                                    className="bg-[#161B28] text-gray-400 hover:bg-[#1C2333] hover:text-white border border-[#1F2937]"
                                 >
                                     <Upload className="w-4 h-4 mr-2" />
-                                    Upload Image
+                                    Change Image
                                 </Button>
-                                <p className="text-sm text-gray-400">or drag and drop</p>
                             </div>
+                        ) : (
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="w-32 h-32 rounded-lg bg-[#161B28] border border-[#1F2937] flex items-center justify-center">
+                                    <Upload className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <div className="text-center">
+                                    <Button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        variant="outline"
+                                        className="mb-2 bg-[#161B28] text-gray-400 hover:bg-[#1C2333] hover:text-white border border-[#1F2937]"
+                                    >
+                                        <Upload className="w-4 h-4 mr-2" />
+                                        Upload Image
+                                    </Button>
+                                    <p className="text-sm text-gray-400">or drag and drop</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-400">Image Generation Prompt</label>
+                            <textarea
+                                value={imagePrompt}
+                                onChange={(e) => setImagePrompt(e.target.value)}
+                                placeholder="Describe the image you want to generate..."
+                                rows={4}
+                                className="w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none resize-none"
+                            />
                         </div>
-                    )}
-                </div>
+                        
+                        <div className="flex justify-center">
+                            <Button
+                                onClick={onGenerateImage}
+                                disabled={!imagePrompt.trim() || isGenerating}
+                                className="bg-[#2196F3] text-white hover:bg-[#1E88E5] disabled:bg-gray-600 disabled:cursor-not-allowed"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <span className="animate-spin mr-2">⚡</span>
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Generate Image
+                                    </>
+                                )}
+                            </Button>
+                        </div>
 
-                <div className="flex justify-center mt-4">
-                    <Button
-                        onClick={onGenerateImage}
-                        className="bg-[#2196F3] text-white hover:bg-[#1E88E5] transition-colors duration-200"
-                    >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Generate with AI
-                    </Button>
-                </div>
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsAvatarModalOpen(true)}>
-                    <label className="text-sm font-medium cursor-pointer text-gray-400">Avatar</label>
-                    <Button variant="outline" size="sm">
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Customize
-                    </Button>
-                </div>
+                        {/* {imageUrl && (
+                            <div className="flex flex-col items-center gap-4 mt-4">
+                                <div className="relative w-64 h-64 rounded-lg overflow-hidden">
+                                    <Image
+                                        src={imageUrl}
+                                        alt="Generated Preview"
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                            </div>
+                        )} */}
+
+                        {imageUrl && (
+                            <div className="flex flex-col items-center gap-4 mt-4">
+                                <div className="relative w-32 h-32 rounded-lg overflow-hidden">
+                                    <img
+                                        src={imageUrl}
+                                        alt="Current"
+                                        className="object-cover"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
             {isAvatarModalOpen && (
                 <div className="fixed inset-0 bg-[#0B0E17] z-50 flex items-center justify-center">

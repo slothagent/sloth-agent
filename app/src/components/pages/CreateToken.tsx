@@ -40,7 +40,6 @@ const CreateToken: React.FC = () => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [isBuyOpen, setIsBuyOpen] = useState<boolean>(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-    const [currentTokenAddress, setCurrentTokenAddress] = useState<string|null>(null);
 
 
     const { data: balance, refetch: refetchBalance } = useBalance({
@@ -171,7 +170,7 @@ const CreateToken: React.FC = () => {
 
             try {
                 // Generate image with Replicate
-                const prompt = `Create a professional logo for a token named "${tokenName}". ${imagePrompt}. Style: Modern, minimalist, suitable for a crypto token. The image should be clear, memorable, and work well at different sizes.`;
+                const prompt = `Create a funny, anime-style logo for a token named "${tokenName}". The design should be playful and meme-inspired, incorporating elements like exaggerated facial expressions, chibi characters, or internet meme aesthetics. It should still maintain a modern and minimalist look, making it suitable for a crypto token. Ensure the logo is clear, memorable, and scalable across different sizes. ${imagePrompt}`;
                 
                 const response = await fetch('/api/generate-image', {
                     method: 'POST',
@@ -284,7 +283,7 @@ const CreateToken: React.FC = () => {
                         console.log("token", token)
                         console.log("bondingCurve", bondingCurve)
                         setTokenAddress(token);
-                        setCurrentTokenAddress(bondingCurve);
+                        // setCurrentTokenAddress(bondingCurve);
                         await refetchBalanceOfToken();
                         await createToken(token, bondingCurve);
 
@@ -421,7 +420,7 @@ const CreateToken: React.FC = () => {
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
                 curveAddress: curveAddress,
-                categories: selectedCategories.join(',').toLowerCase()
+                categories: selectedCategories || []
             };
 
             // console.log('Sending payload:', payload); // Debug log

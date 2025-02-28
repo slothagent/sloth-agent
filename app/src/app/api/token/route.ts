@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       twitterUrl: body.twitterUrl || undefined,
       telegramUrl: body.telegramUrl || undefined,
       websiteUrl: body.websiteUrl || undefined,
-      categories: body.categories || undefined,
+      categories: body.categories || [],
     };
 
     // Create the token

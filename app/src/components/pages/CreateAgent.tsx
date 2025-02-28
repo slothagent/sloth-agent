@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Layout, User, Mail, Shirt, Package, Footprints, Crown, Smile } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, ArrowRight, Layout, User } from 'lucide-react';
 import BasicInformation from '@/components/custom/agent/BasicInformation';
 import VisualSystem from '@/components/custom/agent/VisualSystem';
 import PersonalityBackground from '@/components/custom/agent/PersonalityBackground';
@@ -31,22 +31,6 @@ interface TwitterUserInfo {
     profileImageUrl: string | null;
 }
 
-type AvatarCategory = 'body' | 'outfits' | 'tops' | 'bottoms' | 'shoes' | 'accessories' | 'expression';
-
-interface AvatarCustomization {
-    body: string;
-    outfits: string;
-    tops: string;
-    bottoms: string;
-    shoes: string;
-    accessories: string;
-    expression: string;
-}
-
-interface CategoryOption {
-    label: string;
-    value: string;
-}
 
 const CreateAgent: React.FC = () => {
 
@@ -56,75 +40,57 @@ const CreateAgent: React.FC = () => {
     const [agentName, setAgentName] = useState<string|null>(null);
     const [description, setDescription] = useState<string|null>(null);
     const [ticker, setTicker] = useState<string|null>(null);
-    const [systemType, setSystemType] = useState<string|null>(null);
     const [imageUrl, setImageUrl] = useState<string|null>(null);
     const [agentLore, setAgentLore] = useState<string|null>(null);
     const [personality, setPersonality] = useState<string|null>(null);
-    const [communicationStyle, setCommunicationStyle] = useState<string|null>(null);
     const [knowledgeAreas, setKnowledgeAreas] = useState<string|null>(null);
-    const [tools, setTools] = useState<string[]>([]);
-    const [examples, setExamples] = useState<string|null>(null);
     // Twitter config state
     const [twitterAuth, setTwitterAuth] = useState<TwitterAuthData | null>(null);
+    const [skipTwitter, setSkipTwitter] = useState(false);
     const [twitterUserInfo, setTwitterUserInfo] = useState<TwitterUserInfo | null>(null);
     const [activeTab, setActiveTab] = useState<'preview' | 'avatar'>('preview');
     const [avatarEnabled, setAvatarEnabled] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState<AvatarCategory>('body');
-    const [selectedSkinTone, setSelectedSkinTone] = useState<string>('All');
-    const [avatarCustomization, setAvatarCustomization] = useState<AvatarCustomization>({
-        body: 'default',
-        outfits: 'casual',
-        tops: 'tshirt',
-        bottoms: 'jeans',
-        shoes: 'sneakers',
-        accessories: 'none',
-        expression: 'neutral'
-    });
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [imagePrompt, setImagePrompt] = useState<string>('');
+    const [isGenerating, setIsGenerating] = useState<boolean>(false)
 
     const router = useRouter();
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
 
+    const [stepValidation, setStepValidation] = useState<{ [key: number]: boolean }>({
+        1: false,
+        2: false,
+        3: false,
+        4: false,
+        5: false
+    });
 
-    console.log(process.env.FACTORY_ADDRESS);
+    const [showValidation, setShowValidation] = useState<boolean>(false);
 
-    const handleSubmit = async () => {
-        const loadingToast = toast.loading('Creating agent...');
-        
+    const handleStepValidation = (step: number, isValid: boolean) => {
+        setStepValidation(prev => ({
+            ...prev,
+            [step]: isValid
+        }));
     };
 
-    const steps = [
-        {
-            title: "Basic Information",
-            fields: ["Name", "Description", "Ticker"]
-        },
-        {
-            title: "Visual & System",
-            fields: ["Image", "System Type"]
-        },
-        {
-            title: "Personality & Background",
-            fields: ["Agent Lore", "Personality", "Style"]
-        },
-        {
-            title: "Capabilities",
-            fields: ["Knowledge", "Tools", "Examples"]
-        },
-        {
-            title: "Twitter Config",
-            fields: ["Username", "Password", "Email"]
-        }
-    ];
+    const isCurrentStepValid = () => {
+        return stepValidation[currentStep] || false;
+    };
 
     const handleNext = () => {
-        if (currentStep < totalSteps) {
+        setShowValidation(true);
+        if (currentStep < totalSteps && isCurrentStepValid()) {
             setCurrentStep(currentStep + 1);
-        }
+            setShowValidation(false);
+        } 
     };
 
     const handlePrevious = () => {
         if (currentStep > 1) {
             setCurrentStep(currentStep - 1);
+            setShowValidation(false);
         }
     };
 
@@ -154,11 +120,19 @@ const CreateAgent: React.FC = () => {
                 toast.error('Please enter agent name and description first');
                 return;
             }
-
+            setIsGenerating(true)
             const loadingToast = toast.loading('Generating image with AI...');
 
             // Generate image with DALL-E
-            const prompt = `Create a professional logo for an AI agent named "${agentName}". The agent's purpose is: ${description}. Style: Modern, minimalist, suitable for a tech company. The image should be clear, memorable, and work well at different sizes.`;
+            const prompt = `Create a funny, anime-style logo for a crypto token associated with "${agentName}". The design should be playful and meme-inspired, incorporating elements like exaggerated facial expressions, chibi characters, or internet meme aesthetics. It should still maintain a modern and minimalist look, making it suitable for a crypto token. 
+
+                Token details:
+                - Agent: ${agentName}
+                - Description: ${description || "No description provided"}
+
+                Ensure the logo is clear, memorable, and scalable across different sizes. ${imagePrompt}`;
+
+
             
             const response = await fetch('/api/generate-image', {
                 method: 'POST',
@@ -182,7 +156,7 @@ const CreateAgent: React.FC = () => {
             // Upload to Pinata
             const ipfsUrl = await uploadImageToPinata(file, agentName);
             setImageUrl(ipfsUrl);
-            
+            setIsGenerating(false)
             toast.dismiss(loadingToast);
             toast.success('Image generated and uploaded successfully!');
         } catch (error) {
@@ -191,16 +165,8 @@ const CreateAgent: React.FC = () => {
         }
     };
 
-    const handleStyleChange = (value: string) => {
-        setCommunicationStyle(value);
-    };
-
     const handleKnowledgeChange = (value: string) => {
         setKnowledgeAreas(value);
-    };
-
-    const handleToolChange = (tool: string) => {
-        setTools([tool]); // Now we only store one selected tool
     };
 
     const handleTwitterConnect = async () => {
@@ -235,17 +201,22 @@ const CreateAgent: React.FC = () => {
         }
     };
 
-    const createAgent = async (address: string, curveAddress: string) => {
+    const stringToSlug = (text: string) => {
+        return text
+            .normalize("NFD") // Normalize accents
+            .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '') // Remove special characters
+            .trim()
+            .replace(/[\s_-]+/g, '-'); // Replace spaces/underscores with hyphens
+    }
+
+    const createAgent = async (address: string) => {
         const loadingToast = toast.loading('Creating agent...');
         try {
             // Validate required fields
-            if (!agentName || !ticker) {
-                toast.error('Agent name and ticker are required', { id: loadingToast });
-                return;
-            }
-
-            if (!address || !curveAddress) {
-                toast.error('Token address and curve address are required', { id: loadingToast });
+            if (!agentName) {
+                toast.error('Agent name are required', { id: loadingToast });
                 return;
             }
 
@@ -256,31 +227,26 @@ const CreateAgent: React.FC = () => {
 
             // Prepare the payload with default values for null fields
             const payload = {
+                slug: stringToSlug(agentName || ''),
                 name: agentName,
                 description: description || '',
                 ticker: ticker,
-                systemType: systemType || '',
                 imageUrl: imageUrl || '',
                 agentLore: agentLore || '',
                 personality: personality || '',
-                communicationStyle: communicationStyle || '',
                 knowledgeAreas: knowledgeAreas || '',
-                tools: tools || [],
-                examples: examples || '',
-                address: address,
-                curveAddress: curveAddress,
+                tokenAddress: address,
                 owner: OwnerAddress,
-                twitterAuth: {
-                    accessToken: twitterAuth?.accessToken || null,
-                    refreshToken: twitterAuth?.refreshToken || null,
-                    expiresAt: twitterAuth?.expiresAt || null,
-                    tokenType: twitterAuth?.tokenType || null,
-                    scope: twitterAuth?.scope || null,
+                categories: selectedCategories,
+                twitterAuth: twitterAuth ? {
+                    accessToken: twitterAuth.accessToken || null,
+                    refreshToken: twitterAuth.refreshToken || null,
+                    expiresAt: twitterAuth.expiresAt || null,
+                    tokenType: twitterAuth.tokenType || null,
+                    scope: twitterAuth.scope || null,
                     agentId: agentName
-                }
+                } : null
             };
-
-            // console.log('Sending payload:', payload); // Debug log
 
             const response = await fetch('/api/agent', {
                 method: 'POST',
@@ -297,64 +263,24 @@ const CreateAgent: React.FC = () => {
             }
 
             toast.success('Agent created successfully!', { id: loadingToast });
-            router.push(`/agent/${ticker.toLowerCase()}`);
+            router.push(`/agents`);
         } catch (error) {
             console.error('Error creating agent:', error);
             toast.error('An unexpected error occurred while creating the agent', { id: loadingToast });
         }
-    }
+    };
 
-    useWatchContractEvent({
-        address: process.env.FACTORY_ADDRESS as `0x${string}`,
-        abi: factoryAbi,
-        eventName: 'TokenAndCurveCreated',
-        onLogs(logs) {
-            // console.log('TokenAndCurveCreated event:', logs);
-            // Create agent in database
-            createAgent(logs[0].args.token as `0x${string}`, logs[0].args.bondingCurve as `0x${string}`);
-            toast.success('Token and Curve created successfully!');
-        }
-    });
+    useEffect(() => {
+        validateTwitterStep();
+    }, [twitterAuth, skipTwitter]);
 
-    const getCategoryOptions = (category: AvatarCategory): CategoryOption[] => {
-        const options: Record<AvatarCategory, CategoryOption[]> = {
-            body: [
-                { label: 'Default', value: 'default' },
-                { label: 'Slim', value: 'slim' },
-                { label: 'Athletic', value: 'athletic' }
-            ],
-            outfits: [
-                { label: 'Casual', value: 'casual' },
-                { label: 'Business', value: 'business' },
-                { label: 'Sport', value: 'sport' }
-            ],
-            tops: [
-                { label: 'T-Shirt', value: 'tshirt' },
-                { label: 'Shirt', value: 'shirt' },
-                { label: 'Sweater', value: 'sweater' }
-            ],
-            bottoms: [
-                { label: 'Jeans', value: 'jeans' },
-                { label: 'Shorts', value: 'shorts' },
-                { label: 'Slacks', value: 'slacks' }
-            ],
-            shoes: [
-                { label: 'Sneakers', value: 'sneakers' },
-                { label: 'Dress Shoes', value: 'dress' },
-                { label: 'Boots', value: 'boots' }
-            ],
-            accessories: [
-                { label: 'None', value: 'none' },
-                { label: 'Glasses', value: 'glasses' },
-                { label: 'Hat', value: 'hat' }
-            ],
-            expression: [
-                { label: 'Neutral', value: 'neutral' },
-                { label: 'Happy', value: 'happy' },
-                { label: 'Serious', value: 'serious' }
-            ]
-        };
-        return options[category];
+    const validateTwitterStep = () => {
+        // For step 5, we'll consider it valid if either:
+        // 1. Twitter is connected (twitterAuth exists)
+        // 2. User has chosen not to connect Twitter (we'll add a skip option)
+        const isValid = !!twitterAuth || skipTwitter;
+        handleStepValidation(5, isValid);
+        return isValid;
     };
 
     const renderStepContent = () => {
@@ -368,18 +294,23 @@ const CreateAgent: React.FC = () => {
                         onNameChange={setAgentName}
                         onDescriptionChange={setDescription}
                         onTickerChange={setTicker}
+                        onValidationChange={(isValid) => handleStepValidation(1, isValid)}
+                        showValidation={showValidation}
                     />
                 );
             case 2:
                 return (
                     <VisualSystem
-                        systemType={systemType || ''}
                         imageUrl={imageUrl || ''}
                         avatarEnabled={avatarEnabled}
-                        onSystemTypeChange={setSystemType}
                         onUploadImage={handleUploadImage}
                         onGenerateImage={handleGenerateImage}
                         onAvatarToggle={setAvatarEnabled}
+                        isGenerating={isGenerating}
+                        onValidationChange={(isValid) => handleStepValidation(2, isValid)}
+                        showValidation={showValidation}
+                        imagePrompt={imagePrompt}
+                        setImagePrompt={setImagePrompt}
                     />
                 );
             case 3:
@@ -387,21 +318,21 @@ const CreateAgent: React.FC = () => {
                     <PersonalityBackground
                         agentLore={agentLore || ''}
                         personality={personality || ''}
-                        communicationStyle={communicationStyle || ''}
                         onLoreChange={setAgentLore}
                         onPersonalityChange={setPersonality}
-                        onStyleChange={handleStyleChange}
+                        onSelectedCategories={setSelectedCategories}
+                        selectedCategories={selectedCategories}
+                        onValidationChange={(isValid) => handleStepValidation(3, isValid)}
+                        showValidation={showValidation}
                     />
                 );
             case 4:
                 return (
                     <Capabilities
                         knowledgeAreas={knowledgeAreas || ''}
-                        tools={tools}
-                        examples={examples || ''}
                         onKnowledgeChange={handleKnowledgeChange}
-                        onToolChange={handleToolChange}
-                        onExamplesChange={setExamples}
+                        onValidationChange={(isValid) => handleStepValidation(4, isValid)}
+                        showValidation={showValidation}
                     />
                 );
             case 5:
@@ -410,15 +341,34 @@ const CreateAgent: React.FC = () => {
                         <div className="flex flex-col space-y-2">
                             <label className="text-sm font-medium text-gray-400">Twitter Integration</label>
                             {!twitterAuth ? (
-                                <Button
-                                    onClick={handleTwitterConnect}
-                                    className="inline-flex items-center max-w-fit px-4 py-2 border-2 border-[#2196F3] text-sm font-medium rounded text-[#2196F3] bg-[#161B28] hover:bg-[#2196F3] hover:text-[#f5f0e8] shadow-[2px_2px_0px_0px_rgba(33,150,243,1)] transition-colors"
-                                >
-                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                                    </svg>
-                                    Connect Twitter
-                                </Button>
+                                <div className="space-y-4">
+                                    <Button
+                                        onClick={handleTwitterConnect}
+                                        className="inline-flex items-center max-w-fit px-4 py-2 border-2 border-[#2196F3] text-sm font-medium rounded text-[#2196F3] bg-[#161B28] hover:bg-[#2196F3] hover:text-[#f5f0e8] shadow-[2px_2px_0px_0px_rgba(33,150,243,1)] transition-colors"
+                                    >
+                                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                        </svg>
+                                        Connect Twitter
+                                    </Button>
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="skip-twitter"
+                                            checked={skipTwitter}
+                                            onChange={(e) => setSkipTwitter(e.target.checked)}
+                                            className="rounded border-gray-400 text-[#2196F3] focus:ring-[#2196F3]"
+                                        />
+                                        <label htmlFor="skip-twitter" className="text-sm text-gray-400">
+                                            Skip Twitter integration for now
+                                        </label>
+                                    </div>
+                                    {!twitterAuth && !skipTwitter && (
+                                        <p className="text-sm text-red-500">
+                                            Please either connect Twitter or choose to skip integration
+                                        </p>
+                                    )}
+                                </div>
                             ) : (
                                 <div className="bg-[#161B28] p-4 rounded border-2 border-[#2196F3] shadow-[2px_2px_0px_0px_rgba(33,150,243,1)]">
                                     {twitterUserInfo ? (
@@ -459,6 +409,39 @@ const CreateAgent: React.FC = () => {
                 return null;
         }
     };
+
+    const handleSubmit = async () => {
+        if (!isCurrentStepValid()) {
+            toast.error('Please complete all required fields before creating the agent');
+            return;
+        }
+
+        const loadingToast = toast.loading('Creating agent...');
+        await createAgent('');
+    };
+
+    const steps = [
+        {
+            title: "Basic Information",
+            fields: ["Name", "Description", "Ticker"]
+        },
+        {
+            title: "Visual & System",
+            fields: ["Image", "System Type"]
+        },
+        {
+            title: "Personality & Background",
+            fields: ["Agent Lore", "Personality", "Style"]
+        },
+        {
+            title: "Capabilities",
+            fields: ["Knowledge", "Tools", "Examples"]
+        },
+        {
+            title: "Twitter Config",
+            fields: ["Username", "Password", "Email"]
+        }
+    ];
 
     return (
         <main className="min-h-screen bg-[#0B0E17]">
@@ -561,20 +544,19 @@ const CreateAgent: React.FC = () => {
                             </div>
 
                             {/* Tab Content */}
-                            <div className="bg-[#161B28] border border-[#2F3850] rounded-xl p-6 shadow-lg">
+                            <div className="bg-[#161B28] border border-[#2F3850] p-6 shadow-lg">
                                 {activeTab === 'preview' ? (
                                     <AgentPreview
                                         name={agentName || ''}
                                         description={description || ''}
                                         ticker={ticker || ''}
-                                        systemType={systemType || ''}
                                         imageUrl={imageUrl || ''}
                                         personality={personality || ''}
                                     />
                                 ) : (
                                     <div className="space-y-6">
-                                        <div className="flex flex-col lg:flex-row gap-4">
-                                            {/* Left Menu - Horizontal scrolling on mobile */}
+                                        <span className="text-white">Coming Soon</span>
+                                        {/* <div className="flex flex-col lg:flex-row gap-4">
                                             <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:w-16 pb-2 lg:pb-0 no-scrollbar">
                                                 {[
                                                     { icon: <User className="w-5 h-5" />, label: 'body' as AvatarCategory, color: '#4CAF50' },
@@ -604,7 +586,7 @@ const CreateAgent: React.FC = () => {
                                                 ))}
                                             </div>
 
-                                            {/* Center Preview */}
+                                            
                                             <div className="flex-1 bg-[#1A1F2E] rounded-lg p-4 flex items-center justify-center">
                                                 <div className="relative w-[200px] h-[300px] lg:w-[300px] lg:h-[500px]">
                                                     <Image
@@ -615,7 +597,7 @@ const CreateAgent: React.FC = () => {
                                                     />
                                                 </div>
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 )}
                             </div>

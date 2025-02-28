@@ -1,36 +1,14 @@
 import { NextResponse } from 'next/server';
 import { AgentModel } from '@/models/agent';
 import { TwitterAuthModel } from '@/models/twitterAuth';
-
-interface TwitterAuthData {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
-}
-
-interface CreateAgentData {
-  name: string;
-  ticker: string;
-  address: string;
-  curveAddress: string;
-  owner: string;
-  description?: string;
-  systemType?: string;
-  imageUrl?: string;
-  agentLore?: string;
-  personality?: string;
-  communicationStyle?: string;
-  knowledgeAreas?: string;
-  tools: string[];
-  examples?: string;
-}
+import { Agent } from '@/models/agent';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
     // Validate required fields
-    const requiredFields = ['name', 'ticker', 'address', 'curveAddress', 'owner'];
+    const requiredFields = ['name','description','owner'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -41,37 +19,42 @@ export async function POST(req: Request) {
     }
 
     // Prepare the data object with required fields
-    const agentData: CreateAgentData = {
+    const agentData: Agent = {
       name: body.name,
+      slug: body.slug,
       ticker: body.ticker,
-      address: body.address,
-      curveAddress: body.curveAddress,
+      tokenAddress: body.tokenAddress,
       owner: body.owner,
-      // Optional fields
-      description: body.description || undefined,
-      systemType: body.systemType || undefined,
-      imageUrl: body.imageUrl || undefined,
-      agentLore: body.agentLore || undefined,
-      personality: body.personality || undefined,
-      communicationStyle: body.communicationStyle || undefined,
-      knowledgeAreas: body.knowledgeAreas || undefined,
-      tools: Array.isArray(body.tools) ? body.tools : [],
-      examples: body.examples || undefined,
+      description: body.description || '',
+      imageUrl: body.imageUrl || '',
+      agentLore: body.agentLore || '',
+      personality: body.personality || '',
+      knowledgeAreas: body.knowledgeAreas || '',
+      categories: body.categories || [],
+      twitterAuth: body.twitterAuth ? {
+        accessToken: body.twitterAuth.accessToken || null,
+        refreshToken: body.twitterAuth.refreshToken || null,
+        expiresAt: body.twitterAuth.expiresAt || null,
+        tokenType: body.twitterAuth.tokenType || null,
+        scope: body.twitterAuth.scope || null
+      } : undefined
     };
 
     // Create the agent
     const agentResult = await AgentModel.create(agentData);
 
     // If twitterAuth is provided, create it
-    if (body.twitterAuth) {
-      const { accessToken, refreshToken, expiresAt } = body.twitterAuth as TwitterAuthData;
-      await TwitterAuthModel.create({
-        agentId: agentResult.insertedId.toString(),
-        accessToken,
-        refreshToken,
-        expiresAt: new Date(expiresAt),
-      });
-    }
+    // if (body.twitterAuth) {
+    //   const { accessToken, refreshToken, expiresAt } = body.twitterAuth;
+    //   if (accessToken && refreshToken && expiresAt) {
+    //     await TwitterAuthModel.create({
+    //       agentId: agentResult.insertedId.toString(),
+    //       accessToken,
+    //       refreshToken,
+    //       expiresAt: new Date(expiresAt),
+    //     });
+    //   }
+    // }
 
     // Get the created agent with its Twitter auth
     const agent = await AgentModel.findById(agentResult.insertedId.toString());

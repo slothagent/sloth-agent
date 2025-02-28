@@ -1,90 +1,37 @@
 "use client"
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-
-// Demo agents data
-const demoAgents = [
-    {
-        id: 'ai-writer',
-        name: 'AI Writer',
-        creator: 'OpenAI Team',
-        description: 'Professional writing assistant that helps you create high-quality content, from blog posts to creative stories.',
-        imageUrl: '/images/ai-writer.png',
-        rating: 4.8,
-        featured: true,
-    },
-    {
-        id: 'code-companion',
-        name: 'Code Companion',
-        creator: 'Dev Tools Inc',
-        description: 'Your personal programming assistant. Helps with code review, debugging, and learning new programming concepts.',
-        imageUrl: '/images/code-assistant.png',
-        rating: 4.9,
-        featured: true,
-    },
-    {
-        id: 'data-analyst',
-        name: 'Data Analyst',
-        creator: 'Data Science Pro',
-        description: 'Analyze data, create visualizations, and generate insights from your datasets with natural language commands.',
-        imageUrl: '/images/data-analyst.png',
-        rating: 4.7,
-    },
-    {
-        id: 'image-creator',
-        name: 'Image Creator',
-        creator: 'Creative AI Labs',
-        description: 'Generate beautiful artwork and images from text descriptions. Perfect for designers and creative professionals.',
-        imageUrl: '/images/image-creator.png',
-        rating: 4.6,
-    },
-    {
-        id: 'research-assistant',
-        name: 'Research Assistant',
-        creator: 'Academic AI',
-        description: 'Your personal research companion. Helps with literature review, paper summaries, and citation management.',
-        imageUrl: '/images/research.png',
-        rating: 4.5,
-    },
-    {
-        id: 'language-tutor',
-        name: 'Language Tutor',
-        creator: 'Language Learning AI',
-        description: 'Interactive language learning assistant that helps you master new languages through conversation and exercises.',
-        imageUrl: '/images/language-tutor.png',
-        rating: 4.7,
-    }
-];
+import { useState } from 'react';
+import { useAgents, useDeleteAgent, AgentResponse } from '@/hooks/useAgents';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search, Trash2, Edit2, Plus } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { Agent } from '@/models/agent';
 
 const DEFAULT_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200"%3E%3Crect width="400" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="16" fill="%236b7280"%3EAI Agent%3C/text%3E%3C/svg%3E';
 
 const Agents = () => {
-    const fetchAgents = async () => {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Return demo data
-        return {
-            data: demoAgents
-        };
-    }
+    const [page, setPage] = useState(1);
+    const [search, setSearch] = useState('');
+    const pageSize = 10;
 
-    const { data: agents, isLoading } = useQuery({
-        queryKey: ['agents'],
-        queryFn: fetchAgents,
-        staleTime: 60 * 1000,
-        gcTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        retry: 1,
+    const { data: agentsData, isLoading } = useAgents({
+        page,
+        pageSize,
+        search,
     });
 
-    const agentsList = useMemo(() => {
-        if (!agents?.data) return [];
-        return agents.data;
-    }, [agents]);
+    const deleteAgent = useDeleteAgent();
+
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteAgent.mutateAsync(id);
+            toast.success('Agent deleted successfully');
+        } catch (error) {
+            toast.error('Failed to delete agent');
+        }
+    };
 
     if (isLoading) {
         return (
@@ -94,70 +41,91 @@ const Agents = () => {
         );
     }
 
+    const agents = agentsData?.data || [];
+    const { currentPage, totalPages } = agentsData?.metadata || { currentPage: 1, totalPages: 1 };
+
     return (
         <div className="min-h-screen bg-[#0B0E17] py-12 sm:py-12">
             <div className="container mx-auto px-4">
                 {/* Header Section */}
-                <div className="text-center mb-8 sm:mb-12">
-                    <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">Your Agent</h1>
-                    <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto mb-6 sm:mb-8 px-4 sm:px-0">
-                        Discover and interact with powerful AI agents built by our community
-                    </p>
+                <div className="flex justify-between items-start mb-12">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-2">My Agents</h1>
+                        <p className="text-gray-400">Manage and monitor your AI agents for blockchain technology.</p>
+                    </div>
                     <Link 
                         href="/agent/create"
-                        className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white font-semibold text-sm sm:text-base hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl rounded-lg sm:rounded-none"
+                        className="inline-flex items-center px-6 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-all"
                     >
-                        <span className="mr-2">Create Agent</span>
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                        </svg>
+                        <Plus className="w-5 h-5 mr-2" />
+                        Create Agent
                     </Link>
                 </div>
 
+                {/* Search Bar */}
+                <div className="mb-8">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <Input
+                            type="text"
+                            placeholder="Search your agents..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-10 bg-[#161B28] border-[#1F2937] text-white w-full h-11"
+                        />
+                    </div>
+                </div>
+
                 {/* Agents Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8">
-                    {agentsList.map((agent: any, index: number) => (
-                        <div key={agent.id || index} 
-                            className="flex flex-row bg-[#161B28] shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {agents.map((agent: Agent) => (
+                        <div key={agent._id?.toString() || ''} 
+                            className="bg-[#161B28] border border-[#1F2937] overflow-hidden hover:border-blue-600 transition-all duration-300"
                         >
-                            <div className="relative w-1/3 sm:w-full">
-                                <Image 
+                            <div className="flex p-4 space-x-4 h-full">
+                                {/* Left - Image */}
+                                <img 
                                     src={agent.imageUrl || DEFAULT_IMAGE}
-                                    alt={`${agent.name} Preview`}
-                                    className="w-full h-full sm:h-48 object-cover"
-                                    width={150}
-                                    height={200}
-                                    priority={index < 6}
+                                    alt={agent.name}
+                                    width={80}
+                                    height={80}
+                                    className="object-contain w-28 h-28"
                                 />
-                            </div>
-                            
-                            <div className="w-2/3 sm:w-full p-4 sm:p-6 flex flex-col justify-between">
-                                <div>
-                                    <div className="flex items-center justify-between mb-2 sm:mb-4">
-                                        <div>
-                                            <h3 className="font-semibold text-base sm:text-lg text-gray-900">{agent.name}</h3>
-                                            <p className="text-xs sm:text-sm text-gray-500">{agent.creator}</p>
+                                
+                                {/* Right - Content */}
+                                <div className="flex-1 flex flex-col min-w-0">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="min-w-0">
+                                            <h3 className="text-lg font-bold text-white mb-1 truncate">{agent.name}</h3>
+                                            <p className="text-gray-400 text-sm truncate">{agent.ticker}</p>
                                         </div>
-                                        <div className="flex items-center sm:hidden">
-                                            <span className="text-yellow-400 mr-1">★</span>
-                                            <span className="text-xs text-gray-600">{agent.rating}</span>
+                                        <div className="flex space-x-1 ml-2 shrink-0">
+                                            <Link href={`/agent/${agent._id?.toString() || ''}`}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#1F2937]">
+                                                    <Edit2 className="w-4 h-4 text-gray-400 hover:text-white" />
+                                                </Button>
+                                            </Link>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon"
+                                                onClick={() => handleDelete(agent._id?.toString() || '')}
+                                                disabled={deleteAgent.isPending}
+                                                className="h-8 w-8 hover:bg-[#1F2937]"
+                                            >
+                                                <Trash2 className="w-4 h-4 text-red-400 hover:text-red-500" />
+                                            </Button>
                                         </div>
                                     </div>
                                     
-                                    <p className="text-gray-600 text-sm line-clamp-2 mb-3 sm:mb-6">
+                                    <p className="text-gray-400 text-sm line-clamp-2 mb-4 flex-1">
                                         {agent.description}
                                     </p>
-                                </div>
 
-                                <div className="flex items-center justify-between">
                                     <Link 
-                                        href={`/agent/${agent.id}`}
-                                        className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs sm:text-sm font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 ml-auto"
+                                        href={`/agent/${agent._id?.toString() || '' }`}
+                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-all text-sm font-medium justify-center"
                                     >
-                                        Join Now
-                                        <svg className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                                        </svg>
+                                        View Details
                                     </Link>
                                 </div>
                             </div>
@@ -165,14 +133,51 @@ const Agents = () => {
                     ))}
                 </div>
 
-                {agentsList.length === 0 && (
-                    <div className="text-center text-gray-500 mt-12">
-                        No agents found. Be the first to create one!
+                {/* Pagination with smaller buttons */}
+                {totalPages > 1 && (
+                    <div className="flex justify-center mt-8 space-x-1.5">
+                        <Button
+                            variant="outline"
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="border-[#1F2937] text-gray-400 hover:text-white hover:border-blue-600 h-8 px-3 text-sm"
+                        >
+                            Previous
+                        </Button>
+                        <div className="flex items-center space-x-1.5">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                                <Button
+                                    key={p}
+                                    variant={p === page ? "default" : "outline"}
+                                    onClick={() => setPage(p)}
+                                    className={`h-8 w-8 text-sm ${p === page 
+                                        ? "bg-blue-600 text-white hover:bg-blue-700" 
+                                        : "border-[#1F2937] text-gray-400 hover:text-white hover:border-blue-600"
+                                    }`}
+                                >
+                                    {p}
+                                </Button>
+                            ))}
+                        </div>
+                        <Button
+                            variant="outline"
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="border-[#1F2937] text-gray-400 hover:text-white hover:border-blue-600 h-8 px-3 text-sm"
+                        >
+                            Next
+                        </Button>
+                    </div>
+                )}
+
+                {agents.length === 0 && (
+                    <div className="text-center text-gray-400 mt-12">
+                        You haven't created any agents yet. Create your first agent!
                     </div>
                 )}
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default Agents;

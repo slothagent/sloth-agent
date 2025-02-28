@@ -8,7 +8,6 @@ interface AgentPreviewProps {
     name: string;
     description: string;
     ticker: string;
-    systemType: string;
     imageUrl: string;
     personality: string;
 }
@@ -17,7 +16,6 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
     name,
     description,
     ticker,
-    systemType,
     imageUrl,
     personality,
 }) => {
@@ -28,10 +26,9 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                 <div className="flex items-start gap-4">
                     <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-[#0B0E17] border border-[#1F2937] flex items-center justify-center">
                         {imageUrl ? (
-                            <Image
+                            <img
                                 src={imageUrl}
                                 alt={name || 'Agent'}
-                                fill
                                 className="object-cover"
                             />
                         ) : (
@@ -48,9 +45,6 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                                     ${ticker || 'TICKER'}
                                 </p>
                             </div>
-                            <Badge variant="outline" className="bg-[#0B0E17] text-gray-400 border-[#1F2937]">
-                                {systemType || 'Type Not Set'}
-                            </Badge>
                         </div>
                         <p className="mt-2 text-sm text-gray-400 line-clamp-2">
                             {description || 'No description provided'}
