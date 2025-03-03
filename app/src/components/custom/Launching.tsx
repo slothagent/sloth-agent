@@ -1,33 +1,33 @@
 import React from 'react';
+import { formatNumber, formatAddress } from '@/utils/utils';
+import { Transaction } from '@/models';
+import TableLaunching from './TableLaunching';
+import { tokenAbi } from '@/abi/tokenAbi';
+import { useReadContract } from 'wagmi';
 import { Badge } from '../ui/badge';
-import { formatNumber } from '@/utils/utils';
+import { INITIAL_SUPPLY } from '@/lib/contants';
+import Link from 'next/link';
 
-interface BondingCurveHolder {
-    address: string;
-    tag?: string;
-    percentage: number;
-}
-
-const mockBondingCurveHolders: BondingCurveHolder[] = [
-    { address: '0xc8C5...f77C', tag: 'Bonding Curve', percentage: 54.78 },
-    { address: '0x7a59...cec6', percentage: 10.66 },
-    { address: '0x3f8D...2A57', tag: 'Dev', percentage: 4.36 },
-    { address: '0x011a...7AbD', percentage: 4.32 },
-    { address: '0x98Be...eDbE', percentage: 3.86 },
-    { address: '0x61c8...b569', percentage: 3.70 },
-    { address: '0xC373...8000', percentage: 2.14 },
-    { address: '0x8B6a...ADa1', percentage: 1.46 },
-    { address: '0x1301...AF94', percentage: 1.33 },
-    { address: '0x7a6D...9039', percentage: 1.25 },
-];
 
 interface LaunchingProps {
     totalMarketCap: number;
     totalSupply: number;
     symbol: string;
+    transactions: Transaction[];
+    bondingCurveAddress: string;
+    tokenAddress: string;
 }
 
-const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol}) => {
+const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol,transactions,bondingCurveAddress,tokenAddress}) => {
+
+    const {data: balanceOfToken} = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'balanceOf',
+        args: [bondingCurveAddress as `0x${string}`]
+    });
+    const uniqueToAddresses = [...new Set(transactions.map(tx => tx.to))];
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Market Cap Stats */}
@@ -49,21 +49,22 @@ const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol}
 
             {/* Bonding Curve Holders */}
             <div className="bg-[#161B28] text-gray-300 rounded-lg p-6">
-                <div className="space-y-4">
-                    {mockBondingCurveHolders.map((holder, index) => (
-                        <div key={holder.address} className="flex items-center justify-between">
+                <div className="h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="text-gray-400">{index + 1}.</span>
-                                <span className="font-mono">{holder.address}</span>
-                                {holder.tag && (
-                                    <Badge variant="outline" className="bg-[#93E905]/10 text-[#93E905] border-[#93E905]">
-                                        {holder.tag}
-                                    </Badge>
-                                )}
+                                <span className="text-gray-400">1.</span>
+                                <Link href={`https://testnet.sonicscan.org/address/${bondingCurveAddress}`} target="_blank" className="hover:underline hover:text-white">{formatAddress(bondingCurveAddress)}</Link>
+                                <Badge variant="outline" className="bg-[#93E905]/10 text-[#93E905] border-[#93E905]">
+                                    Bonding Curve
+                                </Badge>
                             </div>
-                            <span className="font-mono">{holder.percentage}%</span>
+                            <span>{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/1000).toFixed(5))}%</span>
                         </div>
-                    ))}
+                        {uniqueToAddresses.map((address, index) => (
+                            <TableLaunching tokenAddress={tokenAddress} key={index} address={address} index={index} totalValue={transactions.filter(tx => tx.to === address).reduce((acc, tx) => acc + Number(tx.totalValue), 0)} />
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

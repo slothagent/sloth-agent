@@ -108,7 +108,7 @@ const TableToken = ({ token }: TableTokenProps) => {
                 />
                 <div className="flex flex-col min-w-0">
                 <span className="font-medium truncate text-white">{token.name}</span>
-                <span className="text-sm text-gray-400 truncate">{token.address.slice(0, 6)}...{token.address.slice(-4)}</span>
+                <span className="text-sm text-gray-400 truncate">{token.curveAddress.slice(0, 6)}...{token.curveAddress.slice(-4)}</span>
                 </div>
             </div>
             </TableCell>

@@ -1,0 +1,37 @@
+import Link from "next/link";
+import { useReadContract } from "wagmi";
+import { tokenAbi } from "@/abi/tokenAbi";
+import { INITIAL_SUPPLY } from "@/lib/contants";
+
+interface TableLaunchingProps {
+    address: string;
+    index: number;
+    totalValue: number;
+    tokenAddress: string;
+}
+
+const TableLaunching: React.FC<TableLaunchingProps> = ({address,index,totalValue,tokenAddress}) => {
+
+    const formatAddress = (address: string) => {
+        if (!address) return '-';
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
+
+    const {data: balanceOfToken} = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`]
+    });
+    return (
+        <div key={index} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <span className="text-gray-400">{index + 2}.</span>
+                <Link href={`https://testnet.sonicscan.org/address/${address}`} target="_blank" className="hover:underline hover:text-white">{formatAddress(address)}</Link>
+            </div>
+            <span>{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/1000).toFixed(5))}%</span>
+        </div>
+    );
+};
+
+export default TableLaunching;

@@ -34,4 +34,9 @@ const formatNumber = (num: number): string => {
   return num.toFixed(2);
 };
 
-export { timeAgo, formatNumber };
+const formatAddress = (address: string) => {
+  if (!address) return '-';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+export { timeAgo, formatNumber, formatAddress };

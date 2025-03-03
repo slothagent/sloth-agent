@@ -1,6 +1,5 @@
 "use client";
 
-import Image from 'next/image';
 import Link from 'next/link';
 import {  
     Star,
@@ -26,6 +25,7 @@ import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import Launching from '@/components/custom/Launching';
 import { decodeEventLog } from 'viem';
 import { tokenAbi } from '@/abi/tokenAbi';
+import { useTokenByAddress, useTransactionsData } from '@/hooks/useWebSocketData';
 
 
 
@@ -38,7 +38,7 @@ const TokenDetails: NextPage = () => {
     const [txHash, setTxHash] = useState<string | null>(null);
     const [transactionType, setTransactionType] = useState<string | null>(null);
 
-    const { data: balance, refetch: refetchBalance } = useBalance({
+    const { data: balance } = useBalance({
         address: address,
     });
 
@@ -69,36 +69,16 @@ const TokenDetails: NextPage = () => {
         return `(${diffDays}d ago)`;
     };
 
-    const fetchTokenByAddress = async () => {
-        const token = await fetch(`/api/token?address=${tokenAddress?.toString()}`,{
-            next: { revalidate: 60 },
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        });
-        return token.json();
-    }
-
-    const { data: token, isLoading } = useQuery({
-        queryKey: ['token', tokenAddress],
-        queryFn: () => fetchTokenByAddress(),
-        staleTime: 60 * 1000,
-        gcTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        retry: 1,
-    });
+    const { token: token, loading: isTokenDataLoading } = useTokenByAddress(tokenAddress as string);
 
     const tokenData = useMemo(() => {
         if (!token) return null;
         return {
-            ...token.data,
-            createdAt: token.data?.createdAt ? new Date(token.data.createdAt) : null
+            ...token,
+            createdAt: token?.createdAt ? new Date(token.createdAt) : null
         };
     }, [token]);
 
-    // console.log('tokenData', tokenData);
 
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
@@ -158,6 +138,7 @@ const TokenDetails: NextPage = () => {
                                     marketCap: parseFloat(newTotalMarketCap||"0")
                                 }),
                             });
+                            await refetchCurrentPrice();
                             await writeContractAsync({
                                 address: tokenData?.address as `0x${string}`,
                                 abi: tokenAbi,
@@ -225,12 +206,13 @@ const TokenDetails: NextPage = () => {
         args: []
     });
 
-    const {data: fundingRaised} = useReadContract({
+    const {data: currentPrice, refetch: refetchCurrentPrice} = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
-        functionName: 'fundingRaised',
+        functionName: 'getCurrentPrice',
         args: []
     });
+    
 
     const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
@@ -246,23 +228,13 @@ const TokenDetails: NextPage = () => {
         args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
     });
 
+    const { transactions: transactionsData } = useTransactionsData(tokenData?.address as string);
 
-    const { data: transactionHistory, refetch: refetchTransactionHistory } = useQuery({
-        queryKey: ['transactionHistory', tokenData?.address, timeRange],
-        queryFn: async () => {
-            const response = await fetch(`/api/transactions?tokenAddress=${tokenData?.address}&timeRange=${timeRange}`);
-            const data = await response.json();
-            return data.data;
-        },
-        enabled: !!tokenData?.address,
-        staleTime: 1000, // Set to 1 second to allow frequent updates
-        gcTime: 5 * 60 * 1000,
-        refetchOnWindowFocus: true,
-        refetchOnMount: true,
-        refetchInterval: 5000, // Refetch every 5 seconds
-    });
-
-    // /console.log('transactionHistory', transactionHistory);
+    const transactionHistory = useMemo(() => {
+        if (!transactionsData) return [];
+        return transactionsData;
+    }, [transactionsData]);
+    
     
     const handleTimeRangeChange = (value: string) => {
         setTimeRange(value);
@@ -274,7 +246,7 @@ const TokenDetails: NextPage = () => {
         return (balanceNum * percentage / 100).toString();
     };
 
-    if (isLoading || !tokenData) {
+    if (isTokenDataLoading || !tokenData) {
         return <div>Loading...</div>;
     }
 
@@ -518,8 +490,8 @@ const TokenDetails: NextPage = () => {
                                         </div>
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
                                             {tokenData?.address ? (
-                                                <Link href={`https://testnet.sonicscan.org/address/${tokenData.address}`} className='hover:underline' target="_blank">
-                                                    {tokenData.address.slice(0, 4)}...{tokenData.address.slice(-4)}
+                                                <Link href={`https://testnet.sonicscan.org/token/${tokenData.curveAddress}`} className='hover:underline' target="_blank">
+                                                    {tokenData.curveAddress.slice(0, 4)}...{tokenData.curveAddress.slice(-4)}
                                                 </Link>
                                             ) : (
                                                 <span>Address not available</span>
@@ -635,7 +607,7 @@ const TokenDetails: NextPage = () => {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(transactionHistory?.[transactionHistory.length - 1]?.price||0).toFixed(8)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(transactionHistory[0]?.price.toString()||"0")).toFixed(8)}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
@@ -644,7 +616,7 @@ const TokenDetails: NextPage = () => {
                                     <div className="flex-1 w-full p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
                                             <Chart 
-                                                transactionHistory={transactionHistory || []} 
+                                                transactionHistory={transactionHistory as any|| []} 
                                             />
                                         </div>
                                     </div>
@@ -803,7 +775,7 @@ const TokenDetails: NextPage = () => {
                         </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
+                        <Launching tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
                     </TabsContent>
                 </Tabs>
                 </div>
