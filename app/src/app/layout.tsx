@@ -14,8 +14,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Sloth Agent - Intelligent Automation Platform",
-  description: "Sloth Agent is a pioneering platform that optimizes time and effort through cutting-edge artificial intelligence. Work smarter, not harder with our advanced AI-driven automation solutions.",
+  title: "Sloth Agent - AI-Powered Productivity & Trading Platform",
+  description: "Revolutionize your productivity with Sloth Agent's AI-powered automation. Track blockchain activities, analyze social media, and optimize token trading with intelligent insights and automated workflows.",
   keywords: [
     "AI Platform",
     "Artificial Intelligence",
@@ -26,11 +26,26 @@ export const metadata: Metadata = {
     "Machine Learning",
     "Productivity Tools",
     "AI Automation",
-    "Intelligent Automation"
+    "Intelligent Automation",
+    "Blockchain Analytics",
+    "Token Trading",
+    "Market Analysis",
+    "Trading Strategies",
+    "Real-time Insights",
+    "Sloth Agent",
+    "Trading Agent",
+    "Social Media Agent",
+    "Research Agent",
+    "Sloth Agent Platform",
+    "Sloth Agent Token",
+    "Sloth Agent Tokenomics",
+    "Agent Automation",
+    "Sloth Agent AI",
+    "Sloth Agent AI Platform"
   ],
   openGraph: {
-    title: "Sloth Agent - Intelligent Automation Platform",
-    description: "Transform your workflow with AI-powered automation. Sloth Agent integrates advanced AI models for social interactions, research, and intelligent decision-making.",
+    title: "Sloth Agent - AI-Powered Productivity & Trading Platform",
+    description: "Revolutionize your workflow with cutting-edge AI automation. Track blockchain activities, analyze social media, and optimize token trading with intelligent insights and automated workflows.",
     type: "website",
     siteName: "Sloth Agent",
     locale: "en_US",
@@ -38,14 +53,14 @@ export const metadata: Metadata = {
       url: "/og-image.jpg", // Make sure to add this image to your public folder
       width: 1200,
       height: 630,
-      alt: "SlothAI Platform Preview"
+      alt: "Sloth Agent Platform Preview"
     }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sloth Agent - Intelligent Automation Platform",
-    description: "Transform your workflow with AI-powered automation. Work smarter, not harder with Sloth Agent.",
-    creator: "@slothai",
+    title: "Sloth Agent - AI-Powered Productivity & Trading Platform",
+    description: "Democratizing access to sophisticated AI tools. Track blockchain activities, analyze social media, and optimize token trading with intelligent automation.",
+    creator: "@slothagentX",
     images: ["/twitter-image.jpg"], // Make sure to add this image to your public folder
   },
   robots: {
@@ -58,9 +73,6 @@ export const metadata: Metadata = {
       'max-image-preview': 'large',
       'max-snippet': -1,
     },
-  },
-  verification: {
-    google: 'your-google-verification-code', // Add your Google Search Console verification code
   },
   alternates: {
     canonical: 'https://slothai.xyz',

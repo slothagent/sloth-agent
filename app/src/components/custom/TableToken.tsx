@@ -1,4 +1,3 @@
-import { Token } from "@/models/token";
 import { TableCell, TableRow } from "../ui/table";
 import { useRouter } from "next/navigation";
 import { timeAgo } from "@/utils/utils";
@@ -21,9 +20,10 @@ const TableToken = ({ token }: TableTokenProps) => {
         return result.data;
     }
 
-    const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+    const { data: transactionsData } = useQuery({
         queryKey: ['transactions', token?.address],
-        queryFn: () => fetchTransactions(token?.address)
+        queryFn: () => fetchTransactions(token?.address),
+        refetchInterval: 1000
     });
     
     // console.log(transactionsData);
@@ -132,7 +132,7 @@ const TableToken = ({ token }: TableTokenProps) => {
             <TableCell className="text-right text-white">
                 ${volume24h ? volume24h.toFixed(2) : "-"}
             </TableCell>
-            <TableCell className="text-right text-white">{token.metrics?.currentPrice||"-"}</TableCell>
+            <TableCell className="text-right text-white">${transactionsData?.[transactionsData?.length - 1]?.price?.toFixed(6)||"-"}</TableCell>
             <TableCell className="text-right">
                 <span className={token.metrics?.priceChange1m && Number(token.metrics.priceChange1m) > 0 ? 'text-green-400' : 'text-red-400'}>
                     {token.metrics?.priceChange1m||"-"}

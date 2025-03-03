@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Transaction } from '@/models/transactions';
 import { formatDistance } from 'date-fns';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import TableTransaction from './TableTransaction';
 
 const fetchTransactions = async (page: number): Promise<{ data: Transaction[], total: number }> => {
   const response = await fetch(`/api/transactions?page=${page}&limit=10`);
@@ -16,30 +18,33 @@ const fetchTransactions = async (page: number): Promise<{ data: Transaction[], t
 
 const TransactionList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const loadTransactions = async () => {
-      setIsLoading(true);
-      try {
-        const result = await fetchTransactions(currentPage);
-        setTransactions(result.data);
-        setTotalTransactions(result.total);
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTransactions();
-  }, [currentPage]);
+  const { data: transactionsData, isLoading } = useQuery({
+    queryKey: ['transactions', currentPage],
+    queryFn: () => fetchTransactions(currentPage),
+    refetchInterval: 1000
+  });
 
   const formatAddress = (address: string | undefined | null) => {
     if (!address) return '-';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatNumber = (value: number | undefined | null): string => {
+    if (value === undefined || value === null) return '-';
+    
+    if (value >= 1) {
+      return value.toLocaleString('en-US', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      });
+    }
+    
+    return value.toLocaleString('en-US', { 
+      minimumFractionDigits: 6, 
+      maximumFractionDigits: 6 
+    });
   };
 
   return (
@@ -50,7 +55,7 @@ const TransactionList: React.FC = () => {
 
       <div className="flex items-center justify-between text-xs sm:text-sm text-gray-400 mb-2 px-2">
         <div>
-          TRANSFERS <span className="mx-2">{currentPage} / {Math.ceil(totalTransactions / 10)}</span>
+          TRANSFERS <span className="mx-2">{currentPage} / {Math.ceil(totalTransactions+1 / 10)}</span>
         </div>
       </div>
 
@@ -69,30 +74,11 @@ const TransactionList: React.FC = () => {
           <div className="divide-y divide-gray-800">
             {isLoading ? (
               <div className="p-4 text-center text-gray-400">Loading transactions...</div>
-            ) : transactions.length === 0 ? (
+            ) : transactionsData?.data?.length === 0 ? (
               <div className="p-4 text-center text-gray-400">No transactions found</div>
             ) : (
-              transactions.map((tx) => (
-                <div key={tx.transactionHash} className="grid grid-cols-12 gap-4 p-4 text-sm hover:bg-[#1C2333] transition-colors duration-200">
-                  <div className="col-span-2 text-[#2196F3]">
-                    {formatDistance(new Date(tx.timestamp), new Date(), { addSuffix: true })}
-                  </div>
-                  <Link target='_blank' href={`https://testnet.sonicscan.org/address/${tx.to}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
-                    {formatAddress(tx.to)}
-                  </Link>
-                  <Link target='_blank' href={`https://testnet.sonicscan.org/token/${tx.from}`} className="col-span-3 text-gray-400 hover:text-white hover:underline">
-                    {formatAddress(tx.from)}
-                  </Link>
-                  <div className={`col-span-1 ${tx.transactionType === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>
-                    {tx.transactionType}
-                  </div>
-                  <div className="col-span-1 text-right text-white">
-                    {tx.amount ? tx.amount > 0 ? tx.amount.toFixed(2): tx.amount.toFixed(6) : '-'} S
-                  </div>
-                  <div className="col-span-2 text-right text-white">
-                    ${tx.price ? tx.price > 0 ? tx.price.toFixed(2) : tx.price.toFixed(6) : '-'}
-                  </div>
-                </div>
+              transactionsData?.data?.map((tx) => (
+                <TableTransaction key={tx.transactionHash} tx={tx} />
               ))
             )}
           </div>
@@ -103,10 +89,10 @@ const TransactionList: React.FC = () => {
       <div className="md:hidden space-y-4">
         {isLoading ? (
           <div className="p-4 text-center text-gray-400">Loading transactions...</div>
-        ) : transactions.length === 0 ? (
+        ) : transactionsData?.data?.length === 0 ? (
           <div className="p-4 text-center text-gray-400">No transactions found</div>
         ) : (
-          transactions.map((tx) => (
+          transactionsData?.data?.map((tx) => (
             <Card key={tx.transactionHash} className="bg-[#161B28] border-none rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[#2196F3] text-sm">
@@ -134,10 +120,10 @@ const TransactionList: React.FC = () => {
 
                 <div className="flex items-center justify-between pt-2 border-t border-gray-800">
                   <div className="text-white text-sm">
-                    Amount: {tx.amount}
+                    Amount: {tx.amount ? formatNumber(tx.amount) : '-'} S
                   </div>
                   <div className="text-white text-sm">
-                    ${tx.price.toFixed(2)}
+                    ${tx.price ? formatNumber(tx.price) : '-'}
                   </div>
                 </div>
               </div>

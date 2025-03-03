@@ -27,62 +27,6 @@ type PaginationMetadata = {
   pageSize: number;
 };
 
-type PaginatedResponse<T> = {
-  data: T[];
-  metadata: PaginationMetadata;
-};
-
-type ApiResponse = {
-  data: TokenWithMetrics[];
-  metadata: PaginationMetadata;
-};
-
-const fetchTokens = async (page: number, pageSize: number): Promise<PaginatedResponse<TokenWithMetrics>> => {
-  try {
-    const response = await fetch(`/api/token?page=${page}&pageSize=${pageSize}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('Failed to fetch tokens:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorData
-      });
-      throw new Error(`Failed to fetch tokens: ${response.statusText}`);
-    }
-
-    const data: ApiResponse = await response.json();
-
-    const { currentPage, pageSize: responsePageSize, totalPages, totalCount } = data.metadata;
-    
-    if (typeof currentPage !== 'number' || 
-        typeof responsePageSize !== 'number' || 
-        typeof totalPages !== 'number' || 
-        typeof totalCount !== 'number') {
-      console.error('Invalid metadata format', data.metadata);
-      throw new Error('Invalid metadata format from server');
-    }
-
-    return {
-      data: data.data,
-      metadata: {
-        currentPage,
-        pageSize: responsePageSize,
-        totalPages,
-        totalCount
-      }
-    };
-  } catch (error) {
-    console.error('Error in fetchTokens:', error);
-    throw error;
-  }
-};
-
 const TableSkeleton = () => {
   return (
     <div className="flex h-full flex-col">

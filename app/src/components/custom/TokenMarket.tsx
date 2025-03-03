@@ -5,8 +5,12 @@ import { Button } from '../ui/button'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useTokensData } from '@/hooks/useWebSocketData'
+import { useTokensData, useTransactionsData } from '@/hooks/useWebSocketData'
 import { Token } from '@/models'
+import { formatNumber } from '@/utils/utils'
+import { useReadContract } from 'wagmi'
+import { bondingCurveAbi } from '@/abi/bondingCurveAbi'
+import { useQuery } from '@tanstack/react-query'
 
 
 const formatLaunchDate = (dateString?: string) => {
@@ -19,27 +23,33 @@ const formatLaunchDate = (dateString?: string) => {
   }
 }
 
-const formatSupply = (value: string) => {
-  // Convert from wei to token amount (divide by 10^18)
-  const num = Number(value) / 1e18
-  
-  // Nếu số nhỏ hơn 1000, giữ nguyên và làm tròn 2 chữ số thập phân
-  if (num < 1000) {
-    return num.toFixed(2)
-  }
-  
-  // Nếu số lớn hơn hoặc bằng 1000
-  const tier = Math.floor(Math.log10(num) / 3)
-  if (tier === 0) return num.toFixed(2)
-  
-  const scale = Math.pow(10, tier * 3)
-  const scaled = num / scale
-  
-  // Giữ lại 2 số thập phân và thêm đơn vị K, M, B, T
-  return scaled.toFixed(2).replace(/\.?0+$/, '') + ['', 'K', 'M', 'B', 'T'][tier]
-}
-
 const TokenCard = ({ token }: { token: Token }) => {
+  const fetchTransactions = async (tokenAddress: string) => {
+    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=30d`);
+    const result = await response.json();
+    return result.data;
+  }
+
+  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+      queryKey: ['transactions', token?.address],
+      queryFn: () => fetchTransactions(token?.address)
+  });
+
+
+  const transactions = useMemo(() => {
+    if (!transactionsData) return [];
+    return transactionsData
+  }, [transactionsData]);
+  // console.log(`transactionsData: ${token?.address}`,formatNumber(Number(transactions.reduce((acc: number, curr: any) => acc + curr.marketCap, 0))/10**18))
+  
+  const {data: fundingRaised} = useReadContract({
+    address: token?.curveAddress as `0x${string}`,
+    abi: bondingCurveAbi,
+    functionName: 'fundingRaised',
+    args: []
+  });
+
+
   return (
     <Link href={`/token/${token.address}`}>
       <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors">
@@ -77,8 +87,8 @@ const TokenCard = ({ token }: { token: Token }) => {
             <p className="text-sm text-gray-400 mt-2">{token.description}</p>
             <div className="flex gap-2 justify-between">
               <div className="flex flex-col gap-2">
-                  <span className="text-blue-500">TOTAL SUPPLY</span>
-                  <span className="text-blue-500">$ {formatSupply(token.totalSupply)}</span>
+                  <span className="text-blue-500">TOTAL MARKET CAP</span>
+                  <span className="text-blue-500">$ {formatNumber(Number(transactions.reduce((acc: number, curr: any) => acc + curr.marketCap, 0))/10**18)}</span>
               </div>
               <div className="flex flex-col gap-2">
                   <span className="text-gray-400">LAUNCH TIME</span>
@@ -91,12 +101,12 @@ const TokenCard = ({ token }: { token: Token }) => {
               <div 
                 className="h-2 rounded-full"
                 style={{ 
-                  width: '100%',
+                  width: `${(Number(formatNumber(Number(fundingRaised)/10**18))/22700)*100}%`,
                   background: `linear-gradient(90deg, #161B28 0%, rgb(59 130 246) 100%)`
                 }}
               />
             </div>
-            <span className="text-blue-500 text-sm mt-1 block">100%</span>
+            <span className="text-blue-500 text-sm mt-1 block">{parseFloat((Number(formatNumber(Number(fundingRaised)/10**18))/22700*100).toFixed(2))}%</span>
           </div>
         </div>
       </div>
@@ -111,14 +121,11 @@ const sortTokensByPriority = (tokens: Token[], query: string) => {
     const aTicker = a.ticker.toLowerCase()
     const bTicker = b.ticker.toLowerCase()
 
-    // Priority 1: Tên bắt đầu bằng query
     const aStartsWithName = aName.startsWith(query)
     const bStartsWithName = bName.startsWith(query)
     
     if (aStartsWithName && !bStartsWithName) return -1
     if (!aStartsWithName && bStartsWithName) return 1
-
-    // Priority 2: Ticker bắt đầu bằng query (nếu tên không match)
     if (!aStartsWithName && !bStartsWithName) {
       const aStartsWithTicker = aTicker.startsWith(query)
       const bStartsWithTicker = bTicker.startsWith(query)
@@ -127,14 +134,12 @@ const sortTokensByPriority = (tokens: Token[], query: string) => {
       if (!aStartsWithTicker && bStartsWithTicker) return 1
     }
 
-    // Priority 3: Tên chứa query
     const aContainsName = aName.includes(query)
     const bContainsName = bName.includes(query)
     
     if (aContainsName && !bContainsName) return -1
     if (!aContainsName && bContainsName) return 1
 
-    // Priority 4: Ticker chứa query (nếu tên không chứa)
     if (!aContainsName && !bContainsName) {
       const aContainsTicker = aTicker.includes(query)
       const bContainsTicker = bTicker.includes(query)
@@ -143,7 +148,6 @@ const sortTokensByPriority = (tokens: Token[], query: string) => {
       if (!aContainsTicker && bContainsTicker) return 1
     }
 
-    // Priority 5: Sắp xếp theo thời gian tạo nếu cùng mức độ ưu tiên
     return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
   })
 }
@@ -153,28 +157,24 @@ export default function AgentMarket() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllCategories, setShowAllCategories] = useState(false)
   const { tokens: tokens, loading: tokensLoading } = useTokensData();
-  // const { data: tokens, isLoading } = useQuery({
-  //   queryKey: ['token'],
-  //   queryFn: () => fetchTokens(),
-  //   staleTime: 10 * 1000,
-  //   gcTime: 5 * 60 * 1000,
-  //   refetchOnWindowFocus: false,
-  //   refetchOnMount: false,
-  //   refetchInterval: 10 * 1000,
-  //   retry: 1,
-  // })
 
   const filteredTokens = useMemo(() => {
     if (!tokens) return []
-    if (!searchQuery) return tokens
-
-    const query = searchQuery.toLowerCase()
-    const filtered = tokens.filter((token: Token) => 
-      token.name.toLowerCase().includes(query) ||
-      token.ticker.toLowerCase().includes(query)
+    
+    let result = !searchQuery ? [...tokens] : tokens.filter((token: Token) => 
+      token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      token.ticker.toLowerCase().includes(searchQuery.toLowerCase())
     )
-
-    return sortTokensByPriority(filtered, query)
+    
+    if (searchQuery) {
+      result = sortTokensByPriority(result, searchQuery.toLowerCase())
+    } else {
+      result.sort((a, b) => {
+        return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
+      })
+    }
+    
+    return result
   }, [tokens, searchQuery])
 
   const categories = [
@@ -281,9 +281,7 @@ export default function AgentMarket() {
       </div>
       <div className='flex gap-4 py-4 overflow-x-auto'>
         {filteredTokens.map((token: Token, index: number) => (
-          <div key={`${token._id}-${index}`} className="flex-shrink-0">
-            <TokenCard token={token} />
-          </div>
+          <TokenCard key={index} token={token} />
         ))}
         {filteredTokens.length === 0 && searchQuery && (
           <div className="flex flex-col items-center justify-center w-full py-8">

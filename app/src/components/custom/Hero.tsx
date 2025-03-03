@@ -5,6 +5,7 @@ import { useCallback, useMemo } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber } from '@/utils/utils';
 import { useTokensData, useAgentsData, useTransactionsData, useTotalVolumeData } from '@/hooks/useWebSocketData';
+import { useQuery } from '@tanstack/react-query';
 
 const Hero: React.FC = () => {
   const router = useRouter();
@@ -13,7 +14,19 @@ const Hero: React.FC = () => {
   const {totalVolume: totalVolumeData, loading: totalVolumeLoading} = useTotalVolumeData();
 
 
-  const { transactions: transactionsData, loading: transactionsLoading } = useTransactionsData(tokens[0]?.address);
+  const fetchTransactions = async (tokenAddress: string) => {
+    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=30d`);
+    const result = await response.json();
+    return result.data;
+  }
+
+  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+      queryKey: ['transactions', tokens[tokens.length - 1]?.address],
+      queryFn: () => fetchTransactions(tokens[tokens.length - 1]?.address),
+      enabled: !!tokens[tokens.length - 1]?.address,
+      refetchInterval: 1000
+  });
+
 
   const transactions = useMemo(() => {
     if (!transactionsData) return [];
@@ -57,17 +70,17 @@ const Hero: React.FC = () => {
           {/* Featured Agent Card */}
           {tokensLoading ? (
             <MainCardSkeleton />
-          ) : tokens[0] && (
+          ) : tokens[tokens.length - 1] && (
             <Card 
-              onClick={() => router.push(`/token/${tokens[0].address}`)}
+              onClick={() => router.push(`/token/${tokens[tokens.length - 1].address}`)}
               className="w-full lg:w-[400px] h-auto min-h-[200px] bg-[#161B28] hover:bg-[#1C2333] transition-colors duration-200 cursor-pointer border-none rounded-lg"
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  {tokens[0].imageUrl &&(
+                  {tokens[tokens.length - 1].imageUrl &&(
                     <Image
-                      src={tokens[0].imageUrl}
-                      alt={tokens[0].name}
+                      src={tokens[tokens.length - 1].imageUrl || ''}
+                      alt={tokens[tokens.length - 1].name}
                       width={48}
                       height={48}
                       unoptimized
@@ -78,8 +91,8 @@ const Hero: React.FC = () => {
                     />
                   )}
                   <div>
-                    <h3 className="text-xl font-semibold text-white">{tokens[0].name}</h3>
-                    <p className="text-gray-400">{tokens[0].ticker}</p>
+                    <h3 className="text-xl font-semibold text-white">{tokens[tokens.length - 1].name}</h3>
+                    <p className="text-gray-400">{tokens[tokens.length - 1].ticker}</p>
                   </div>
                 </div>
                 <div className="mt-6">
