@@ -4,6 +4,7 @@ const listeners: Record<string, Set<(data: any) => void>> = {
   agents: new Set(),
   transactions: new Set(),
   totalVolume: new Set(),
+  tokenByAddress: new Set(),
 };
 
 // Initialize WebSocket connection
@@ -110,9 +111,38 @@ export function subscribeToTransactions(tokenAddress: string, timeRange: string 
   subscribeToDataType('transactions', { tokenAddress, timeRange });
 }
 
+// Subscribe to a token by its address
+export function subscribeToTokenByAddress(address: string) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    initWebSocket();
+    return;
+  }
+  
+  socket.send(JSON.stringify({
+    type: 'subscribe',
+    dataType: 'tokenByAddress',
+    address
+  }));
+}
+
 // Add a helper function for totalVolume with timeRange
 export function subscribeTotalVolume(timeRange?: string) {
   subscribeToDataType('totalVolume', timeRange ? { timeRange } : {});
+}
+
+// Subscribe to all transactions
+export function subscribeToAllTransactions(timeRange: string = '30d', limit: number = 100) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    initWebSocket();
+    return;
+  }
+  
+  socket.send(JSON.stringify({
+    type: 'subscribe',
+    dataType: 'allTransactions',
+    timeRange,
+    limit
+  }));
 }
 
 // Initialize WebSocket on client side

@@ -22,13 +22,14 @@ const wsChangeStreams = new WeakMap<ServerWebSocket, ChangeStream[]>();
 // Define message types for better type safety
 interface SubscribeMessage {
   type: 'subscribe';
-  dataType: 'tokens' | 'agents' | 'transactions' | 'totalVolume';
+  dataType: 'tokens' | 'agents' | 'transactions' | 'totalVolume' | 'tokenByAddress' | 'allTransactions';
   tokenAddress?: string;
   timeRange?: string;
   collection?: string;
   filter?: Record<string, any>;
   sort?: Record<string, any>;
   limit?: number;
+  address?: string;
 }
 
 type ClientMessage = SubscribeMessage;
@@ -78,7 +79,7 @@ const server = serve({
         const parsedMessage = JSON.parse(message.toString()) as ClientMessage;
         
         if (parsedMessage.type === 'subscribe') {
-          const { dataType, tokenAddress, timeRange, collection, filter = {}, sort = {}, limit = 100 } = parsedMessage;
+          const { dataType, tokenAddress, timeRange, collection, filter = {}, sort = {}, limit = 100, address } = parsedMessage;
           
           // Handle different data types
           switch (dataType) {
@@ -184,27 +185,62 @@ const server = serve({
               }));
               
               // Set up change stream for transactions with improved pipeline
-              const transactionsChangeStream = db.collection('transactions').watch([
-                { 
-                  $match: { 
-                    $or: [
-                      { 'fullDocument.from': tokenAddress },
-                      { 'fullDocument.to': tokenAddress },
-                      { 'fullDocument.tokenAddress': tokenAddress }
-                    ]
-                  } 
-                }
-              ]);
+              const transactionsChangeStream = db.collection('transactions').watch();
               
               transactionsChangeStream.on('change', (change) => {
-                // Only send if it matches our time range filter
-                if (timeRange === '24h') {
-                  const oneDayAgo = new Date();
-                  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                // Kiểm tra xem change có liên quan đến tokenAddress không
+                let isRelevant = false;
+                
+                if (change.operationType === 'insert' && change.fullDocument) {
+                  isRelevant = change.fullDocument.from === tokenAddress || 
+                              change.fullDocument.to === tokenAddress || 
+                              change.fullDocument.tokenAddress === tokenAddress;
+                } else if (change.operationType === 'update') {
+                  // Đối với cập nhật, chúng ta cần kiểm tra ID của document
+                  // Lấy transaction hiện tại để kiểm tra
+                  db.collection('transactions').findOne({ _id: change.documentKey._id })
+                    .then(tx => {
+                      if (tx && (tx.from === tokenAddress || tx.to === tokenAddress || tx.tokenAddress === tokenAddress)) {
+                        // Gửi cập nhật nếu transaction liên quan đến token của chúng ta
+                        ws.send(JSON.stringify({ 
+                          type: 'update', 
+                          dataType: 'transactions', 
+                          tokenAddress,
+                          timeRange,
+                          change 
+                        }));
+                      }
+                    })
+                    .catch(err => console.error('Error checking transaction relevance:', err));
                   
-                  if (change.operationType === 'insert' && 
-                      change.fullDocument && 
-                      change.fullDocument.timestamp >= oneDayAgo) {
+                  // Không tiếp tục xử lý ở đây vì chúng ta đã xử lý bất đồng bộ ở trên
+                  return;
+                } else if (change.operationType === 'delete') {
+                  // Đối với xóa, chúng ta không thể biết liệu document đã xóa có liên quan không
+                  // Nên gửi thông báo để client có thể quyết định
+                  isRelevant = true;
+                }
+                
+                // Chỉ gửi cập nhật nếu liên quan đến token của chúng ta
+                if (isRelevant) {
+                  // Kiểm tra thêm điều kiện thời gian nếu cần
+                  let meetTimeFilter = true;
+                  
+                  if (timeRange === '24h' && change.operationType === 'insert') {
+                    const oneDayAgo = new Date();
+                    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                    meetTimeFilter = change.fullDocument.timestamp >= oneDayAgo;
+                  } else if (timeRange === '7d' && change.operationType === 'insert') {
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    meetTimeFilter = change.fullDocument.timestamp >= sevenDaysAgo;
+                  } else if (timeRange === '30d' && change.operationType === 'insert') {
+                    const thirtyDaysAgo = new Date();
+                    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                    meetTimeFilter = change.fullDocument.timestamp >= thirtyDaysAgo;
+                  }
+                  
+                  if (meetTimeFilter) {
                     ws.send(JSON.stringify({ 
                       type: 'update', 
                       dataType: 'transactions', 
@@ -213,44 +249,6 @@ const server = serve({
                       change 
                     }));
                   }
-                } else if (timeRange === '7d') {
-                  const sevenDaysAgo = new Date();
-                  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                  
-                  if (change.operationType === 'insert' && 
-                      change.fullDocument && 
-                      change.fullDocument.timestamp >= sevenDaysAgo) {
-                    ws.send(JSON.stringify({ 
-                      type: 'update', 
-                      dataType: 'transactions', 
-                      tokenAddress,
-                      timeRange,
-                      change 
-                    }));
-                  }
-                } else if (timeRange === '30d') {
-                  const thirtyDaysAgo = new Date();
-                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                  
-                  if (change.operationType === 'insert' && 
-                      change.fullDocument && 
-                      change.fullDocument.timestamp >= thirtyDaysAgo) {
-                    ws.send(JSON.stringify({ 
-                      type: 'update', 
-                      dataType: 'transactions', 
-                      tokenAddress,
-                      timeRange,
-                      change 
-                    }));
-                  }
-                } else {
-                  ws.send(JSON.stringify({ 
-                    type: 'update', 
-                    dataType: 'transactions', 
-                    tokenAddress,
-                    timeRange,
-                    change 
-                  }));
                 }
               });
               
@@ -318,6 +316,136 @@ const server = serve({
               const volumeStreams = wsChangeStreams.get(ws) || [];
               volumeStreams.push(volumeChangeStream);
               wsChangeStreams.set(ws, volumeStreams);
+              break;
+              
+            case 'tokenByAddress':
+              if (!address) {
+                ws.send(JSON.stringify({ 
+                  type: 'error', 
+                  message: 'address is required for tokenByAddress' 
+                }));
+                return;
+              }
+              
+              // Fetch token by address
+              const token = await db.collection('tokens').findOne({ 
+                address: { $regex: new RegExp(`^${address}$`, 'i') } // Case insensitive match
+              });
+              
+              if (token) {
+                ws.send(JSON.stringify({ 
+                  type: 'data', 
+                  dataType: 'tokenByAddress', 
+                  address,
+                  data: token 
+                }));
+              } else {
+                ws.send(JSON.stringify({ 
+                  type: 'error', 
+                  dataType: 'tokenByAddress',
+                  address,
+                  message: 'Token not found' 
+                }));
+              }
+              
+              // Set up change stream for tokens with filter for this address
+              const tokenByAddressChangeStream = db.collection('tokens').watch([
+                { 
+                  $match: { 
+                    $or: [
+                      { 'fullDocument.address': { $regex: new RegExp(`^${address}$`, 'i') } },
+                      { 'documentKey._id': token ? token._id : null }
+                    ]
+                  } 
+                }
+              ]);
+              
+              tokenByAddressChangeStream.on('change', (change) => {
+                ws.send(JSON.stringify({ 
+                  type: 'update', 
+                  dataType: 'tokenByAddress', 
+                  address,
+                  change 
+                }));
+              });
+              
+              // Store change stream
+              const tokenByAddressStreams = wsChangeStreams.get(ws) || [];
+              tokenByAddressStreams.push(tokenByAddressChangeStream);
+              wsChangeStreams.set(ws, tokenByAddressStreams);
+              break;
+              
+            case 'allTransactions':
+              // Tạo filter dựa trên timeRange
+              const allTransactionsFilter: Record<string, any> = {};
+              
+              if (timeRange === '24h') {
+                const oneDayAgo = new Date();
+                oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                allTransactionsFilter.timestamp = { $gte: oneDayAgo };
+              } else if (timeRange === '7d') {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                allTransactionsFilter.timestamp = { $gte: sevenDaysAgo };
+              } else if (timeRange === '30d') {
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                allTransactionsFilter.timestamp = { $gte: thirtyDaysAgo };
+              }
+              
+              console.log('Fetching all transactions with filter:', JSON.stringify(allTransactionsFilter));
+              
+              // Fetch all transactions data
+              const allTransactions = await db.collection('transactions')
+                .find(allTransactionsFilter)
+                .sort({ timestamp: -1 })
+                .limit(limit || 100)
+                .toArray();
+                
+              console.log(`Found ${allTransactions.length} transactions`);
+                
+              ws.send(JSON.stringify({ 
+                type: 'data', 
+                dataType: 'allTransactions', 
+                timeRange,
+                data: allTransactions 
+              }));
+              
+              // Set up change stream for all transactions
+              const allTransactionsChangeStream = db.collection('transactions').watch();
+              
+              allTransactionsChangeStream.on('change', (change) => {
+                // Kiểm tra điều kiện thời gian
+                let meetTimeFilter = true;
+                
+                if (timeRange === '24h' && change.operationType === 'insert' && change.fullDocument) {
+                  const oneDayAgo = new Date();
+                  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+                  meetTimeFilter = change.fullDocument.timestamp >= oneDayAgo;
+                } else if (timeRange === '7d' && change.operationType === 'insert' && change.fullDocument) {
+                  const sevenDaysAgo = new Date();
+                  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                  meetTimeFilter = change.fullDocument.timestamp >= sevenDaysAgo;
+                } else if (timeRange === '30d' && change.operationType === 'insert' && change.fullDocument) {
+                  const thirtyDaysAgo = new Date();
+                  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                  meetTimeFilter = change.fullDocument.timestamp >= thirtyDaysAgo;
+                }
+                
+                if (meetTimeFilter) {
+                  ws.send(JSON.stringify({ 
+                    type: 'update', 
+                    dataType: 'allTransactions', 
+                    timeRange,
+                    change 
+                  }));
+                }
+              });
+              
+              // Store change stream
+              const allTransactionsStreams = wsChangeStreams.get(ws) || [];
+              allTransactionsStreams.push(allTransactionsChangeStream);
+              wsChangeStreams.set(ws, allTransactionsStreams);
               break;
               
             default:
