@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from 'react';
-import { CirclePlus, Coins, Upload } from 'lucide-react';
+import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '@/utils/pinata';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -39,6 +39,7 @@ const CreateToken: React.FC = () => {
     const [tokenAddress, setTokenAddress] = useState<string|null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [isBuyOpen, setIsBuyOpen] = useState<boolean>(false);
+    const [isTwitterShareOpen, setIsTwitterShareOpen] = useState<boolean>(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
 
@@ -451,14 +452,37 @@ const CreateToken: React.FC = () => {
             }
 
             toast.success('Token created successfully!', { id: loadingToast });
-            if(!amount){
-                router.push(`/token/${address}`);
-            }
+            
+            // Show Twitter share dialog after token creation
+            setIsTwitterShareOpen(true);
+            
         } catch (error) {
             console.error('Error creating token:', error);
             toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
         }
     }
+
+    // Function to handle Twitter sharing
+    const handleTwitterShare = () => {
+        const tweetText = encodeURIComponent(
+            `🎉 ${tokenName || 'Epic token'} (${ticker || ''}) drops on Sloth Agent!\n` +
+            `🔥 Grab it: https://slothai.xyz/token/${tokenAddress}\n` +
+            `#SlothAgent #${ticker} #S`
+        );
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+        
+        window.open(twitterShareUrl, '_blank');
+        setIsTwitterShareOpen(false);
+        
+        router.push(`/token/${tokenAddress}`);
+    };
+
+    // Function to skip Twitter sharing
+    const handleSkipTwitterShare = () => {
+        setIsTwitterShareOpen(false);
+        
+        router.push(`/token/${tokenAddress}`);
+    };
 
     const categories = {
         Origin: [
@@ -562,6 +586,26 @@ const CreateToken: React.FC = () => {
                             {errors.description && (
                                 <p className="text-sm text-red-500 mt-1">{errors.description}</p>
                             )}
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-400">Symbol</label>
+                            <Input
+                                value={ticker||''}
+                                onChange={(e) => {
+                                    const value = e.target.value.toUpperCase();
+                                    if (value.length <= 5) {
+                                        setTicker(value);
+                                        setErrors({...errors, ticker: undefined});
+                                    }
+                                }}
+                                placeholder="Enter symbol (e.g. SLOTH)"
+                                className={`w-full bg-[#0B0E17] border-[#1F2937] text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] uppercase ${errors.ticker ? 'border-red-500' : ''}`}
+                                maxLength={5}
+                            />
+                            {errors.ticker && (
+                                <p className="text-sm text-red-500 mt-1">{errors.ticker}</p>
+                            )}
+                            <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Category</label>
@@ -732,26 +776,7 @@ const CreateToken: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">Symbol</label>
-                            <Input
-                                value={ticker||''}
-                                onChange={(e) => {
-                                    const value = e.target.value.toUpperCase();
-                                    if (value.length <= 5) {
-                                        setTicker(value);
-                                        setErrors({...errors, ticker: undefined});
-                                    }
-                                }}
-                                placeholder="Enter symbol (e.g. SLOTH)"
-                                className={`w-full bg-[#0B0E17] border-[#1F2937] text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] uppercase ${errors.ticker ? 'border-red-500' : ''}`}
-                                maxLength={5}
-                            />
-                            {errors.ticker && (
-                                <p className="text-sm text-red-500 mt-1">{errors.ticker}</p>
-                            )}
-                            <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
-                        </div>
+                        
 
                         {/* <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Total Supply</label>
@@ -986,6 +1011,55 @@ const CreateToken: React.FC = () => {
                 </div>
                 
             </div>
+
+            {/* Twitter Share Dialog */}
+            <Dialog open={isTwitterShareOpen} onOpenChange={setIsTwitterShareOpen}>
+                <DialogContent className="bg-[#0B0E17] text-white border-[#1F2937] max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-white">Share Your New Token</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                        <div className="flex items-center justify-center p-4 bg-[#161B28] rounded-lg">
+                            <div className="flex items-center space-x-3">
+                                <img src="/assets/icon/x-light.svg" alt="twitter" className='w-7 h-7' />
+                                <div>
+                                    <p className="text-lg font-medium text-white">Share on Twitter</p>
+                                    <p className="text-sm text-gray-400">Let your followers know about your new token!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 flex space-y-2 flex-col bg-[#161B28] rounded-lg text-wrap">
+                            <p className="text-sm text-gray-300">
+                                🎉 ${tokenName || 'Epic token'} (${ticker || ''}) drops on Sloth Agent!
+                            </p>
+                            <p className="text-sm text-gray-300">
+                                🔥 Grab it: <a href={`https://slothai.xyz/token/${tokenAddress}`} target="_blank" rel="noopener noreferrer" className='underline'>https://slothai.xyz/token/{tokenAddress}</a>
+                            </p>
+                            <p className="text-sm text-gray-300">
+                                #SlothAgent #${ticker} #S
+                            </p>
+                        </div>
+                        
+                        <div className="flex gap-3 mt-6">
+                            <Button
+                                onClick={handleSkipTwitterShare}
+                                variant="outline"
+                                className="flex-1 bg-[#161B28] text-gray-400 hover:bg-[#1C2333] hover:text-white border border-[#1F2937]"
+                            >
+                                Skip
+                            </Button>
+                            <Button
+                                onClick={handleTwitterShare}
+                                className="flex-1 bg-[#1DA1F2] text-white hover:bg-[#1a94df]"
+                            >
+                                <Twitter className="w-4 h-4 mr-2" />
+                                Share
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </main>
     );
 };

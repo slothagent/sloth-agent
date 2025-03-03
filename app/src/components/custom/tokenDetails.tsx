@@ -26,6 +26,7 @@ import Launching from '@/components/custom/Launching';
 import { decodeEventLog } from 'viem';
 import { tokenAbi } from '@/abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '@/hooks/useWebSocketData';
+import { LoadingSpinner } from '../ui/loading-spinner';
 
 
 
@@ -68,15 +69,37 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         return `(${diffDays}d ago)`;
     };
 
-    const { token: token, loading: isTokenDataLoading } = useTokenByAddress(tokenAddress as string);
+    const fetchTokenByAddress = async () => {
+        const token = await fetch(`/api/token?address=${tokenAddress?.toString()}`,{
+            next: { revalidate: 60 },
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+        return token.json();
+    }
+
+    const { data: tokenDatas, isLoading: isTokenDataLoading } = useQuery({
+        queryKey: ['token', tokenAddress],
+        queryFn: () => fetchTokenByAddress(),
+        staleTime: 60 * 1000,
+        gcTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        retry: 1,
+    });
+
+    const { token: tokenResult, loading: isTokenResultLoading } = useTokenByAddress(tokenAddress as string);
 
     const tokenData = useMemo(() => {
+        const token = tokenDatas?.data || tokenResult || []
         if (!token) return null;
         return {
             ...token,
             createdAt: token?.createdAt ? new Date(token.createdAt) : null
         };
-    }, [token]);
+    }, [tokenDatas, tokenResult]);
 
 
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
@@ -137,7 +160,6 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                     marketCap: parseFloat(newTotalMarketCap||"0")
                                 }),
                             });
-                            await refetchCurrentPrice();
                             await writeContractAsync({
                                 address: tokenData?.address as `0x${string}`,
                                 abi: tokenAbi,
@@ -205,13 +227,6 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         args: []
     });
 
-    const {data: currentPrice, refetch: refetchCurrentPrice} = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'getCurrentPrice',
-        args: []
-    });
-    
 
     const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
@@ -245,8 +260,12 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         return (balanceNum * percentage / 100).toString();
     };
 
-    if (isTokenDataLoading || !tokenData) {
-        return <div>Loading...</div>;
+    const isLoading = isTokenDataLoading || isTokenResultLoading 
+
+    if (isLoading) {
+        return <div className='flex items-center justify-center h-screen'>
+            <LoadingSpinner size='lg' color='white'/>
+        </div>;
     }
 
 

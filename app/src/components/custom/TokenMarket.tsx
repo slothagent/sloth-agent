@@ -156,12 +156,25 @@ export default function AgentMarket() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllCategories, setShowAllCategories] = useState(false)
-  const { tokens: tokens, loading: tokensLoading } = useTokensData();
+  const { tokens, loading: tokensLoading } = useTokensData();
+
+  const {data: tokensData, isLoading: tokensDataLoading} = useQuery({
+    queryKey: ['tokens'],
+    queryFn: async () => {
+      const response = await fetch(`/api/token?page=1&pageSize=10`);
+      const result = await response.json();
+      return result.data;
+    }
+  });
+
+  // Show loading state when both sources are loading and no data is available yet
+  const isLoading = (tokensLoading || tokensDataLoading) && !tokens && !tokensData;
 
   const filteredTokens = useMemo(() => {
-    if (!tokens) return []
+    // Use tokensData if tokens is not available
+    const sourceTokens = tokens || tokensData || [];
     
-    let result = !searchQuery ? [...tokens] : tokens.filter((token: Token) => 
+    let result = !searchQuery ? [...sourceTokens] : sourceTokens.filter((token: Token) => 
       token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       token.ticker.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -175,7 +188,7 @@ export default function AgentMarket() {
     }
     
     return result
-  }, [tokens, searchQuery])
+  }, [tokens, tokensData, searchQuery])
 
   const categories = [
     'All',
@@ -213,14 +226,14 @@ export default function AgentMarket() {
 
   // console.log('Tokens:', tokens)
 
-  if (tokensLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col pt-6">
         <div className="flex items-center justify-between">
           <p className="text-white text-2xl font-bold">Tokens Market</p>
         </div>
         <div className="flex gap-4 py-4">
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex-shrink-0 w-[300px] h-[200px] bg-[#161B28] animate-pulse" />
           ))}
         </div>

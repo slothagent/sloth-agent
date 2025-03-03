@@ -14,8 +14,6 @@ import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } 
 import { factoryAbi } from '@/abi/factoryAbi';
 import { initiateTwitterAuth } from '@/utils/twitter';
 import { Button } from '../ui/button';
-import { parseEther,parseUnits } from 'viem';
-import Image from 'next/image';
 
 interface TwitterAuthData {
     accessToken: string | null;
@@ -232,7 +230,6 @@ const CreateAgent: React.FC = () => {
                 description: description || '',
                 ticker: ticker,
                 imageUrl: imageUrl || '',
-                agentLore: agentLore || '',
                 personality: personality || '',
                 knowledgeAreas: knowledgeAreas || '',
                 tokenAddress: address,
@@ -275,9 +272,6 @@ const CreateAgent: React.FC = () => {
     }, [twitterAuth, skipTwitter]);
 
     const validateTwitterStep = () => {
-        // For step 5, we'll consider it valid if either:
-        // 1. Twitter is connected (twitterAuth exists)
-        // 2. User has chosen not to connect Twitter (we'll add a skip option)
         const isValid = !!twitterAuth || skipTwitter;
         handleStepValidation(5, isValid);
         return isValid;
@@ -426,16 +420,16 @@ const CreateAgent: React.FC = () => {
             fields: ["Name", "Description", "Ticker"]
         },
         {
-            title: "Visual & System",
-            fields: ["Image", "System Type"]
+            title: "Image",
+            fields: ["Image"]
         },
         {
-            title: "Personality & Background",
-            fields: ["Agent Lore", "Personality", "Style"]
+            title: "Personality",
+            fields: ["Personality"]
         },
         {
-            title: "Capabilities",
-            fields: ["Knowledge", "Tools", "Examples"]
+            title: "Knowledge",
+            fields: ["Knowledge"]
         },
         {
             title: "Twitter Config",
