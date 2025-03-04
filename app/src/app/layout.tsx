@@ -14,7 +14,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Sloth Agent - AI-Powered Productivity & Trading Platform",
+  title: "Sloth Agent - AI Powered Productivity & Trading Platform",
   description: "Revolutionize your productivity with Sloth Agent's AI-powered automation. Track blockchain activities, analyze social media, and optimize token trading with intelligent insights and automated workflows.",
   keywords: [
     "AI Platform",

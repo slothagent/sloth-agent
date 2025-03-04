@@ -1034,7 +1034,7 @@ const CreateToken: React.FC = () => {
                                 🎉 ${tokenName || 'Epic token'} (${ticker || ''}) drops on Sloth Agent!
                             </p>
                             <p className="text-sm text-gray-300">
-                                🔥 Grab it: <a href={`https://slothai.xyz/token/${tokenAddress}`} target="_blank" rel="noopener noreferrer" className='underline'>https://slothai.xyz/token/{tokenAddress}</a>
+                                🔥 Grab it: <a href={`https://slothai.xyz/token/${tokenAddress}`} target="_blank" rel="noopener noreferrer" className='underline'>0xd1837C13E86a3c4d5EF59055F9d36E41df68A351</a>
                             </p>
                             <p className="text-sm text-gray-300">
                                 #SlothAgent #${ticker} #S
