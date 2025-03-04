@@ -9,6 +9,7 @@ type Props = {
 export async function generateMetadata(
     { params }: Props
 ): Promise<Metadata> {
+    // console.log((await params).address)
     const tokenAddress = (await params).address
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/token?address=${tokenAddress}`)
@@ -33,6 +34,7 @@ export async function generateMetadata(
 
 const TokenDetailsPage = async ({ params }: Props) => {
     const tokenAddress = (await params).address
+    // console.log(tokenAddress)
     return (
         <TokenDetails tokenAddress={tokenAddress as string} />
     )

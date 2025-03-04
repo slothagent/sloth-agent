@@ -93,7 +93,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
     const { token: tokenResult, loading: isTokenResultLoading } = useTokenByAddress(tokenAddress as string);
 
     const tokenData = useMemo(() => {
-        const token = tokenDatas?.data || tokenResult || []
+        const token = tokenDatas?.data ?? tokenResult
         if (!token) return null;
         return {
             ...token,
@@ -101,6 +101,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         };
     }, [tokenDatas, tokenResult]);
 
+    // console.log('tokenData', tokenData)
 
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
@@ -259,10 +260,9 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         const balanceNum = parseFloat(formatUnits(balance || BigInt(0), 18));
         return (balanceNum * percentage / 100).toString();
     };
+ 
 
-    const isLoading = isTokenDataLoading || isTokenResultLoading 
-
-    if (isLoading) {
+    if (!tokenData) {
         return <div className='flex items-center justify-center h-screen'>
             <LoadingSpinner size='lg' color='white'/>
         </div>;
@@ -529,7 +529,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400">
                                             {tokenData?.createdAt ? (
                                                 <>
-                                                    {tokenData.createdAt.toLocaleDateString()} 
+                                                    {tokenData?.createdAt?.toLocaleDateString()} 
                                                     <span className="text-gray-500">
                                                         {getDaysAgo(tokenData.createdAt)}
                                                     </span>
