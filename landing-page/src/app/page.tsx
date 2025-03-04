@@ -127,33 +127,70 @@ export default function Home() {
       <h2 className="text-3xl font-bold text-white">
         cônncconconc
       </h2>
-      <section className="py-5 bg-[#e7ff2e] mb-6 ">
-        <div className="container mx-auto px-4">
 
-          <Carousel>
-            <CarouselContent className="flex-wrap">
-              {[
-                'Основы композиции',
-                'Работа с цветом', 
-                'Типографика',
-                'UI/UX дизайн',
-                'Анимация'
-              ].map((skill, index) => (
-                <CarouselItem key={index} className="md:basis-1/5">
-                  <div className="flex-none w-full p-4">
-                    <div className="bg-[#ffffff] p-4 text-center backdrop-blur-lg">
-                      <div className="w-16 h-16 mx-auto mb-3 bg-gradient-to-r from-gray-700 to-gray-900  flex items-center justify-center">
-                        <div className="w-12 h-12 bg-gradient-to-br from-white/20 to-transparent rounded-full "/>
-                      </div>
-                      <p className="text-black/80 text-sm font-medium tracking-wide">{skill}</p>
-                    </div>
+
+      {/* Skills Progress Section */}
+      <section className="py-16 bg-[#e7ff2e]">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {[
+              {
+                number: "Навык 1",
+                title: "Дизайн сайтов",
+                image: "/skill-1.png"
+              },
+              {
+                number: "Навык 2",
+                title: "Дизайн интерфейсов",
+                image: "/skill-2.png"
+              },
+              {
+                number: "Навык 3",
+                title: "Анимация Дизайна",
+                image: "/skill-3.png"
+              },
+              {
+                number: "Навык 4",
+                title: "Создание 3D объекта для сайтов и баннеров",
+                image: "/skill-4.png"
+              },
+              {
+                number: "Навык 5",
+                title: "Управление временем и проектами",
+                image: "/skill-5.png"
+              }
+            ].map((skill, index) => (
+              <div key={index} className="group cursor-pointer">
+                <div className="bg-white rounded-[32px] p-6 h-[320px] flex flex-col shadow-lg hover:shadow-xl transition-all duration-300">
+                  {/* Skill Number */}
+                  <div className="text-black/60 text-sm mb-2">
+                    {skill.number}
                   </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious variant="outline" className="absolute left-4 bg-white/10 border-none md:hidden" />
-            <CarouselNext variant="outline" className="absolute right-4 bg-white/10 border-none md:hidden" />
-          </Carousel>
+                  
+                  {/* Title */}
+                  <h3 className="text-black text-xl font-medium mb-6">
+                    {skill.title}
+                  </h3>
+                  
+                  {/* 3D Image */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <Image
+                      src={skill.image}
+                      alt={skill.title}
+                      width={160}
+                      height={160}
+                      className="object-contain group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                  
+                  {/* Bottom Text */}
+                  <div className="text-black/60 text-sm text-center mt-4">
+                    Нажмите, чтобы посмотреть что входит
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
       </div>
