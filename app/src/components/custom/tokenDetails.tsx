@@ -28,7 +28,11 @@ import { tokenAbi } from '@/abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '@/hooks/useWebSocketData';
 import { LoadingSpinner } from '../ui/loading-spinner';
 import { formatNumber } from '@/utils/utils';
-
+import { useEthPrice } from '@/hooks/useEthPrice';
+import { useSonicPrice } from '@/hooks/useSonicPrice';
+import { configAncient8 } from '@/wagmi';
+import { configSonicBlaze } from '@/wagmi';
+import { useSwitchChain } from 'wagmi';
 
 const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
     const { address,chain } = useAccount();
@@ -37,19 +41,19 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
     const [timeRange, setTimeRange] = useState('30d');
     const [txHash, setTxHash] = useState<string | null>(null);
     const [transactionType, setTransactionType] = useState<string | null>(null);
-
-    const { data: balance } = useBalance({
-        address: address,
-    });
-
-    const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
-        address: tokenAddress as `0x${string}`,
-        abi: tokenAbi,
-        functionName: 'balanceOf',
-        args: [address as `0x${string}`]
-    });
+    const { switchChain } = useSwitchChain();
+    const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+    const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+  
+    // Get the ETH price for calculations, fallback to 2500 if not available
+    const ethPrice = useMemo(() => {
+      return ethPriceData?.price || 2500;
+    }, [ethPriceData]);
     
-    // console.log('balanceOfToken', balanceOfToken);
+    const sonicPrice = useMemo(() => {
+      return sonicPriceData?.price || 0.7;
+    }, [sonicPriceData]);
+
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -103,8 +107,23 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
 
     // console.log('tokenData', tokenData)
 
+    const { data: balance } = useBalance({
+        address: address,
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
+    });
+
+
+    const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
+    });
+
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
     
     // console.log('Receipt:', receipt);
@@ -220,7 +239,8 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
         functionName: 'balanceOf',
-        args: [tokenData?.curveAddress as `0x${string}`]
+        args: [tokenData?.curveAddress as `0x${string}`],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
 
@@ -228,7 +248,8 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
         functionName: 'getTotalMarketCap',
-        args: []
+        args: [],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
 
@@ -236,14 +257,16 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
         functionName: 'calculateTokensForEth',
-        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
+        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
     const { data: ethToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
         functionName: 'calculateEthForTokens',
-        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
+        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
     const { transactions: transactionsData } = useTransactionsData(tokenData?.address as string);
@@ -275,6 +298,16 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
     const handleBuy = async () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
+        if (tokenData?.network == "Sonic") {
+            switchChain({
+                chainId: 57054
+            });
+        }else{
+            switchChain({
+                chainId: 28122024
+            });
+        }
+
         if (BigInt(tokensToReceive||0) <= 0) return toast.error('Insufficient tokens to receive');
         if (balance && balance.value < parseEther(amount||"0")){
             return toast.error('Insufficient balance');
@@ -310,7 +343,15 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
     const handleSell = async () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
-
+        if (tokenData?.network == "Sonic") {
+            switchChain({
+                chainId: 57054
+            });
+        }else{
+            switchChain({
+                chainId: 28122024
+            });
+        }
         const loadingToast = toast.loading('Selling...');
         try {
             await refetchTokensToReceive();
@@ -506,12 +547,12 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                 <div className="w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
                                     <div className="flex flex-col h-full">
                                         <div className="text-sm mb-auto flex items-center gap-1.5 font-medium text-gray-400">
-                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src={chain?.id == 57054 ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
+                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src={tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
                                             Contract address
                                         </div>
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
                                             {tokenData?.address ? (
-                                                <Link href={`${chain?.id == 57054 ? "https://testnet.sonicscan.org/token/" : "https://scanv2-testnet.ancient8.gg/token/"}${tokenData.curveAddress}`} className='hover:underline' target="_blank">
+                                                <Link href={`${tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/token/" : "https://scanv2-testnet.ancient8.gg/token/"}${tokenData.curveAddress}`} className='hover:underline' target="_blank">
                                                     {tokenData.curveAddress.slice(0, 4)}...{tokenData.curveAddress.slice(-4)}
                                                 </Link>
                                             ) : (
@@ -595,10 +636,10 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                     <div className="flex items-center gap-1">Trade</div>
                                 </TabsTrigger>      
                                 <TabsTrigger 
-                                    value="overview"
+                                    value="analytics"
                                     className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
                                 >
-                                    <div className="flex items-center gap-1 text-xs md:text-base">Overview</div>
+                                    <div className="flex items-center gap-1 text-xs md:text-base">Analytics</div>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="social"
@@ -628,7 +669,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(transactionHistory[0]?.price.toString()||"0")).toFixed(8)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(transactionHistory[0]?.price.toString()||"0")* (tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
@@ -782,8 +823,12 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                         </div>
                         
                     </TabsContent>
-                    <TabsContent value="overview" className="mt-4">
-                        <Overview />
+                    <TabsContent value="analytics" className="mt-4">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-sm text-gray-400">Coming Soon</span>
+                            </div>
+                        </div>
                     </TabsContent>
                     <TabsContent value="social" className="mt-4">
                         <Social tokenData={tokenData} />
@@ -796,7 +841,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                         </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
+                        <Launching network={tokenData?.network||''} sonicPrice={sonicPrice} ethPrice={ethPrice} tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
                     </TabsContent>
                 </Tabs>
                 </div>

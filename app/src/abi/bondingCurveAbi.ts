@@ -192,6 +192,12 @@ export const bondingCurveAbi = [
 				"internalType": "uint256",
 				"name": "newFundingRaised",
 				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amountTokenToReceive",
+				"type": "uint256"
 			}
 		],
 		"name": "UpdateInfo",

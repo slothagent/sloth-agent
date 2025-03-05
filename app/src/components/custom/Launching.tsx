@@ -7,6 +7,8 @@ import { useReadContract } from 'wagmi';
 import { Badge } from '../ui/badge';
 import { INITIAL_SUPPLY } from '@/lib/contants';
 import Link from 'next/link';
+import { configAncient8 } from '@/wagmi';
+import { configSonicBlaze } from '@/wagmi';
 
 
 interface LaunchingProps {
@@ -16,15 +18,19 @@ interface LaunchingProps {
     transactions: Transaction[];
     bondingCurveAddress: string;
     tokenAddress: string;
+    network: string;
+    sonicPrice: number;
+    ethPrice: number;
 }
 
-const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol,transactions,bondingCurveAddress,tokenAddress}) => {
+const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol,transactions,bondingCurveAddress,tokenAddress,network,sonicPrice,ethPrice}) => {
 
     const {data: balanceOfToken} = useReadContract({
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
         functionName: 'balanceOf',
-        args: [bondingCurveAddress as `0x${string}`]
+        args: [bondingCurveAddress as `0x${string}`],
+        config: network == "Sonic" ? configSonicBlaze : configAncient8
     });
     const uniqueToAddresses = [...new Set(transactions.map(tx => tx.to))];
 
@@ -35,7 +41,7 @@ const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol,
                 <div className="space-y-6">
                     <div>
                         <h3 className="text-gray-400 text-sm mb-1">Current Target MarketCap</h3>
-                        <div className="text-3xl font-bold">{formatNumber(Number(totalMarketCap)/10**18)}</div>
+                        <div className="text-3xl font-bold">{formatNumber((Number(totalMarketCap)/10**18)*(network == "Sonic" ? sonicPrice : ethPrice))}</div>
                         <div className="text-[#93E905] text-sm">USD</div>
                     </div>
 
@@ -59,10 +65,10 @@ const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol,
                                     Bonding Curve
                                 </Badge>
                             </div>
-                            <span>{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/1000).toFixed(5))}%</span>
+                            <span>{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/10**18).toFixed(5))}%</span>
                         </div>
                         {uniqueToAddresses.map((address, index) => (
-                            <TableLaunching tokenAddress={tokenAddress} key={index} address={address} index={index} totalValue={transactions.filter(tx => tx.to === address).reduce((acc, tx) => acc + Number(tx.totalValue), 0)} />
+                            <TableLaunching tokenAddress={tokenAddress} network={network} key={index} address={address} index={index} totalValue={transactions.filter(tx => tx.to === address).reduce((acc, tx) => acc + Number(tx.totalValue), 0)} />
                         ))}
                     </div>
                 </div>

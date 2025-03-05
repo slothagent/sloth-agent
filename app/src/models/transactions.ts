@@ -15,6 +15,7 @@ export interface Transaction {
   marketCap: number;
   network: string;
   fundingRaised: number;
+  amountTokensToReceive: number;
 }
 
 export async function createTransaction(transaction: Omit<Transaction, '_id'>) {

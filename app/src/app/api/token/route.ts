@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       address: body.address,
       owner: body.owner,
       ticker: body.ticker,
-      totalSupply: body.totalSupply,
+      totalSupply: "800000000",
       curveAddress: body.curveAddress,
       network: body.network,
       // Optional fields

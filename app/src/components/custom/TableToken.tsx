@@ -5,13 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Transaction } from "@/models/transactions";
 import { formatNumber } from "@/utils/utils";
+import { INITIAL_SUPPLY } from "@/lib/contants";
 
 interface TableTokenProps {
     token: any;
+    ethPrice: number;
+    sonicPrice: number;
 }
 
 
-const TableToken = ({ token }: TableTokenProps) => {
+const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
     const router = useRouter();
 
     const fetchTransactions = async (tokenAddress: string) => {
@@ -63,14 +66,6 @@ const TableToken = ({ token }: TableTokenProps) => {
         return uniqueHolders.size;
     }, [transactionsData]);
 
-    const totalVolume = useMemo(() => {
-        if (!transactionsData) return 0;
-        
-        return transactionsData.reduce((total: number, tx: Transaction) => {
-            return total + (tx.totalValue || 0);
-        }, 0);
-    }, [transactionsData]);
-
     const volume24h = useMemo(() => {
         if (!transactionsData) return 0;
         
@@ -86,9 +81,13 @@ const TableToken = ({ token }: TableTokenProps) => {
         }, 0);
     }, [transactionsData]);
 
-    const totalMarketCap = useMemo(() => {
+    const totalMarketCapToken = useMemo(() => {
         if (!transactionsData) return 0;
-        return transactionsData.reduce((acc: number, curr: any) => acc + curr.marketCap, 0);
+    
+        const ancient8MarketCap = transactionsData.filter((tx: any) => tx.network === 'Ancient8').reduce((acc: number, curr: any) => acc + curr.marketCap, 0) * ethPrice;
+        const sonicMarketCap = transactionsData.filter((tx: any) => tx.network === 'Sonic').reduce((acc: number, curr: any) => acc + curr.marketCap, 0) * sonicPrice;
+    
+        return ancient8MarketCap || sonicMarketCap;
       }, [transactionsData]);
 
     return (
@@ -113,37 +112,27 @@ const TableToken = ({ token }: TableTokenProps) => {
             </div>
             </TableCell>
             <TableCell className="text-gray-400">{timeAgo(token.createdAt)}</TableCell>
-            <TableCell className="text-right">
-            <div className="text-white">{token.metrics?.liquidityAmount||"-"} 🔥</div>
-            <div className="text-sm text-gray-400">{token.metrics?.liquidityValue||"-"}</div>
+            <TableCell className="text-center">
+                <div className="text-white">{"-"}</div>
             </TableCell>
-            <TableCell className="text-right text-white">{token.metrics?.blueChipHolding||"-"}</TableCell>
             <TableCell className="text-right">
                 <div className="text-white">{totalHolders||"-"}</div>
-            </TableCell>
-            <TableCell className="text-right">
-            <div className="text-white">{token.metrics?.smartMoneyValue||"-"}</div>
-            <div className="text-sm text-gray-400">{token.metrics?.smartMoneyKol||"-"} KOL</div>
             </TableCell>
             <TableCell className="text-right">
                 <div className="text-white">{transactionsData?.length||"-"}</div>
                 <div className="text-sm text-gray-400">{transactions24h.buys||"-"}/{transactions24h.sells||"-"}</div>
             </TableCell>
+            <TableCell className="text-center">
+                <div className="text-white">{"-"}</div>
+            </TableCell>
             <TableCell className="text-right text-white">
                 ${volume24h ? volume24h.toFixed(2) : "-"}
             </TableCell>
-            <TableCell className="text-right text-white">${transactionsData?.[transactionsData?.length - 1]?.price?.toFixed(6)||"-"}</TableCell>
-            <TableCell className="text-right">
-                <span className={token.metrics?.priceChange1m && Number(token.metrics.priceChange1m) > 0 ? 'text-green-400' : 'text-red-400'}>
-                    {token.metrics?.priceChange1m||"-"}
-                </span>
-            </TableCell>
+            <TableCell className="text-right text-white">${transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * ethPrice)*INITIAL_SUPPLY) : formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * sonicPrice)*INITIAL_SUPPLY)||"-"}</TableCell>
             <TableCell className="text-right text-white">
-                ${formatNumber(Number(totalMarketCap)/10**18)}
+                ${formatNumber((Number(totalMarketCapToken)/10**18))}
             </TableCell>
-            <TableCell className="text-right text-white">
-                ${totalVolume ? totalVolume.toFixed(2) : "-"}
-            </TableCell>
+
             <TableCell className="text-right text-white">{token.metrics?.followersCount||"-"}</TableCell>
             <TableCell className="text-center text-white">{token.metrics?.topTweetsCount||"-"}</TableCell>
         </TableRow>

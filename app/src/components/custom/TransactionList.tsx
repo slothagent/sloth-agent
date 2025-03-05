@@ -5,6 +5,8 @@ import { Transaction } from '@/models/transactions';
 import { formatDistance } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import TableTransaction from './TableTransaction';
+import { useSonicPrice } from '@/hooks/useSonicPrice';
+import { useEthPrice } from '@/hooks/useEthPrice';
 
 const fetchTransactions = async (page: number): Promise<{ data: Transaction[], total: number }> => {
   const response = await fetch(`/api/transactions?page=${page}&limit=10`);
@@ -18,6 +20,18 @@ const fetchTransactions = async (page: number): Promise<{ data: Transaction[], t
 const TransactionList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTransactions, setTotalTransactions] = useState(0);
+
+  const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+  const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+
+  // Get the ETH price for calculations, fallback to 2500 if not available
+  const ethPrice = useMemo(() => {
+    return ethPriceData?.price || 2500;
+  }, [ethPriceData]);
+  
+  const sonicPrice = useMemo(() => {
+    return sonicPriceData?.price || 0.7;
+  }, [sonicPriceData]);
 
   const { data: transactionsData, isLoading } = useQuery({
     queryKey: ['transactions', currentPage],
@@ -77,58 +91,11 @@ const TransactionList: React.FC = () => {
               <div className="p-4 text-center text-gray-400">No transactions found</div>
             ) : (
               transactionsData?.data?.map((tx) => (
-                <TableTransaction key={tx.transactionHash} tx={tx} />
+                <TableTransaction key={tx.transactionHash} tx={tx} ethPrice={ethPrice} sonicPrice={sonicPrice} />
               ))
             )}
           </div>
         </Card>
-      </div>
-
-      {/* Mobile View - Hidden on desktop */}
-      <div className="md:hidden space-y-4">
-        {isLoading ? (
-          <div className="p-4 text-center text-gray-400">Loading transactions...</div>
-        ) : transactionsData?.data?.length === 0 ? (
-          <div className="p-4 text-center text-gray-400">No transactions found</div>
-        ) : (
-          transactionsData?.data?.map((tx) => (
-            <Card key={tx.transactionHash} className="bg-[#161B28] border-none rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[#2196F3] text-sm">
-                  {formatDistance(new Date(tx.timestamp), new Date(), { addSuffix: true })}
-                </span>
-                <span className={`text-sm ${tx.transactionType === 'BUY' ? 'text-green-500' : 'text-red-500'}`}>
-                  {tx.transactionType}
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm w-24">From:</span>
-                  <span className="text-gray-400 text-sm font-mono">
-                    {formatAddress(tx.to)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400 text-sm w-24">To:</span>
-                  <span className="text-gray-400 text-sm font-mono">
-                    {formatAddress(tx.from)}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-gray-800">
-                  <div className="text-white text-sm">
-                    Amount: {tx.amount ? formatNumber(tx.amount) : '-'} S
-                  </div>
-                  <div className="text-white text-sm">
-                    ${tx.price ? formatNumber(tx.price) : '-'}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
       </div>
 
       {/* Pagination - Responsive for both views */}

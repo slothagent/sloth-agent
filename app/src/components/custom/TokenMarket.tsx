@@ -8,10 +8,13 @@ import Link from 'next/link'
 import { useTokensData, useTransactionsData } from '@/hooks/useWebSocketData'
 import { Token } from '@/models'
 import { formatNumber } from '@/utils/utils'
-import { useReadContract } from 'wagmi'
+import { http, useReadContract } from 'wagmi'
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi'
 import { useQuery } from '@tanstack/react-query'
-
+import { useEthPrice } from '@/hooks/useEthPrice'
+import { useSonicPrice } from '@/hooks/useSonicPrice'
+import { configAncient8, configSonicBlaze } from '@/wagmi'
+import { INITIAL_SUPPLY } from '@/lib/contants'
 
 const formatLaunchDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
@@ -30,11 +33,22 @@ const TokenCard = ({ token }: { token: Token }) => {
     return result.data;
   }
 
+  const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+  const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+
+  // Get the ETH price for calculations, fallback to 2500 if not available
+  const ethPrice = useMemo(() => {
+    return ethPriceData?.price || 2500;
+  }, [ethPriceData]);
+  
+  const sonicPrice = useMemo(() => {
+    return sonicPriceData?.price || 0.7;
+  }, [sonicPriceData]);
+
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
       queryKey: ['transactions', token?.address],
       queryFn: () => fetchTransactions(token?.address)
   });
-
 
   const transactions = useMemo(() => {
     if (!transactionsData) return [];
@@ -46,9 +60,21 @@ const TokenCard = ({ token }: { token: Token }) => {
     address: token?.curveAddress as `0x${string}`,
     abi: bondingCurveAbi,
     functionName: 'fundingRaised',
-    args: []
+    args: [],
+    config: transactions[0]?.network === 'Ancient8' ? configAncient8 : configSonicBlaze
   });
 
+  const totalMarketCapToken = useMemo(() => {
+    if (!transactions) return 0;
+
+    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8')
+    const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
+    const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
+    const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
+    const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
+    const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
+    return ancient8MarketCap || sonicMarketCap;
+  }, [transactions]);
 
   return (
     <Link href={`/token/${token.address}`}>
@@ -88,7 +114,7 @@ const TokenCard = ({ token }: { token: Token }) => {
             <div className="flex gap-2 justify-between">
               <div className="flex flex-col gap-2">
                   <span className="text-blue-500">TOTAL MARKET CAP</span>
-                  <span className="text-blue-500">$ {formatNumber(Number(transactions.reduce((acc: number, curr: any) => acc + curr.marketCap, 0))/10**18)}</span>
+                  <span className="text-blue-500">$ {formatNumber(totalMarketCapToken)}</span>
               </div>
               <div className="flex flex-col gap-2">
                   <span className="text-gray-400">LAUNCH TIME</span>

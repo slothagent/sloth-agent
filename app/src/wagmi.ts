@@ -34,3 +34,23 @@ export const config = getDefaultConfig({
     [ancient8Sepolia.id]: http(),
   }
 }) 
+
+export const configAncient8 = getDefaultConfig({
+  appName: 'Sloth Agent',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
+  chains: [ancient8Sepolia],
+  ssr: true,
+  transports: {
+    [ancient8Sepolia.id]: http(),
+  }
+}) 
+
+export const configSonicBlaze = getDefaultConfig({
+  appName: 'Sloth Agent',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
+  chains: [sonicBlazeTestnet],
+  ssr: true,
+  transports: {
+    [sonicBlazeTestnet.id]: http(),
+  }
+}) 

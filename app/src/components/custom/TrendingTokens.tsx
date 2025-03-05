@@ -9,6 +9,8 @@ import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import TableToken from "./TableToken";
 import { useTokensData } from "@/hooks/useWebSocketData";
+import { useSonicPrice } from "@/hooks/useSonicPrice";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
 
 const TableSkeleton = () => {
@@ -108,6 +110,19 @@ const TrendingTokens: React.FC = () => {
   const { tokens, loading: tokensLoading } = useTokensData();
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
 
+  const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+  const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+
+  // Get the ETH price for calculations, fallback to 2500 if not available
+  const ethPrice = useMemo(() => {
+    return ethPriceData?.price || 2500;
+  }, [ethPriceData]);
+  
+  const sonicPrice = useMemo(() => {
+    return sonicPriceData?.price || 0.7;
+  }, [sonicPriceData]);
+
+
   // Implement client-side pagination
   const paginatedTokens = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
@@ -178,14 +193,11 @@ const TrendingTokens: React.FC = () => {
             <TableRow className="border-b w-auto border-gray-800 hover:bg-transparent">
               <TableHead className="text-gray-400">Token</TableHead>
               <TableHead className="text-gray-400">Age</TableHead>
-              <TableHead className="text-right text-gray-400 text-nowrap">Liq $/MC</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">MindShare</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Holders</TableHead>
-              <TableHead className="text-right text-gray-400 text-nowrap">Smart $/KOL</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">24h TXs</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">24h Vol</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Price</TableHead>
-              <TableHead className="text-right text-gray-400 text-nowrap">Δ7D</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Market Cap</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Volume</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Followers</TableHead>
@@ -194,7 +206,7 @@ const TrendingTokens: React.FC = () => {
           </TableHeader>
           <TableBody>
             {paginatedTokens.map((token) => (
-              <TableToken key={token._id?.toString() || ''} token={token} />
+              <TableToken key={token._id?.toString() || ''} token={token} ethPrice={ethPrice} sonicPrice={sonicPrice} />
             ))}
           </TableBody>
         </Table>

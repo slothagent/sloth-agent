@@ -311,7 +311,7 @@ const CreateToken: React.FC = () => {
                                 data: eventLog2.data,
                                 topics: eventLog2.topics,
                             });
-                            const { newPrice, newSupply, newTotalMarketCap } = decoded.args as any;
+                            const { newPrice, newSupply, newTotalMarketCap, newFundingRaised, amountTokenToReceive } = decoded.args as any;
                             await refetchBalanceOfToken();
                             
                             // Save transaction to database
@@ -326,10 +326,12 @@ const CreateToken: React.FC = () => {
                                     network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                                     price: parseFloat(formatUnits(newPrice || BigInt(0), 18)),
                                     amountToken: parseFloat(amount || "0"),
+                                    amountTokensToReceive: parseFloat(formatUnits(amountTokenToReceive||BigInt(0), 18)),
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
-                                    totalSupply: 800000000,
-                                    marketCap: parseFloat(formatUnits(newTotalMarketCap || BigInt(0), 18))
+                                    totalSupply: parseFloat(newSupply||"0"),
+                                    marketCap: parseFloat(newTotalMarketCap||"0"),
+                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
                                 }),
                             });
                             await writeContractAsync({
@@ -487,6 +489,7 @@ const CreateToken: React.FC = () => {
 
     // Function to handle Twitter sharing
     const handleTwitterShare = () => {
+        const loadingToast = toast.loading('Sharing on Twitter...');
         const tweetText = encodeURIComponent(
             `🎉 ${tokenName || 'Epic token'} (${ticker || ''}) drops on Sloth Agent!\n` +
             `🔥 Grab it: https://slothai.xyz/token/${tokenAddress}\n` +
@@ -496,15 +499,17 @@ const CreateToken: React.FC = () => {
         
         window.open(twitterShareUrl, '_blank');
         setIsTwitterShareOpen(false);
-        
+        setIsBuyOpen(false);
         router.push(`/token/${tokenAddress}`);
-    };
-
+        toast.success('Please wait...', { id: loadingToast });
+    }
     // Function to skip Twitter sharing
     const handleSkipTwitterShare = () => {
+        const loadingToast = toast.loading('Skipping Twitter share...');
         setIsTwitterShareOpen(false);
-        
+        setIsBuyOpen(false);
         router.push(`/token/${tokenAddress}`);
+        toast.success('Please wait...', { id: loadingToast });
     };
 
     const categories = {
