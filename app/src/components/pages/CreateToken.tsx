@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '@/utils/pinata';
 import { toast } from 'react-hot-toast';
@@ -17,6 +17,10 @@ import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import { tokenAbi } from '@/abi/tokenAbi';
 import { MaxUint256 } from 'ethers';
 import { useSwitchChain } from 'wagmi';
+import { useSonicPrice } from '@/hooks/useSonicPrice';
+import { useEthPrice } from '@/hooks/useEthPrice';
+import { configAncient8 } from '@/wagmi';
+import { configSonicBlaze } from '@/wagmi';
 
 const CreateToken: React.FC = () => {
     const [tokenName, setTokenName] = useState<string|null>(null);
@@ -44,8 +48,22 @@ const CreateToken: React.FC = () => {
     const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
     const { switchChain,chains } = useSwitchChain();
 
+    const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+    const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+  
+    // Get the ETH price for calculations, fallback to 2500 if not available
+    const ethPrice = useMemo(() => {
+      return ethPriceData?.price || 2500;
+    }, [ethPriceData]);
+    
+    const sonicPrice = useMemo(() => {
+      return sonicPriceData?.price || 0.7;
+    }, [sonicPriceData]);
+
+
     const { data: balance, refetch: refetchBalance } = useBalance({
         address: OwnerAddress,
+        config: chain?.id == 57054 ? configSonicBlaze : configAncient8
     });
 
     const router = useRouter();
@@ -54,7 +72,8 @@ const CreateToken: React.FC = () => {
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
         functionName: 'balanceOf',
-        args: [OwnerAddress as `0x${string}`]
+        args: [OwnerAddress as `0x${string}`],
+        config: chain?.id == 57054 ? configSonicBlaze : configAncient8
     });
 
     const networks = [
@@ -295,8 +314,8 @@ const CreateToken: React.FC = () => {
                         
                         const { token, bondingCurve } = decoded.args as any;
                         // Create token in database with the token address
-                        console.log("token", token)
-                        console.log("bondingCurve", bondingCurve)
+                        // console.log("token", token)
+                        // console.log("bondingCurve", bondingCurve)
                         setTokenAddress(token);
                         // setCurrentTokenAddress(bondingCurve);
                         await refetchBalanceOfToken();
@@ -324,7 +343,7 @@ const CreateToken: React.FC = () => {
                                     userAddress: OwnerAddress,
                                     tokenAddress: token,
                                     network: chain?.id == 57054 ? "Sonic" : "Ancient8",
-                                    price: parseFloat(formatUnits(newPrice || BigInt(0), 18)),
+                                    price: parseFloat(formatUnits(newPrice || BigInt(0), 18))*(chain?.id == 57054 ? sonicPrice : ethPrice),
                                     amountToken: parseFloat(amount || "0"),
                                     amountTokensToReceive: parseFloat(formatUnits(amountTokenToReceive||BigInt(0), 18)),
                                     transactionType: 'BUY',
