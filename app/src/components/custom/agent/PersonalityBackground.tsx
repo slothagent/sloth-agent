@@ -78,35 +78,15 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
     }, [personality, selectedCategories, showValidation]);
 
     const categories = {
-        Origin: [
-            { icon: "🎮", label: "Anime" },
-            { icon: "🌐", label: "Web3" },
-            { icon: "🐦", label: "Twitter" },
-            { icon: "🎮", label: "Games" },
-            { icon: "🎬", label: "Movies" },
-            { icon: "📚", label: "Books" },
-            { icon: "😂", label: "Memes" },
-            { icon: "🌍", label: "Real Life" },
-            { icon: "⭐", label: "Celebrity" },
-            { icon: "👾", label: "Original Characters" },
-            { icon: "📺", label: "VTuber" }
+        Categories: [
+            { icon: "🎮", label: "Meme" },
+            { icon: "🌐", label: "DeFAI" },
+            { icon: "🐦", label: "Alpha" },
+            { icon: "🎮", label: "Tool Infra" },
+            { icon: "🎬", label: "Trading" },
         ],
-        Goal: [
-            { icon: "🎭", label: "Roleplay" },
-            { icon: "🤖", label: "Assistant" },
-            { icon: "🎯", label: "Mascot" }
-        ],
-        Genre: [
-            { icon: "💥", label: "Action" },
-            { icon: "🌌", label: "Fictional" },
-            { icon: "💹", label: "Finance" },
-            { icon: "⚖️", label: "Politics" },
-            { icon: "🧠", label: "Philosophy" },
-            { icon: "❤️", label: "Romance" },
-            { icon: "📜", label: "Historical" },
-            { icon: "👻", label: "Horror" }
-        ],
-        Character: [
+        
+        Gender: [
             { icon: "👨", label: "Male" },
             { icon: "👩", label: "Female" },
             { icon: "⚧", label: "Non-Binary" },
@@ -144,7 +124,7 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
                 <div className='space-y-2'>
                     <label className="text-sm font-medium text-gray-400">Category</label>
                     <p className='text-gray-500 text-sm'>
-                        Useful for making your character discoverable by others in Holoworld
+                        Useful for making your character discoverable by others in Sloth Agent
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                         {selectedCategories.map(category => (
