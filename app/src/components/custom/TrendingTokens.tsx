@@ -7,25 +7,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Agent } from "@/types/agent";
-import { TokenMetrics } from "@/models/agentMetrics";
-import { useQuery } from "@tanstack/react-query";
 import TableToken from "./TableToken";
 import { useTokensData } from "@/hooks/useWebSocketData";
 
-
-type TokenWithMetrics = Agent & {
-  _id: string;
-  metrics: TokenMetrics | null;
-  createdAt: string | Date;
-};
-
-type PaginationMetadata = {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  pageSize: number;
-};
 
 const TableSkeleton = () => {
   return (
@@ -122,13 +106,25 @@ const TrendingTokens: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
   const { tokens, loading: tokensLoading } = useTokensData();
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
 
   // Implement client-side pagination
   const paginatedTokens = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return tokens.slice(startIndex, endIndex);
-  }, [tokens, currentPage, pageSize]);
+    
+    // First sort the tokens based on the sortBy state
+    const sortedTokens = [...tokens].sort((a, b) => {
+      const dateA = new Date(a.createdAt?.toString() || '').getTime();
+      const dateB = new Date(b.createdAt?.toString() || '').getTime();
+      
+      // Sort by newest (descending) or oldest (ascending)
+      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+    
+    // Then paginate the sorted tokens
+    return sortedTokens.slice(startIndex, endIndex);
+  }, [tokens, currentPage, pageSize, sortBy]);
 
   // Calculate pagination metadata
   const metadata = useMemo(() => {
@@ -162,7 +158,20 @@ const TrendingTokens: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl mt-6 font-bold mb-4 text-white">Tokens Index</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl mt-6 font-bold mb-4 text-white">Tokens Index</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 text-sm">Sort by:</span>
+          <select 
+            className="bg-[#1C2333] text-white border border-gray-700 rounded-md px-2 py-1 text-sm"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+      </div>
       <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
         <Table>
           <TableHeader>

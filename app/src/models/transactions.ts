@@ -13,6 +13,8 @@ export interface Transaction {
   totalValue: number;
   supply: number;
   marketCap: number;
+  network: string;
+  fundingRaised: number;
 }
 
 export async function createTransaction(transaction: Omit<Transaction, '_id'>) {

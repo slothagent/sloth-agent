@@ -6,13 +6,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber } from '@/utils/utils';
 import { useTokensData, useAgentsData, useTransactionsData, useTotalVolumeData } from '@/hooks/useWebSocketData';
 import { useQuery } from '@tanstack/react-query';
+import { useAccount } from 'wagmi';
 
 const Hero: React.FC = () => {
   const router = useRouter();
   const { tokens: tokens, loading: tokensLoading } = useTokensData();
   const { agents: agents, loading: agentsLoading } = useAgentsData();
   const {totalVolume: totalVolumeData, loading: totalVolumeLoading} = useTotalVolumeData();
-
+  const {chain} = useAccount()
 
   const fetchTransactions = async (tokenAddress: string) => {
     const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=30d`);
@@ -24,7 +25,7 @@ const Hero: React.FC = () => {
       queryKey: ['transactions', tokens[tokens.length - 1]?.address],
       queryFn: () => fetchTransactions(tokens[tokens.length - 1]?.address),
       enabled: !!tokens[tokens.length - 1]?.address,
-      refetchInterval: 1000
+      refetchInterval: 10000
   });
 
 

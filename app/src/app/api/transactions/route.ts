@@ -4,7 +4,7 @@ import { createTransaction, getTransactionHistory, getLatestTransaction, getPagi
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash, totalSupply, marketCap } = body;
+    const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash, totalSupply, marketCap, network, fundingRaised } = body;
 
     if (!tokenAddress || !userAddress || !price || !amountToken || !transactionType || !transactionHash) {
       return NextResponse.json(
@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
       timestamp: new Date(),
       totalValue: price * amountToken,
       supply: totalSupply,
-      marketCap: marketCap
+      marketCap: marketCap,
+      network: network,
+      fundingRaised: fundingRaised
     });
 
     return NextResponse.json({ success: true, data: result });

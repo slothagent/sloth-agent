@@ -16,9 +16,9 @@ import { Dialog } from '../ui/dialog';
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import { tokenAbi } from '@/abi/tokenAbi';
 import { MaxUint256 } from 'ethers';
+import { useSwitchChain } from 'wagmi';
 
 const CreateToken: React.FC = () => {
-
     const [tokenName, setTokenName] = useState<string|null>(null);
     const [description, setDescription] = useState<string|null>(null);
     const [ticker, setTicker] = useState<string|null>(null);
@@ -33,7 +33,7 @@ const CreateToken: React.FC = () => {
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
-    const { address: OwnerAddress, isConnected } = useAccount()
+    const { address: OwnerAddress, isConnected,chain } = useAccount()
     const [amount, setAmount] = useState<string|null>(null);
     const [transactionType, setTransactionType] = useState<string|null>(null);
     const [tokenAddress, setTokenAddress] = useState<string|null>(null);
@@ -41,12 +41,13 @@ const CreateToken: React.FC = () => {
     const [isBuyOpen, setIsBuyOpen] = useState<boolean>(false);
     const [isTwitterShareOpen, setIsTwitterShareOpen] = useState<boolean>(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-
+    const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
+    const { switchChain,chains } = useSwitchChain();
 
     const { data: balance, refetch: refetchBalance } = useBalance({
         address: OwnerAddress,
     });
-    
+
     const router = useRouter();
     
     const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
@@ -55,6 +56,19 @@ const CreateToken: React.FC = () => {
         functionName: 'balanceOf',
         args: [OwnerAddress as `0x${string}`]
     });
+
+    const networks = [
+        {
+            icon: <img src="/assets/chains/a8.png" alt="Ancient8" className="w-4 h-4" />,
+            label: "Ancient8",
+            id: 28122024
+        },
+        {
+            icon: <img src="https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" alt="Sonic" className="w-4 h-4" />,
+            label: "Sonic",
+            id: 57054
+        }
+    ]
 
     // Validation states
     const [errors, setErrors] = useState<{
@@ -309,11 +323,12 @@ const CreateToken: React.FC = () => {
                                 body: JSON.stringify({
                                     userAddress: OwnerAddress,
                                     tokenAddress: token,
+                                    network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                                     price: parseFloat(formatUnits(newPrice || BigInt(0), 18)),
                                     amountToken: parseFloat(amount || "0"),
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
-                                    totalSupply: parseFloat(formatUnits(newSupply || BigInt(0), 18)),
+                                    totalSupply: 800000000,
                                     marketCap: parseFloat(formatUnits(newTotalMarketCap || BigInt(0), 18))
                                 }),
                             });
@@ -326,7 +341,8 @@ const CreateToken: React.FC = () => {
                             setAmount(null);
                             toast.dismiss(toastId);
                             toast.success('Token bought successfully!');
-                            router.push(`/token/${token}`);
+                            // Show Twitter share dialog after token creation
+                            setIsTwitterShareOpen(true);
                         }
                     } 
 
@@ -361,10 +377,12 @@ const CreateToken: React.FC = () => {
             toast.error('Please connect your wallet');
             return;
         }
+        if(!selectedNetwork){
+            toast.error('Please select a network');
+            return;
+        }
 
-        // console.log('balance', Number(balance?.value)/10**18);
-
-        if (balance?.value && Number(balance.value)/10**18 < 1) {
+        if (balance?.value && Number(balance.value)/10**18 < 0.001) {
             toast.error('Insufficient balance');
             return;
         }
@@ -387,12 +405,14 @@ const CreateToken: React.FC = () => {
                 return;
             }
             
+            const price = chain?.id == 57054 ? parseEther('1')+parseEther(amount||"0") : parseEther('0.001')+parseEther(amount||"0");
+
             try {
                 const tx = await writeContractAsync({
-                    address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
+                    address: chain?.id == 57054 ? process.env.NEXT_PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.NEXT_PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createTokenAndCurve',
-                    value: parseEther('1')+parseEther(amount||"0"),
+                    value: price,
                     args: [tokenName, ticker, parseEther(amount||"0")]
                 });
                 
@@ -432,6 +452,7 @@ const CreateToken: React.FC = () => {
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
                 curveAddress: curveAddress,
+                network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                 categories: selectedCategories || []
             };
 
@@ -453,8 +474,10 @@ const CreateToken: React.FC = () => {
 
             toast.success('Token created successfully!', { id: loadingToast });
             
-            // Show Twitter share dialog after token creation
-            setIsTwitterShareOpen(true);
+            if(!amount){
+                // Show Twitter share dialog after token creation
+                setIsTwitterShareOpen(true);
+            }
             
         } catch (error) {
             console.error('Error creating token:', error);
@@ -521,6 +544,7 @@ const CreateToken: React.FC = () => {
         ]
     };
 
+
     const toggleCategory = (category: string) => {
         setSelectedCategories(prev => 
             prev.includes(category)
@@ -536,6 +560,11 @@ const CreateToken: React.FC = () => {
             setAmount(value);
         }
     };
+
+    const handleSwitchNetwork = async (label: string,id: number) => {
+        setSelectedNetwork(label);
+        switchChain({chainId: id});
+    }
 
     return (
         <main className="min-h-screen bg-[#0B0E17]">
@@ -608,21 +637,43 @@ const CreateToken: React.FC = () => {
                             <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">Category</label>
-                            <p className='text-gray-500 text-sm'>
-                                Useful for making your character discoverable by others in Holoworld
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2">
-                                {selectedCategories.map(category => (
-                                    <span key={category} className="px-3 py-1 bg-[#1F2937] rounded-full text-sm text-white">
-                                        {category}
-                                    </span>
+                            <label className="text-sm font-medium text-gray-400">Network</label>
+                            <div className="flex flex-wrap gap-2">
+                                {networks.map(({ icon, label,id }) => (
+                                    <button
+                                        key={label}
+                                        onClick={() => handleSwitchNetwork(label,id)}
+                                        className={`flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
+                                            selectedNetwork === label
+                                                ? 'bg-[#2196F3] text-white'
+                                                : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
+                                        }`}
+                                    >
+                                        <span>{icon}</span>
+                                        <span>{label}</span>
+                                    </button>
                                 ))}
-                                <CirclePlus 
-                                    onClick={() => setIsOpen(true)}
-                                    className='w-4 h-4 text-gray-500 hover:text-gray-400 transition-colors cursor-pointer' 
-                                />
                             </div>
+                        </div>
+                        <div className="space-y-2 flex items-center justify-between">
+                            <div>
+                                <label className="text-sm font-medium text-gray-400">Category</label>
+                                <p className='text-gray-500 text-sm'>
+                                    Useful for making your character discoverable by others in Holoworld
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {selectedCategories.map(category => (
+                                        <span key={category} className="px-3 py-1 bg-[#1F2937] rounded-full text-sm text-white">
+                                            {category}
+                                        </span>
+                                    ))}
+                                    
+                                </div>
+                            </div>
+                            <CirclePlus 
+                                onClick={() => setIsOpen(true)}
+                                className='w-5 h-5 text-white hover:text-gray-400 transition-colors cursor-pointer' 
+                            />
                         </div>
                         <Dialog open={isOpen} onOpenChange={setIsOpen}>
                             <DialogContent className="bg-[#0B0E17] text-white border-[#1F2937] max-w-2xl">

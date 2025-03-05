@@ -14,7 +14,7 @@ import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } 
 import { factoryAbi } from '@/abi/factoryAbi';
 import { initiateTwitterAuth } from '@/utils/twitter';
 import { Button } from '../ui/button';
-
+import { useSwitchChain } from 'wagmi';
 interface TwitterAuthData {
     accessToken: string | null;
     refreshToken: string | null;
@@ -51,11 +51,12 @@ const CreateAgent: React.FC = () => {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [imagePrompt, setImagePrompt] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState<boolean>(false)
+    const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
 
     const router = useRouter();
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
-
+    const { switchChain } = useSwitchChain();
     const [stepValidation, setStepValidation] = useState<{ [key: number]: boolean }>({
         1: false,
         2: false,
@@ -235,6 +236,7 @@ const CreateAgent: React.FC = () => {
                 tokenAddress: address,
                 owner: OwnerAddress,
                 categories: selectedCategories,
+                network: selectedNetwork,
                 twitterAuth: twitterAuth ? {
                     accessToken: twitterAuth.accessToken || null,
                     refreshToken: twitterAuth.refreshToken || null,
@@ -277,6 +279,11 @@ const CreateAgent: React.FC = () => {
         return isValid;
     };
 
+    const handleSwitchNetwork = async (label: string,id: number) => {
+        setSelectedNetwork(label);
+        switchChain({chainId: id});
+    }
+
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
@@ -285,6 +292,8 @@ const CreateAgent: React.FC = () => {
                         agentName={agentName || ''}
                         description={description || ''}
                         ticker={ticker || ''}
+                        selectedNetwork={selectedNetwork}
+                        onSwitchNetwork={handleSwitchNetwork}
                         onNameChange={setAgentName}
                         onDescriptionChange={setDescription}
                         onTickerChange={setTicker}

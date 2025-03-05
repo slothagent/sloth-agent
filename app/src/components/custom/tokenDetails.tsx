@@ -27,11 +27,11 @@ import { decodeEventLog } from 'viem';
 import { tokenAbi } from '@/abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '@/hooks/useWebSocketData';
 import { LoadingSpinner } from '../ui/loading-spinner';
-
+import { formatNumber } from '@/utils/utils';
 
 
 const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
-    const { address } = useAccount();
+    const { address,chain } = useAccount();
     const [amount, setAmount] = useState<string|null>(null);
     const { writeContractAsync } = useWriteContract();
     const [timeRange, setTimeRange] = useState('30d');
@@ -142,7 +142,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                         // console.log('newPrice', newPrice);
                         // console.log('newSupply', newSupply);
                         // console.log('newTotalMarketCap', newTotalMarketCap);
-                        // console.log('newFundingRaised', newFundingRaised);
+                        console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
                             await fetch('/api/transactions', {
@@ -151,6 +151,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                     'Content-Type': 'application/json',
                                 },
                                 body: JSON.stringify({
+                                    network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                                     userAddress: address,
                                     tokenAddress: tokenData?.address,
                                     price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
@@ -158,7 +159,8 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
                                     totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0")
+                                    marketCap: parseFloat(newTotalMarketCap||"0"),
+                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
                                 }),
                             });
                             await writeContractAsync({
@@ -178,6 +180,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                     'Content-Type': 'application/json',
                                 },
                                 body: JSON.stringify({
+                                    network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                                     tokenAddress: tokenData?.address,
                                     price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     userAddress: address,
@@ -503,12 +506,12 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                 <div className="w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
                                     <div className="flex flex-col h-full">
                                         <div className="text-sm mb-auto flex items-center gap-1.5 font-medium text-gray-400">
-                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" style={{ color: 'transparent' }} />
+                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src={chain?.id == 57054 ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
                                             Contract address
                                         </div>
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
                                             {tokenData?.address ? (
-                                                <Link href={`https://testnet.sonicscan.org/token/${tokenData.curveAddress}`} className='hover:underline' target="_blank">
+                                                <Link href={`${chain?.id == 57054 ? "https://testnet.sonicscan.org/token/" : "https://scanv2-testnet.ancient8.gg/token/"}${tokenData.curveAddress}`} className='hover:underline' target="_blank">
                                                     {tokenData.curveAddress.slice(0, 4)}...{tokenData.curveAddress.slice(-4)}
                                                 </Link>
                                             ) : (
@@ -667,7 +670,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm text-gray-400">Balance:</span>
-                                                <span className="text-sm font-medium text-white">{parseFloat(formatUnits(balanceOfToken||BigInt(0), 18).toString()).toFixed(3)} {tokenData?.ticker}</span>
+                                                <span className="text-sm font-medium text-white">{formatNumber(parseFloat(formatUnits(balanceOfToken||BigInt(0), 18).toString()))} {tokenData?.ticker}</span>
                                             </div>
                                         </div>
                                         <TabsContent value="buy">
@@ -684,7 +687,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                                             onChange={handleAmountChange}
                                                             className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
                                                         />
-                                                        <span className="text-gray-400">S</span>
+                                                        <span className="text-gray-400">{chain?.id == 57054 ? `S` : "ETH"}</span>
                                                     </div>
                                                     <div className="grid grid-cols-4 gap-2">
                                                         <button 
@@ -714,7 +717,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {(Number(tokensToReceive?.toString()||"0")/10**18).toFixed(6)} {tokenData?.ticker}</span>
+                                                    <span>You will receive: {formatNumber(Number(tokensToReceive?.toString()||"0")/10**18)} {tokenData?.ticker}</span>
                                                 </div>
                                                 <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Buy
@@ -763,7 +766,7 @@ const TokenDetails: React.FC<{tokenAddress: string}> = ({tokenAddress}) => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {(Number(ethToReceive?.toString()||"0")/10**18).toFixed(6)} S</span>
+                                                    <span>You will receive: {(Number(ethToReceive?.toString()||"0")/10**18).toFixed(6)} {chain?.id == 57054 ? `S` : "ETH"}</span>
                                                 </div>
                                                 <Button onClick={handleSell} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Sell

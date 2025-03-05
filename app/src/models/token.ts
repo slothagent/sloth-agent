@@ -17,6 +17,7 @@ export interface Token {
   createdAt?: Date;
   updatedAt?: Date;
   categories?: string[];
+  network?: string;
 }
 
 export class TokenModel {

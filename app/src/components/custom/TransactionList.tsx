@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Transaction } from '@/models/transactions';
 import { formatDistance } from 'date-fns';
-import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import TableTransaction from './TableTransaction';
 
@@ -23,7 +22,7 @@ const TransactionList: React.FC = () => {
   const { data: transactionsData, isLoading } = useQuery({
     queryKey: ['transactions', currentPage],
     queryFn: () => fetchTransactions(currentPage),
-    refetchInterval: 1000
+    refetchInterval: 10000
   });
 
   const formatAddress = (address: string | undefined | null) => {

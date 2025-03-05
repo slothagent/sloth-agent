@@ -23,6 +23,7 @@ export interface Agent {
   knowledgeAreas?: string;
   categories?: string[];
   twitterAuth?: TwitterAuthData;
+  network?: string;
 }
 
 
@@ -45,6 +46,7 @@ export class AgentModel {
     // Set default values for optional fields
     const agentData = {
       ...data,
+      network: data.network || '',
       slug: data.slug || '',
       description: data.description || '',
       imageUrl: data.imageUrl || '',

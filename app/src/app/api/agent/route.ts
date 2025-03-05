@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       slug: body.slug,
       ticker: body.ticker,
       tokenAddress: body.tokenAddress,
+      network: body.network,
       owner: body.owner,
       description: body.description || '',
       imageUrl: body.imageUrl || '',
@@ -42,20 +43,6 @@ export async function POST(req: Request) {
 
     // Create the agent
     const agentResult = await AgentModel.create(agentData);
-
-    // If twitterAuth is provided, create it
-    // if (body.twitterAuth) {
-    //   const { accessToken, refreshToken, expiresAt } = body.twitterAuth;
-    //   if (accessToken && refreshToken && expiresAt) {
-    //     await TwitterAuthModel.create({
-    //       agentId: agentResult.insertedId.toString(),
-    //       accessToken,
-    //       refreshToken,
-    //       expiresAt: new Date(expiresAt),
-    //     });
-    //   }
-    // }
-
     // Get the created agent with its Twitter auth
     const agent = await AgentModel.findById(agentResult.insertedId.toString());
 

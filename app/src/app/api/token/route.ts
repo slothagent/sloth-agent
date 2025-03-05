@@ -14,6 +14,7 @@ interface CreateTokenData {
   telegramUrl?: string;
   websiteUrl?: string;
   categories?: string[];
+  network?: string;
 }
 
 export async function POST(req: Request) {
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
       ticker: body.ticker,
       totalSupply: body.totalSupply,
       curveAddress: body.curveAddress,
+      network: body.network,
       // Optional fields
       description: body.description || undefined,
       imageUrl: body.imageUrl || undefined,
