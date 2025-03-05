@@ -3,7 +3,7 @@ import { Twitter, Globe, Search, Minus, Plus } from 'lucide-react'
 import { formatDistance } from 'date-fns'
 import { Button } from '../ui/button'
 import { useRouter } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useTokensData } from '@/hooks/useWebSocketData'
 import { Token } from '@/models'
@@ -152,7 +152,9 @@ export default function AgentMarket() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllCategories, setShowAllCategories] = useState(false)
+  const [defaultVisible, setDefaultVisible] = useState(1);
   const { tokens: tokens, loading: tokensLoading } = useTokensData();
+  
   // const { data: tokens, isLoading } = useQuery({
   //   queryKey: ['token'],
   //   queryFn: () => fetchTokens(),
@@ -163,6 +165,17 @@ export default function AgentMarket() {
   //   refetchInterval: 10 * 1000,
   //   retry: 1,
   // })
+  useEffect(() => {
+    // Kiểm tra kích thước màn hình để set số lượng category hiển thị
+    const handleResize = () => {
+      setDefaultVisible(window.innerWidth < 768 ? 3 : 13); // Mobile: 3, Desktop: 1
+    };
+
+    handleResize(); // Gọi ngay lần đầu
+    window.addEventListener("resize", handleResize); // Lắng nghe sự kiện resize
+
+    return () => window.removeEventListener("resize", handleResize); // Cleanup
+  }, []);
 
   const filteredTokens = useMemo(() => {
     if (!tokens) return []
@@ -179,7 +192,7 @@ export default function AgentMarket() {
 
   const categories = [
     'All',
-    'Anime',
+    'Investment DAO',
     'Twitter',
     'Web3',
     'NFT',
@@ -191,9 +204,6 @@ export default function AgentMarket() {
     'Roleplay',
     'Books',
     'Memes',
-  ]
-
-  const extraCategories = [
     'Original Characters',
     'Male',
     'Female', 
@@ -209,8 +219,7 @@ export default function AgentMarket() {
     'Horror'
   ]
 
-  const visibleCategories = showAllCategories ? [...categories, ...extraCategories] : categories
-
+  
   // console.log('Tokens:', tokens)
 
   if (tokensLoading) {
@@ -259,7 +268,9 @@ export default function AgentMarket() {
       <div className='py-4 border-b border-gray-800'>
         <div className='flex items-center justify-between gap-2'>
           <div className='flex flex-wrap gap-2'>
-            {visibleCategories.map((category) => (
+          {categories
+            .slice(0, showAllCategories ? categories.length : defaultVisible)
+            .map((category) => (
               <button
                 key={category}
                 className="px-4 py-1.5 text-sm text-gray-400 border border-gray-800 hover:bg-[#1C2333] transition-colors"

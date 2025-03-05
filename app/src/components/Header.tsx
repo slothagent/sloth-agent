@@ -38,7 +38,12 @@ const Header = () => {
               />
             </div>
           </div>
-
+          <Link href="/agent" className="hidden md:block">
+            <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
+            <span className="text-white text-sm">My Agent</span>
+            </div>
+          </Link>
+          
           {/* Desktop Wallet Button - Hidden on mobile */}
           <div className="hidden md:block">
             <WalletButton />

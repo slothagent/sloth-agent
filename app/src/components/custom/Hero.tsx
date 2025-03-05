@@ -65,7 +65,7 @@ const Hero: React.FC = () => {
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
                   {tokens[0].imageUrl &&(
-                    <Image
+                    <Image  
                       src={tokens[0].imageUrl}
                       alt={tokens[0].name}
                       width={48}

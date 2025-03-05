@@ -80,7 +80,7 @@ const TokenDetails: NextPage = () => {
         return token.json();
     }
 
-    const { data: token, isLoading } = useQuery({
+    const { data: token } = useQuery({
         queryKey: ['token', tokenAddress],
         queryFn: () => fetchTokenByAddress(),
         staleTime: 60 * 1000,
@@ -274,9 +274,6 @@ const TokenDetails: NextPage = () => {
         return (balanceNum * percentage / 100).toString();
     };
 
-    if (isLoading || !tokenData) {
-        return <div>Loading...</div>;
-    }
 
 
     const handleBuy = async () => {
@@ -443,20 +440,26 @@ const TokenDetails: NextPage = () => {
                         <div className="w-full lg:flex hidden flex-col">
                             <div className="lg:flex w-full items-center">                        
                                 <div className="lg:flex items-center gap-3 h-full hidden">
-                                    <img 
-                                        src={tokenData?.imageUrl}
-                                        alt="Token Logo"
-                                        className="w-28 h-28 rounded-xl"
-                                        loading="lazy"
-                                        width={64}
-                                        height={64}
-                                    />
+                                    {tokenData?.imageUrl && (
+                                        <img 
+                                            src={tokenData?.imageUrl}
+                                            alt="Token Logo"
+                                            className="w-28 h-28 rounded-xl"
+                                            loading="lazy"
+                                            width={64}
+                                            height={64}
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.style.display = 'none';
+                                            }}
+                                        />
+                                    )}
                                     <div className="lg:flex flex-col justify-center h-full">
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h1 className="text-3xl font-medium mb-1 text-white">{tokenData?.name}</h1>
                                             </div>
-                                            <p className="text-xs text-gray-400">@{tokenData?.ticker}</p>
+                                            <p className="text-xs text-gray-400">{tokenData?.ticker}</p>
                                         </div>
                                     </div>
                                 </div>

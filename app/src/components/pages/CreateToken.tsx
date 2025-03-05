@@ -461,8 +461,8 @@ const CreateToken: React.FC = () => {
     }
 
     const categories = {
-        Origin: [
-            { icon: "🎮", label: "Anime" },
+        Categories: [
+            { icon: "🎮", label: "Investment DAO" },
             { icon: "🌐", label: "Web3" },
             { icon: "🐦", label: "Twitter" },
             { icon: "🎮", label: "Games" },
@@ -474,27 +474,6 @@ const CreateToken: React.FC = () => {
             { icon: "👾", label: "Original Characters" },
             { icon: "📺", label: "VTuber" }
         ],
-        Goal: [
-            { icon: "🎭", label: "Roleplay" },
-            { icon: "🤖", label: "Assistant" },
-            { icon: "🎯", label: "Mascot" }
-        ],
-        Genre: [
-            { icon: "💥", label: "Action" },
-            { icon: "🌌", label: "Fictional" },
-            { icon: "💹", label: "Finance" },
-            { icon: "⚖️", label: "Politics" },
-            { icon: "🧠", label: "Philosophy" },
-            { icon: "❤️", label: "Romance" },
-            { icon: "📜", label: "Historical" },
-            { icon: "👻", label: "Horror" }
-        ],
-        Character: [
-            { icon: "👨", label: "Male" },
-            { icon: "👩", label: "Female" },
-            { icon: "⚧", label: "Non-Binary" },
-            { icon: "👽", label: "Non-Human" }
-        ]
     };
 
     const toggleCategory = (category: string) => {
@@ -566,7 +545,7 @@ const CreateToken: React.FC = () => {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Category</label>
                             <p className='text-gray-500 text-sm'>
-                                Useful for making your character discoverable by others in Holoworld
+                                Useful for making your character discoverable by others in Sloth Agent
                             </p>
                             <div className="flex flex-wrap items-center gap-2">
                                 {selectedCategories.map(category => (
@@ -911,7 +890,7 @@ const CreateToken: React.FC = () => {
                                                 </DialogHeader>
                                                 <div className="space-y-4 mt-10">
                                                     <div className='space-y-2 flex flex-col'>
-                                                        <label className="text-lg font-medium">Enter BNB amount (optional)</label>
+                                                        <label className="text-lg font-medium">Enter SONIC amount (optional)</label>
                                                         <span className="text-sm text-gray-400">Balance: {balance?.value ? Number(balance.value)/10**18 : 0} S</span>
                                                     </div>
                                                     <div className="space-y-2">
