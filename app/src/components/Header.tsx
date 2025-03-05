@@ -7,10 +7,11 @@ import { Search, Menu, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAccount } from "wagmi";
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  const { isConnected } = useAccount();
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-[#0B0E17] border-b border-[#1F2937]">
       <div className="container mx-auto px-4">
@@ -38,11 +39,13 @@ const Header = () => {
               />
             </div>
           </div>
-          <Link href="/agent" className="hidden md:block">
-            <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
-            <span className="text-white text-sm">My Agent</span>
-            </div>
-          </Link>
+          {isConnected && (
+            <Link href="/agent" className="hidden md:block">
+              <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
+                <span className="text-white text-sm">My Agent</span>
+              </div>
+            </Link>
+          )}
           
           {/* Desktop Wallet Button - Hidden on mobile */}
           <div className="hidden md:block">

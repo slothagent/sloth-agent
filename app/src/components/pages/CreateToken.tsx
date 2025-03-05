@@ -513,39 +513,12 @@ const CreateToken: React.FC = () => {
     };
 
     const categories = {
-        Origin: [
-            { icon: "🎮", label: "Anime" },
-            { icon: "🌐", label: "Web3" },
-            { icon: "🐦", label: "Twitter" },
-            { icon: "🎮", label: "Games" },
-            { icon: "🎬", label: "Movies" },
-            { icon: "📚", label: "Books" },
-            { icon: "😂", label: "Memes" },
-            { icon: "🌍", label: "Real Life" },
-            { icon: "⭐", label: "Celebrity" },
-            { icon: "👾", label: "Original Characters" },
-            { icon: "📺", label: "VTuber" }
-        ],
-        Goal: [
-            { icon: "🎭", label: "Roleplay" },
-            { icon: "🤖", label: "Assistant" },
-            { icon: "🎯", label: "Mascot" }
-        ],
-        Genre: [
-            { icon: "💥", label: "Action" },
-            { icon: "🌌", label: "Fictional" },
-            { icon: "💹", label: "Finance" },
-            { icon: "⚖️", label: "Politics" },
-            { icon: "🧠", label: "Philosophy" },
-            { icon: "❤️", label: "Romance" },
-            { icon: "📜", label: "Historical" },
-            { icon: "👻", label: "Horror" }
-        ],
-        Character: [
-            { icon: "👨", label: "Male" },
-            { icon: "👩", label: "Female" },
-            { icon: "⚧", label: "Non-Binary" },
-            { icon: "👽", label: "Non-Human" }
+        Categories: [
+            { icon: "🎮", label: "Meme" },
+            { icon: "🌐", label: "DeFAI" },
+            { icon: "🐦", label: "Alpha" },
+            { icon: "🎮", label: "Tool Infra" },
+            { icon: "🎬", label: "Trading" }
         ]
     };
 
@@ -664,11 +637,11 @@ const CreateToken: React.FC = () => {
                             <div>
                                 <label className="text-sm font-medium text-gray-400">Category</label>
                                 <p className='text-gray-500 text-sm'>
-                                    Useful for making your character discoverable by others in Holoworld
+                                    Useful for making your character discoverable by others in Sloth Agent
                                 </p>
-                                <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
                                     {selectedCategories.map(category => (
-                                        <span key={category} className="px-3 py-1 bg-[#1F2937] rounded-full text-sm text-white">
+                                        <span key={category} className="px-3 py-1 bg-[#1F2937] text-sm text-white">
                                             {category}
                                         </span>
                                     ))}
@@ -694,7 +667,7 @@ const CreateToken: React.FC = () => {
                                                     <button
                                                         key={label}
                                                         onClick={() => toggleCategory(label)}
-                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                                                        className={`flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
                                                             selectedCategories.includes(label)
                                                                 ? 'bg-[#2196F3] text-white'
                                                                 : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
@@ -992,8 +965,8 @@ const CreateToken: React.FC = () => {
                                                 </DialogHeader>
                                                 <div className="space-y-4 mt-10">
                                                     <div className='space-y-2 flex flex-col'>
-                                                        <label className="text-lg font-medium">Enter BNB amount (optional)</label>
-                                                        <span className="text-sm text-gray-400">Balance: {balance?.value ? Number(balance.value)/10**18 : 0} S</span>
+                                                        <label className="text-lg font-medium">Enter {selectedNetwork == "Sonic" ? "SONIC" : "ETH"} amount (optional)</label>
+                                                        <span className="text-sm text-gray-400">Balance: {balance?.value ? Number(balance.value)/10**18 : 0} {selectedNetwork == "Sonic" ? "S" : "ETH"}</span>
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Input

@@ -2,8 +2,95 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Image from 'next/image';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { User } from '@/models/user';
 
 const WalletButton = () => {
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [checkedAddresses, setCheckedAddresses] = useState<Set<string>>(new Set());
+
+  const checkUserExists = async (address: string) => {
+    if (!address || isChecking) return false;
+    
+    try {
+      setIsChecking(true);
+      setError(null);
+      
+      const response = await fetch(`/api/user/check?address=${address}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to check user');
+      }
+      
+      const data = await response.json();
+      
+      // Return the exists boolean from the response
+      return data.exists;
+    } catch (err) {
+      console.error('Error checking user:', err);
+      setError(err instanceof Error ? err : new Error('Failed to check user'));
+      return false;
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const registerUser = useCallback(async (address: string) => {
+    // Skip if no address or if we've already checked this address
+    if (!address || checkedAddresses.has(address)) {
+      return;
+    }
+    
+    // console.log('registerUser', address);
+    
+    try {
+      // Add this address to our checked set to prevent duplicate checks
+      setCheckedAddresses(prev => new Set(prev).add(address));
+      
+      // First check if user already exists
+      const exists = await checkUserExists(address);
+      if (exists) {
+        // console.log('User already exists, skipping registration');
+        return;
+      }
+      
+      // User doesn't exist, proceed with registration
+      setIsRegistering(true);
+      setError(null);
+      
+      const response = await fetch('/api/user/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to register user');
+      }
+      
+      const data = await response.json();
+      // console.log('User registered successfully:', data.message);
+    } catch (err) {
+      console.error('Error registering user:', err);
+      setError(err instanceof Error ? err : new Error('Failed to register user'));
+    } finally {
+      setIsRegistering(false);
+    }
+  }, [checkedAddresses]);
+
+  // Log any errors
+  useEffect(() => {
+    if (error) {
+      console.error('Error with user registration/check:', error);
+    }
+  }, [error]);
+
   return (
     <ConnectButton.Custom>
       {({
@@ -16,7 +103,14 @@ const WalletButton = () => {
       }) => {
         const ready = mounted;
         const connected = ready && account && chain;
-
+        
+        // Effect to register user when wallet is connected
+        useEffect(() => {
+          if (connected && account?.address) {
+            registerUser(account.address);
+          }
+        }, [connected, account?.address, registerUser]);
+        
         return (
           <div
             {...(!ready && {
