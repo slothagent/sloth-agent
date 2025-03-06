@@ -90,11 +90,10 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
 
     const categories = {
         Categories: [
-            { icon: "🎮", label: "Meme" },
-            { icon: "🌐", label: "DeFAI" },
-            { icon: "🐦", label: "Alpha" },
-            { icon: "🎮", label: "Tool Infra" },
-            { icon: "🎬", label: "Trading" },
+            { icon: "🌐", label: "DeFAI", description: "Tokens powering AI agents that enhance decentralized finance, automating tasks like trading, risk management, and yield optimization in blockchain-based financial systems." },
+            { icon: "🐦", label: "Alpha", description: "Tokens linked to AI agents focused on delivering early insights or alpha in markets, using predictive analytics to identify profitable opportunities ahead of trends." },
+            { icon: "🎮", label: "Tool Infra", description: "Tokens supporting AI agents that provide foundational tools and infrastructure, enabling developers to build, deploy, and manage decentralized applications or agent ecosystems." },
+            { icon: "🎬", label: "Trading", description: "Tokens for AI agents specialized in autonomous trading, executing strategies, analyzing market data, and optimizing trades across blockchain platforms in real time." },
         ],
         
         Gender: [
@@ -105,13 +104,30 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
         ]
     };
 
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [previousCategory, setPreviousCategory] = useState<string[]>([]);
+
     const toggleCategory = (category: string) => {
-        onSelectedCategories((prev: string[]) => 
-            prev.includes(category)
-                ? prev.filter((c: string) => c !== category)
-                : [...prev, category]
-        );
+        if (previousCategory?.includes(category) || selectedCategory === category) {
+            setPreviousCategory(previousCategory?.filter((cat: string) => cat !== category));
+          } else {
+            setPreviousCategory([...previousCategory, category]);
+            setSelectedCategory(category);
+          }
+          onSelectedCategories((prev: string[]) => {
+            const isSelected = prev.includes(category);
+            const updatedCategories = isSelected
+              ? prev.filter((cat: string) => cat !== category)
+              : [...prev, category];
+      
+            setSelectedCategory(updatedCategories.length > 0 ? updatedCategories[updatedCategories.length - 1] : null);
+            return updatedCategories;
+          });
     };
+    const displayedCategory = selectedCategory || previousCategory;
+    const displayedDescription = selectedCategory && categories.Categories.some((item) => item.label === selectedCategory)
+    ? categories.Categories.find((item) => item.label === selectedCategory)?.description
+    : null;
 
     return (
         <div className="space-y-6">
@@ -195,6 +211,14 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
                                         </button>
                                     ))}
                                 </div>
+                                {section === "Categories" && displayedDescription && (
+                                    <div className="mt-2">
+                                        <p className="text-gray-400 font-medium">Description</p>
+                                        <div className="mt-2 p-3 bg-[#374151] text-gray-300 rounded-lg">
+                                            {displayedDescription}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -417,6 +417,7 @@ const CreateToken: React.FC = () => {
 
     const createToken = async (address: string, curveAddress: string) => {
         const loadingToast = toast.loading('Creating token...');
+        
         try {
             // Prepare the payload with default values for null fields
             const payload = {
@@ -462,28 +463,38 @@ const CreateToken: React.FC = () => {
 
     const categories = {
         Categories: [
-            { icon: "🎮", label: "Investment DAO" },
-            { icon: "🌐", label: "Web3" },
-            { icon: "🐦", label: "Twitter" },
-            { icon: "🎮", label: "Games" },
-            { icon: "🎬", label: "Movies" },
-            { icon: "📚", label: "Books" },
-            { icon: "😂", label: "Memes" },
-            { icon: "🌍", label: "Real Life" },
-            { icon: "⭐", label: "Celebrity" },
-            { icon: "👾", label: "Original Characters" },
-            { icon: "📺", label: "VTuber" }
+            { icon: "💰", label: "Investment DAO", description: "Tokens representing membership and voting rights in a decentralized autonomous organization (DAO) focused on collective investment." },
+            { icon: "👾", label: "Meme", description: "Tokens inspired by meme culture, often humorous, viral, and tied to playful online communities or social media trends." },
+            { icon: "🎮", label: "Gaming", description: "Tokens designed for the gaming industry, used in blockchain games, trading digital assets (NFTs), or rewarding players." },
+            { icon: "�", label: "Entertainment", description: "Tokens powering entertainment on the blockchain, such as access to exclusive content, artist funding, or trading digitized entertainment assets." },
+            { icon: "🧠", label: "AI", description: "Tokens linked to artificial intelligence projects, enabling access to AI services, funding tech development, or transactions within a decentralized AI ecosystem." },
         ],
     };
+    
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [previousCategory, setPreviousCategory] = useState<string[]>([]);
 
     const toggleCategory = (category: string) => {
-        setSelectedCategories(prev => 
-            prev.includes(category)
-                ? prev.filter(c => c !== category)
-                : [...prev, category]
-        );
+        if (previousCategory?.includes(category) || selectedCategory === category) {
+            setPreviousCategory(previousCategory?.filter((cat: string) => cat !== category));
+          } else {
+            setPreviousCategory([...previousCategory, category]);
+            setSelectedCategory(category);
+          }
+          setSelectedCategories((prev) => {
+            const isSelected = prev.includes(category);
+            const updatedCategories = isSelected
+              ? prev.filter((cat) => cat !== category)
+              : [...prev, category];
+      
+            setSelectedCategory(updatedCategories.length > 0 ? updatedCategories[updatedCategories.length - 1] : null);
+            return updatedCategories;
+          });
     };
-
+    const displayedCategory = selectedCategory || previousCategory;
+    const displayedDescription = selectedCategory
+    ? categories.Categories.find((item) => item.label === selectedCategory)?.description
+    : null;
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         // Only allow numbers and decimal points
@@ -584,6 +595,14 @@ const CreateToken: React.FC = () => {
                                                     </button>
                                                 ))}
                                             </div>
+                                            {displayedDescription && selectedCategories.length > 0 && (
+                                              <div className="mt-2">
+                                                <p className="text-gray-400 font-medium">Description</p>
+                                                <div className="mt-2 p-3 bg-[#374151] text-gray-300 rounded-lg">
+                                                    {displayedDescription}
+                                                </div>
+                                              </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

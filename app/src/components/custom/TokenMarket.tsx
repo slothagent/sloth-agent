@@ -193,30 +193,10 @@ export default function AgentMarket() {
   const categories = [
     'All',
     'Investment DAO',
-    'Twitter',
-    'Web3',
-    'NFT',
-    'NSFW',
-    'Movies',
-    'Games',
-    'Assistant',
-    'Mascot',
-    'Roleplay',
-    'Books',
-    'Memes',
-    'Original Characters',
-    'Male',
-    'Female', 
-    'Non-Binary',
-    'Non-Human',
-    'Action',
-    'Fictional',
-    'Finance',
-    'Politics',
-    'Philosophy',
-    'Romance',
-    'Historical',
-    'Horror'
+    'Meme',
+    'Gaming',
+    'Entertainment',
+    'AI',
   ]
 
   
@@ -279,7 +259,7 @@ export default function AgentMarket() {
               </button>
             ))}
           </div>
-          <div className='flex items-center'>
+          <div className='md:hidden flex items-center'>
             <Button 
               variant="outline" 
               className="text-gray-400 hover:bg-[#1C2333] hover:text-white` text-sm"
