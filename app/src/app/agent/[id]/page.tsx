@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronRight, Clock, Copy, Layout, Send, Star, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Clock, Copy, Layout, Send, Star, User } from 'lucide-react';
 import { useAgents } from '@/hooks/useAgents';
 import Link from 'next/link';
 
@@ -151,7 +151,7 @@ export default function ChatPage() {
                                 ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
                                 : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                     >
-          
+                      <MessageSquare className='w-4 h-4' />
                         Chat
                     </button>
                     <button
