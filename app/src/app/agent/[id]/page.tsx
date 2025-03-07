@@ -48,40 +48,64 @@ export default function ChatPage() {
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
-    
+  
     if (showHeader) {
       setShowHeader(false);
     }
-
+  
     const userMessage: Message = {
       id: Date.now().toString(),
       content: message,
-      role: 'user',
+      role: "user",
       timestamp: new Date(),
     };
-
-    setMessages(prev => [...prev, userMessage]);
-    setMessage('');
+  
+    setMessages((prev) => [...prev, userMessage]);
+    setMessage("");
     setIsLoading(true);
-
+  
     try {
-      // TODO: Implement actual API call here
+      const response = await fetch("https://api.slothai.xyz/generate_post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: agentsData?.data[0].name, 
+          prompt: message,
+          image: true,
+        }),
+      });
+      console.log(response);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+  
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'This is a sample response from the bot.',
-        role: 'assistant',
+        content: data.content || "No response from API.", // Check content đúng format
+        role: "assistant",
         timestamp: new Date(),
       };
-      
-      setTimeout(() => {
-        setMessages(prev => [...prev, botResponse]);
-        setIsLoading(false);
-      }, 1000);
+  
+      setMessages((prev) => [...prev, botResponse]);
     } catch (error) {
-      console.error('Failed to get bot response:', error);
+      console.error("Failed to get bot response:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          content: "API bị lỗi hoặc không có phản hồi.",
+          role: "assistant",
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
       setIsLoading(false);
     }
-  };
+};
 
   return (
     <div className="flex flex-col h-[89vh] bg-gray-950 border border-gray-800 w-full sm:w-3/4 text-gray-100 mx-auto mt-4">
