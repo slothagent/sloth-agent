@@ -1,37 +1,18 @@
 import { Collection, ObjectId } from 'mongodb';
-import clientPromise from '../lib/mongodb';
-
-export interface Token {
-  _id?: ObjectId;
-  name: string;
-  address: string;
-  curveAddress: string;
-  owner: string;
-  description?: string;
-  ticker: string;
-  imageUrl?: string;
-  totalSupply: string;
-  twitterUrl?: string;
-  telegramUrl?: string;
-  websiteUrl?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-  categories?: string[];
-  network?: string;
-}
+import clientPromise from '../lib/mongodb.js';
 
 export class TokenModel {
-  private static async getDb() {
+  static async getDb() {
     const client = await clientPromise;
     return client.db();
   }
 
-  static async getCollection(): Promise<Collection<Token>> {
+  static async getCollection() {
     const db = await this.getDb();
     return db.collection('tokens');
   }
 
-  static async create(data: Omit<Token, '_id' | 'createdAt' | 'updatedAt'>): Promise<any> {
+  static async create(data) {
     const collection = await this.getCollection();
 
     // Create indexes if they don't exist
@@ -50,22 +31,22 @@ export class TokenModel {
     return collection.insertOne(tokenData);
   }
 
-  static async findById(id: string): Promise<Token | null> {
+  static async findById(id) {
     const collection = await this.getCollection();
     return collection.findOne({ _id: new ObjectId(id) });
   }
 
-  static async findByTicker(ticker: string): Promise<Token | null> {
+  static async findByTicker(ticker) {
     const collection = await this.getCollection();
     return collection.findOne({ ticker: ticker.toUpperCase() });
   }
 
-  static async findByAddress(address: string): Promise<Token | null> {
+  static async findByAddress(address) {
     const collection = await this.getCollection();
     return collection.findOne({ address });
   }
 
-  static async update(id: string, data: Partial<Token>): Promise<boolean> {
+  static async update(id, data) {
     const collection = await this.getCollection();
     const result = await collection.updateOne(
       { _id: new ObjectId(id) },
@@ -79,13 +60,13 @@ export class TokenModel {
     return result.modifiedCount > 0;
   }
 
-  static async delete(id: string): Promise<boolean> {
+  static async delete(id) {
     const collection = await this.getCollection();
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount > 0;
   }
 
-  static async list(page: number = 1, limit: number = 10): Promise<{ tokens: Token[]; total: number }> {
+  static async list(page = 1, limit = 10) {
     const collection = await this.getCollection();
     const skip = (page - 1) * limit;
 
@@ -101,7 +82,7 @@ export class TokenModel {
     return { tokens, total };
   }
 
-  static async search(query: string): Promise<Token[]> {
+  static async search(query) {
     const collection = await this.getCollection();
     return collection.find({
       $or: [

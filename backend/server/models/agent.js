@@ -1,45 +1,19 @@
 import { ObjectId } from 'mongodb';
-import clientPromise from '../lib/mongodb';
-
-export interface TwitterAuthData {
-  accessToken: string | null;
-  refreshToken: string | null;
-  expiresAt: string | null;
-  tokenType: string | null;
-  scope: string | null;
-}
-
-export interface Agent {
-  _id?: ObjectId;
-  name: string;
-  slug: string;
-  ticker: string;
-  tokenAddress?: string;
-  owner: string;
-  description?: string;
-  imageUrl?: string;
-  agentLore?: string;
-  personality?: string;
-  knowledgeAreas?: string;
-  categories?: string[];
-  twitterAuth?: TwitterAuthData;
-  network?: string;
-}
-
+import clientPromise from '../lib/mongodb.js';
 
 export class AgentModel {
   static async getCollection() {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB);
-    return db.collection<Agent>('agents');
+    return db.collection('agents');
   }
 
-  static async findById(id: string) {
+  static async findById(id) {
     const collection = await this.getCollection();
     return collection.findOne({ _id: new ObjectId(id) });
   }
 
-  static async create(data: Omit<Agent, '_id' | 'createdAt' | 'updatedAt'>) {
+  static async create(data) {
     const collection = await this.getCollection();
     const now = new Date();
 
@@ -58,11 +32,11 @@ export class AgentModel {
       updatedAt: now,
     };
 
-    const result = await collection.insertOne(agentData as Agent);
+    const result = await collection.insertOne(agentData);
     return result;
   }
 
-  static async update(id: string, data: Partial<Agent>) {
+  static async update(id, data) {
     const collection = await this.getCollection();
     const result = await collection.updateOne(
       { _id: new ObjectId(id) },
@@ -76,21 +50,17 @@ export class AgentModel {
     return result;
   }
 
-  static async delete(id: string) {
+  static async delete(id) {
     const collection = await this.getCollection();
     return collection.deleteOne({ _id: new ObjectId(id) });
   }
 
-  static async findByTicker(ticker: string) {
+  static async findByTicker(ticker) {
     const collection = await this.getCollection();
     return collection.findOne({ ticker: ticker.toUpperCase() });
   }
 
-  static async findAll(options: {
-    page?: number;
-    limit?: number;
-    search?: string;
-  } = {}) {
+  static async findAll(options = {}) {
     const collection = await this.getCollection();
     const { page = 1, limit = 10, search } = options;
     const skip = (page - 1) * limit;

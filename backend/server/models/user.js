@@ -1,26 +1,19 @@
 import { ObjectId } from 'mongodb';
-import clientPromise from '../lib/mongodb';
+import clientPromise from '../lib/mongodb.js';
 
-export interface User {
-  _id?: ObjectId;
-  address: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export async function getUserByAddress(address: string): Promise<User | null> {
+export async function getUserByAddress(address) {
   const client = await clientPromise;
   const collection = client.db().collection('users');
   
-  return collection.findOne<User>({ address: address.toLowerCase() });
+  return collection.findOne({ address: address.toLowerCase() });
 }
 
-export async function createUser(address: string): Promise<User> {
+export async function createUser(address) {
   const client = await clientPromise;
   const collection = client.db().collection('users');
   
   const now = new Date();
-  const user: User = {
+  const user = {
     address: address.toLowerCase(),
     createdAt: now,
     updatedAt: now
@@ -30,7 +23,7 @@ export async function createUser(address: string): Promise<User> {
   return user;
 }
 
-export async function registerUserIfNeeded(address: string): Promise<User> {
+export async function registerUserIfNeeded(address) {
   const existingUser = await getUserByAddress(address);
   
   if (existingUser) {

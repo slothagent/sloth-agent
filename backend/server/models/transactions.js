@@ -1,24 +1,7 @@
-import clientPromise from "../lib/mongodb";
-import { ObjectId } from "mongodb";
+import clientPromise from "../lib/mongodb.js";
 
-export interface Transaction {
-  _id?: ObjectId;
-  from: string;
-  to: string;
-  amount: number;
-  price: number;
-  timestamp: Date;
-  transactionType: 'BUY' | 'SELL';
-  transactionHash: string;
-  totalValue: number;
-  supply: number;
-  marketCap: number;
-  network: string;
-  fundingRaised: number;
-  amountTokensToReceive: number;
-}
 
-export async function createTransaction(transaction: Omit<Transaction, '_id'>) {
+export async function createTransaction(transaction) {
   try {
     const client = await clientPromise;
     const collection = client.db().collection('transactions');
@@ -35,12 +18,12 @@ export async function createTransaction(transaction: Omit<Transaction, '_id'>) {
   }
 }
 
-export async function getTransactionHistory(tokenAddress: string, timeRange?: string) {
+export async function getTransactionHistory(tokenAddress, timeRange) {
   try {
     const client = await clientPromise;
     const collection = client.db().collection('transactions');
     
-    let query: any = { from: tokenAddress };
+    let query = { from: tokenAddress };
     
     // Add time range filter if specified
     if (timeRange) {
@@ -104,7 +87,7 @@ export async function getTransactionHistory(tokenAddress: string, timeRange?: st
   }
 }
 
-export async function getLatestTransaction(tokenAddress: string) {
+export async function getLatestTransaction(tokenAddress) {
   try {
     const client = await clientPromise;
     const collection = client.db().collection('transactions');
@@ -122,7 +105,7 @@ export async function getLatestTransaction(tokenAddress: string) {
   }
 }
 
-export async function getPaginatedTransactions(page: number = 1, limit: number = 10) {
+export async function getPaginatedTransactions(page = 1, limit = 10) {
   try {
     const client = await clientPromise;
     const collection = client.db().collection('transactions');
@@ -151,12 +134,12 @@ export async function getPaginatedTransactions(page: number = 1, limit: number =
   }
 }
 
-export async function calculateVolumeInRange(tokenAddress: string, timeRange?: string) {
+export async function calculateVolumeInRange(tokenAddress, timeRange) {
   try {
     const client = await clientPromise;
     const collection = client.db().collection('transactions');
     
-    let query: any = { from: tokenAddress };
+    let query = { from: tokenAddress };
     
     // Add time range filter if specified
     if (timeRange) {
@@ -229,12 +212,12 @@ export async function calculateVolumeInRange(tokenAddress: string, timeRange?: s
   }
 }
 
-export async function calculateTotalVolume(timeRange?: string) {
+export async function calculateTotalVolume(timeRange) {
   try {
     const client = await clientPromise;
     const collection = client.db().collection('transactions');
     
-    let query: any = {};
+    let query = {};
     
     // Add time range filter if specified
     if (timeRange) {

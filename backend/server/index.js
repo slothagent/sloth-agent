@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from 'hono';
-import type { Context } from 'hono';
 import { AgentModel } from './models/agent.js';
 import { TokenModel } from './models/token.js';
 import { getUserByAddress, registerUserIfNeeded } from './models/user.js';
@@ -20,84 +19,81 @@ import {
   startSpinner,
   succeedSpinner,
 } from "./utils/logger.js";
-
-
-// Token Routes
-interface CreateTokenData {
-  name: string;
-  address: string;
-  curveAddress: string;
-  owner: string;
-  description?: string;
-  ticker: string;
-  imageUrl?: string;
-  totalSupply: string;
-  twitterUrl?: string;
-  telegramUrl?: string;
-  websiteUrl?: string;
-  categories?: string[];
-  network?: string;
-}
-
-// Transaction Routes
-interface CreateTransactionData {
-  from: string;
-  to: string;
-  amount: number;
-  price: number;
-  transactionType: string;
-  transactionHash: string;
-  timestamp: Date;
-  totalValue: number;
-  supply: string;
-  marketCap: number;
-  network: string;
-  fundingRaised: number;
-  amountTokensToReceive: number;
-}
-
-interface AppContext {
-  twitterService?: any;
-  submissionService?: any;
-  distributionService?: any;
-}
-
-interface AppInstance {
-  app: Hono;
-  context: AppContext;
-}
+import { MongoClient } from 'mongodb';
 
 const PORT = Number(process.env.PORT) || 8080;
-let instance: AppInstance | null = null;
+let cachedDb = null;
+let app = null;
 
-export async function createApp(): Promise<AppInstance> {
-  const app = new Hono().basePath('/api');
-  const context: AppContext = {};
+// Initialize MongoDB connection
+async function connectToDatabase() {
+  if (cachedDb) {
+    return cachedDb;
+  }
+
+  const client = await MongoClient.connect(process.env.MONGODB_URI, {
+    maxPoolSize: 1,
+    serverSelectionTimeoutMS: 5000, // 5 seconds
+    socketTimeoutMS: 5000,
+  });
+
+  const db = client.db(process.env.MONGODB_DB);
+  cachedDb = db;
+  return db;
+}
+
+async function createApp() {
+  if (app) {
+    return { app };
+  }
+
+  const newApp = new Hono().basePath('/api');
+  const context = {};
+
+  // Connect to MongoDB first
+  try {
+    await connectToDatabase();
+  } catch (error) {
+    console.error('MongoDB connection failed:', error);
+    throw error;
+  }
 
   // Middleware
-  app.use('*', async (c: Context, next) => {
-    await c.res.headers.set('Access-Control-Allow-Origin', '*');
-    await c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    await c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    return await next();
+  newApp.use('*', async (c, next) => {
+    // Add request timeout
+    const timeout = setTimeout(() => {
+      c.status(504);
+      c.json({ error: 'Request timeout' });
+    }, 8000); // 8 second timeout
+
+    try {
+      await c.res.headers.set('Access-Control-Allow-Origin', '*');
+      await c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      await c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      // Handle preflight requests
+      if (c.req.method === 'OPTIONS') {
+        c.status(204);
+        return;
+      }
+
+      await next();
+    } finally {
+      clearTimeout(timeout);
+    }
   });
 
   // Health check route
-  app.get("/health", (c) => {
-    const health = {
+  newApp.get("/health", (c) => {
+    return c.json({
       status: "OK",
       timestamp: new Date().toISOString(),
-      services: {
-        twitter: context.twitterService ? "up" : "down",
-        submission: context.submissionService ? "up" : "down",
-        distribution: context.distributionService ? "up" : "down",
-      },
-    };
-    return c.json(health);
+      database: !!cachedDb ? "connected" : "disconnected"
+    });
   });
 
   // Agent Routes
-  app.post('/agent', async (c) => {
+  newApp.post('/agent', async (c) => {
     try {
       const body = await c.req.json();
 
@@ -152,7 +148,7 @@ export async function createApp(): Promise<AppInstance> {
     }
   });
 
-  app.get('/agent', async (c) => {
+  newApp.get('/agent', async (c) => {
     try {
       const { symbol, id, owner, page = '1', pageSize = '10', search } = c.req.query();
       const pageNum = parseInt(page);
@@ -282,7 +278,7 @@ export async function createApp(): Promise<AppInstance> {
   });
 
   // Price Routes
-  app.get('/binance-eth-price', async (c) => {
+  newApp.get('/binance-eth-price', async (c) => {
     try {
       let response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');
       
@@ -330,7 +326,7 @@ export async function createApp(): Promise<AppInstance> {
     }
   });
 
-  app.get('/sonic-price', async (c) => {
+  newApp.get('/sonic-price', async (c) => {
     try {
       // Fetch Sonic price from Binance API
       // The symbol for Sonic on Binance is FTMUSDT (previously FTM, now Sonic)
@@ -393,7 +389,7 @@ export async function createApp(): Promise<AppInstance> {
   });
 
   // Image Generation Route
-  app.post('/generate-image', async (c) => {
+  newApp.post('/generate-image', async (c) => {
     try {
       const { prompt } = await c.req.json();
 
@@ -443,7 +439,7 @@ export async function createApp(): Promise<AppInstance> {
   });
 
   // User Routes
-  app.get('/user/check', async (c) => {
+  newApp.get('/user/check', async (c) => {
     try {
       const { address } = c.req.query();
 
@@ -468,7 +464,7 @@ export async function createApp(): Promise<AppInstance> {
     }
   });
 
-  app.post('/user/register', async (c) => {
+  newApp.post('/user/register', async (c) => {
     try {
       // Parse request body
       const body = await c.req.json().catch(() => ({}));
@@ -524,7 +520,7 @@ export async function createApp(): Promise<AppInstance> {
   });
 
   // Twitter Auth Routes
-  app.get('/auth/callback/twitter', async (c) => {
+  newApp.get('/auth/callback/twitter', async (c) => {
     try {
       const { code, state } = c.req.query();
       
@@ -599,7 +595,7 @@ export async function createApp(): Promise<AppInstance> {
     }
   });
 
-  app.post('/token', async (c) => {
+  newApp.post('/token', async (c) => {
     try {
       const body = await c.req.json();
 
@@ -612,7 +608,7 @@ export async function createApp(): Promise<AppInstance> {
       }
 
       // Prepare the data object with required fields
-      const tokenData: CreateTokenData = {
+      const tokenData = {
         name: body.name,
         address: body.address,
         owner: body.owner,
@@ -654,7 +650,7 @@ export async function createApp(): Promise<AppInstance> {
     }
   });
 
-  app.get('/token', async (c) => {
+  newApp.get('/token', async (c) => {
     try {
       const { address, page = '1', pageSize = '10', search } = c.req.query();
       const pageNum = parseInt(page);
@@ -764,7 +760,7 @@ export async function createApp(): Promise<AppInstance> {
   });
 
   // Transaction Routes
-  app.post('/transaction', async (c) => {
+  newApp.post('/transaction', async (c) => {
     try {
       const body = await c.req.json();
       const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash, totalSupply, marketCap, network, fundingRaised, amountTokensToReceive } = body;
@@ -796,7 +792,7 @@ export async function createApp(): Promise<AppInstance> {
     }
   });
 
-  app.get('/transaction', async (c) => {
+  newApp.get('/transaction', async (c) => {
     try {
       const { tokenAddress, timeRange, latest, page = '1', limit = '10', totalVolume } = c.req.query();
       const pageNum = parseInt(page);
@@ -831,80 +827,47 @@ export async function createApp(): Promise<AppInstance> {
     }
   });
 
-  return { app, context };
+  app = newApp;
+  return { app };
 }
 
-async function getInstance(): Promise<AppInstance> {
-  if (!instance) {
-    try {
-      instance = await createApp();
-    } catch (error) {
-      logger.error("Failed to create app instance:", error);
-      throw new Error("Failed to initialize application");
-    }
-  }
-  return instance;
-}
-
+// For local development
 async function startServer() {
   try {
-    startSpinner("server", "Starting server...");
-    const { app, context } = await getInstance();
-
+    const { app } = await createApp();
+    
     const server = serve({
       fetch: app.fetch,
       port: PORT,
     });
 
-    succeedSpinner("server", `Server running on port ${PORT}`);
-
-    // Start checking for mentions only if Twitter service is available
-    if (context.submissionService) {
-      startSpinner("submission-monitor", "Starting submission monitoring...");
-      await context.submissionService.startMentionsCheck();
-      succeedSpinner("submission-monitor", "Submission monitoring started");
-    }
-
-    // Graceful shutdown handler
-    const gracefulShutdown = async (signal: string) => {
-      startSpinner("shutdown", `Shutting down gracefully (${signal})...`);
-      try {
-        await new Promise<void>((resolve, reject) => {
-          server.close((err) => (err ? reject(err) : resolve()));
-        });
-
-        const shutdownPromises = [];
-        if (context.twitterService)
-          shutdownPromises.push(context.twitterService.stop());
-        if (context.submissionService)
-          shutdownPromises.push(context.submissionService.stop());
-        if (context.distributionService)
-          shutdownPromises.push(context.distributionService.shutdown());
-
-        await Promise.all(shutdownPromises);
-        succeedSpinner("shutdown", "Shutdown complete");
-
-        instance = null;
-        process.exit(0);
-      } catch (error) {
-        failSpinner("shutdown", "Error during shutdown");
-        logger.error("Shutdown", error);
-        process.exit(1);
-      }
-    };
-
-    // Handle manual shutdown (Ctrl+C)
-    process.once("SIGINT", () => gracefulShutdown("SIGINT"));
-
-    logger.info("🚀 Server is running and ready");
+    console.log(`Server running on port ${PORT}`);
   } catch (error) {
-    ["server", "submission-monitor"].forEach((key) => {
-      failSpinner(key, `Failed during ${key}`);
-    });
-    logger.error("Startup", error);
-    cleanup();
+    console.error('Error starting server:', error);
     process.exit(1);
   }
 }
 
-startServer();
+// Export the handler for Vercel
+export default async function handler(request) {
+  try {
+    const { app } = await createApp();
+    return app.fetch(request);
+  } catch (error) {
+    console.error('Handler error:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Internal Server Error',
+      message: error.message 
+    }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+}
+
+// Only start the server when running locally
+if (!process.env.VERCEL) {
+  startServer();
+}

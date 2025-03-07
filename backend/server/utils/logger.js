@@ -1,19 +1,17 @@
-import ora, { type Ora } from 'ora';
+import ora from 'ora';
 
-interface SpinnerMap {
-  [key: string]: Ora;
-}
 
-const spinners: SpinnerMap = {};
+
+const spinners = {};
 
 export const logger = {
-  info: (message: string) => console.log(`ℹ️ ${message}`),
-  error: (context: string, error: unknown) => {
+  info: (message) => console.log(`ℹ️ ${message}`),
+  error: (context, error) => {
     console.error(`❌ ${context}:`, error);
   }
 };
 
-export function startSpinner(key: string, text: string) {
+export function startSpinner(key, text) {
   if (spinners[key]) {
     spinners[key].text = text;
     spinners[key].start();
@@ -22,14 +20,14 @@ export function startSpinner(key: string, text: string) {
   }
 }
 
-export function succeedSpinner(key: string, text?: string) {
+export function succeedSpinner(key, text) {
   if (spinners[key]) {
     spinners[key].succeed(text);
     delete spinners[key];
   }
 }
 
-export function failSpinner(key: string, text?: string) {
+export function failSpinner(key, text) {
   if (spinners[key]) {
     spinners[key].fail(text);
     delete spinners[key];

@@ -1,17 +1,16 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from 'hono';
-import type { Context } from 'hono';
-import { AgentModel } from './models/agent';
-import { TokenModel } from './models/token';
-import { getUserByAddress, registerUserIfNeeded } from './models/user';
+import { AgentModel } from './models/agent.js';
+import { TokenModel } from './models/token.js';
+import { getUserByAddress, registerUserIfNeeded } from './models/user.js';
 import { 
   createTransaction, 
   getTransactionHistory, 
   getLatestTransaction, 
   getPaginatedTransactions, 
   calculateTotalVolume 
-} from './models/transactions';
+} from './models/transactions.js';
 import Replicate from 'replicate';
 import {
   cleanup,
@@ -19,63 +18,18 @@ import {
   logger,
   startSpinner,
   succeedSpinner,
-} from "./utils/logger";
+} from "./utils/logger.js";
 
-
-// Token Routes
-interface CreateTokenData {
-  name: string;
-  address: string;
-  curveAddress: string;
-  owner: string;
-  description?: string;
-  ticker: string;
-  imageUrl?: string;
-  totalSupply: string;
-  twitterUrl?: string;
-  telegramUrl?: string;
-  websiteUrl?: string;
-  categories?: string[];
-  network?: string;
-}
-
-// Transaction Routes
-interface CreateTransactionData {
-  from: string;
-  to: string;
-  amount: number;
-  price: number;
-  transactionType: string;
-  transactionHash: string;
-  timestamp: Date;
-  totalValue: number;
-  supply: string;
-  marketCap: number;
-  network: string;
-  fundingRaised: number;
-  amountTokensToReceive: number;
-}
-
-interface AppContext {
-  twitterService?: any;
-  submissionService?: any;
-  distributionService?: any;
-}
-
-interface AppInstance {
-  app: Hono;
-  context: AppContext;
-}
 
 const PORT = Number(process.env.PORT) || 8080;
-let instance: AppInstance | null = null;
+let instance = null;
 
-async function createApp(): Promise<AppInstance> {
+async function createApp() {
   const app = new Hono().basePath('/api');
-  const context: AppContext = {};
+  const context = {};
 
   // Middleware
-  app.use('*', async (c: Context, next) => {
+  app.use('*', async (c, next) => {
     await c.res.headers.set('Access-Control-Allow-Origin', '*');
     await c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     await c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -612,7 +566,7 @@ async function createApp(): Promise<AppInstance> {
       }
 
       // Prepare the data object with required fields
-      const tokenData: CreateTokenData = {
+      const tokenData = {
         name: body.name,
         address: body.address,
         owner: body.owner,
@@ -834,7 +788,7 @@ async function createApp(): Promise<AppInstance> {
   return { app, context };
 }
 
-async function getInstance(): Promise<AppInstance> {
+async function getInstance() {
   if (!instance) {
     try {
       instance = await createApp();
@@ -866,10 +820,10 @@ async function startServer() {
     }
 
     // Graceful shutdown handler
-    const gracefulShutdown = async (signal: string) => {
+    const gracefulShutdown = async (signal) => {
       startSpinner("shutdown", `Shutting down gracefully (${signal})...`);
       try {
-        await new Promise<void>((resolve, reject) => {
+        await new Promise((resolve, reject) => {
           server.close((err) => (err ? reject(err) : resolve()));
         });
 
