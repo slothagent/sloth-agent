@@ -3,7 +3,7 @@ import { Twitter, Globe, Search, Minus, Plus } from 'lucide-react'
 import { formatDistance } from 'date-fns'
 import { Button } from '../ui/button'
 import { useRouter } from 'next/navigation'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useTokensData, useTransactionsData } from '@/hooks/useWebSocketData'
 import { Token } from '@/models'
@@ -183,6 +183,21 @@ export default function AgentMarket() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllCategories, setShowAllCategories] = useState(false)
   const { tokens, loading: tokensLoading } = useTokensData();
+  const [defaultVisible, setDefaultVisible] = useState(1);
+
+
+  useEffect(() => {
+    // Kiểm tra kích thước màn hình để set số lượng category hiển thị
+    const handleResize = () => {
+      setDefaultVisible(window.innerWidth < 768 ? 3 : 13); // Mobile: 3, Desktop: 1
+    };
+
+    handleResize(); // Gọi ngay lần đầu
+    window.addEventListener("resize", handleResize); // Lắng nghe sự kiện resize
+
+    return () => window.removeEventListener("resize", handleResize); // Cleanup
+  }, []);
+
 
   const {data: tokensData, isLoading: tokensDataLoading} = useQuery({
     queryKey: ['tokens'],
@@ -218,23 +233,14 @@ export default function AgentMarket() {
 
   const categories = [
     'All',
-    'Anime',
-    'Twitter',
-    'Web3',
-    'NFT',
-    'NSFW',
-    'Movies',
-    'Games',
-    'Assistant',
-    'Mascot',
-    'Roleplay',
-    'Books',
-    'Memes',
+    'Investment DAO',
+    'Meme',
+    'Gaming',
+    'Entertainment',
+    'AI',
   ]
 
-
-  const visibleCategories = showAllCategories ? [...categories] : categories
-
+  
   // console.log('Tokens:', tokens)
 
   if (isLoading) {
@@ -283,7 +289,9 @@ export default function AgentMarket() {
       <div className='py-4 border-b border-gray-800'>
         <div className='flex items-center justify-between gap-2'>
           <div className='flex flex-wrap gap-2'>
-            {visibleCategories.map((category) => (
+          {categories
+            .slice(0, showAllCategories ? categories.length : defaultVisible)
+            .map((category) => (
               <button
                 key={category}
                 className="px-4 py-1.5 text-sm text-gray-400 border border-gray-800 hover:bg-[#1C2333] transition-colors"
@@ -291,6 +299,15 @@ export default function AgentMarket() {
                 {category}
               </button>
             ))}
+          </div>
+          <div className='md:hidden flex items-center'>
+            <Button 
+              variant="outline" 
+              className="text-gray-400 hover:bg-[#1C2333] hover:text-white` text-sm"
+              onClick={() => setShowAllCategories(!showAllCategories)}
+            >
+              {showAllCategories ? <Minus size={16} /> : <Plus size={16} />}
+            </Button>
           </div>
         </div>
       </div>

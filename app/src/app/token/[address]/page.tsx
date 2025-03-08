@@ -78,7 +78,7 @@ const TokenDetails: NextPage = () => {
     };
 
     const fetchTokenByAddress = async () => {
-        const token = await fetch(`${process.env.NEXT_PUBLIC_API_NEW}/api/token?address=${tokenAddress?.toString()}`,{
+        const token = await fetch(`/api/token?address=${tokenAddress?.toString()}`,{
             next: { revalidate: 60 },
             headers: {
                 'Cache-Control': 'no-cache',
@@ -163,7 +163,7 @@ const TokenDetails: NextPage = () => {
                         // console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
-                            await fetch(`${process.env.NEXT_PUBLIC_API_NEW}/api/transaction`, {
+                            await fetch(`/api/transactions`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -172,7 +172,7 @@ const TokenDetails: NextPage = () => {
                                     userAddress: address,
                                     tokenAddress: tokenData?.address,
                                     network: tokenData?.network,
-                                    price: tokenData?.network == "Sonic" ? parseFloat(formatUnits(newPrice||BigInt(0), 18))*sonicPrice : parseFloat(formatUnits(newPrice||BigInt(0), 18))*ethPrice,
+                                    price: tokenData?.network == "Sonic" ? parseFloat(formatUnits(newPrice||BigInt(0), 18)) : parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     amountToken: parseFloat(amount||"0"),
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
@@ -193,7 +193,7 @@ const TokenDetails: NextPage = () => {
                             toast.success('Buy successful!', { id: loadingToast });
                         }else{
                             // Save price history after successful transaction
-                            await fetch(`${process.env.NEXT_PUBLIC_API_NEW}/api/transaction`, {
+                            await fetch(`/api/transactions`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ const TokenDetails: NextPage = () => {
                                 body: JSON.stringify({
                                     tokenAddress: tokenData?.address,
                                     network: tokenData?.network,
-                                    price: parseFloat(formatUnits(newPrice||BigInt(0), 18))*(tokenData?.network == "Sonic" ? sonicPrice : ethPrice),
+                                    price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     userAddress: address,
                                     amountToken: parseFloat(amountEthToReceive||"0"),
                                     transactionType: 'SELL',
@@ -686,7 +686,7 @@ const TokenDetails: NextPage = () => {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(transactionHistory?.[transactionHistory.length - 1]?.price * (tokenData?.network == "Sonic" ? sonicPrice : ethPrice)||0).toFixed(10)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(transactionHistory?.[transactionHistory.length - 1]?.price||0).toFixed(10)}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
