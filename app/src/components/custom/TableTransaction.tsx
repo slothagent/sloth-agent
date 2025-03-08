@@ -6,6 +6,7 @@ import { formatNumber } from "@/utils/utils";
 import Link from "next/link";
 import { useTokenByAddress } from "@/hooks/useWebSocketData";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface TableTransactionProps {
     tx: Transaction;
@@ -14,6 +15,20 @@ interface TableTransactionProps {
 }
 
 const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => {
+
+    // console.log(tx)
+
+    const fetchTokenByAddress = async (address: string) => {
+        const token = await fetch(`/api/token?address=${address}`);
+        return token.json();
+    }
+
+    const {data: token} = useQuery({
+        queryKey: ['token', tx?.from],
+        queryFn: () => fetchTokenByAddress(tx?.from)
+    })
+
+    // console.log(token)
 
     const price = useMemo(() => {
         if (tx.network === 'Ancient8') {
@@ -38,10 +53,10 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
                 {tx.transactionType}
             </div>
             <div className="col-span-1 text-right text-white">
-                ${tx.amount ? tx.network == "Sonic" ? formatNumber(Number(tx.amount)*sonicPrice) : formatNumber(Number(tx.amount)*ethPrice) : '-'}
+                {tx.amount ? tx.transactionType === 'BUY' ? formatNumber(Number(tx.amount)) : formatNumber(Number(tx.amount)/10**18) : '-'} {token?.data?.ticker}
             </div>
             <div className="col-span-2 text-right text-white">
-                ${tx.price ? price.toFixed(8) : '-'}
+                {tx.price ? price.toFixed(8): "-"} {tx.network === 'Ancient8' ? "ETH" : "S"}
             </div>
         </div>
     )

@@ -686,7 +686,7 @@ const TokenDetails: NextPage = () => {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(transactionHistory?.[transactionHistory.length - 1]?.price||0).toFixed(10)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">{(transactionHistory?.[transactionHistory.length - 1]?.price||0).toFixed(10)} {tokenData?.network}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}

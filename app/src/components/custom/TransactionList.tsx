@@ -39,26 +39,6 @@ const TransactionList: React.FC = () => {
     refetchInterval: 10000
   });
 
-  const formatAddress = (address: string | undefined | null) => {
-    if (!address) return '-';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
-
-  const formatNumber = (value: number | undefined | null): string => {
-    if (value === undefined || value === null) return '-';
-    
-    if (value >= 1) {
-      return value.toLocaleString('en-US', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-      });
-    }
-    
-    return value.toLocaleString('en-US', { 
-      minimumFractionDigits: 6, 
-      maximumFractionDigits: 6 
-    });
-  };
 
   return (
     <div className="w-full">
