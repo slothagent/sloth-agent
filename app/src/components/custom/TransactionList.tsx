@@ -9,7 +9,7 @@ import { useSonicPrice } from '@/hooks/useSonicPrice';
 import { useEthPrice } from '@/hooks/useEthPrice';
 
 const fetchTransactions = async (page: number): Promise<{ data: Transaction[], total: number }> => {
-  const response = await fetch(`/api/transactions?page=${page}&limit=10`);
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_NEW}/api/transaction?page=${page}&limit=10`);
   const result = await response.json();
   return {
     data: result.data,

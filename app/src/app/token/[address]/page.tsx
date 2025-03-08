@@ -78,7 +78,7 @@ const TokenDetails: NextPage = () => {
     };
 
     const fetchTokenByAddress = async () => {
-        const token = await fetch(`/api/token?address=${tokenAddress?.toString()}`,{
+        const token = await fetch(`${process.env.NEXT_PUBLIC_API_NEW}/api/token?address=${tokenAddress?.toString()}`,{
             next: { revalidate: 60 },
             headers: {
                 'Cache-Control': 'no-cache',
@@ -163,7 +163,7 @@ const TokenDetails: NextPage = () => {
                         // console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
-                            await fetch('/api/transactions', {
+                            await fetch(`${process.env.NEXT_PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ const TokenDetails: NextPage = () => {
                             toast.success('Buy successful!', { id: loadingToast });
                         }else{
                             // Save price history after successful transaction
-                            await fetch('/api/transactions', {
+                            await fetch(`${process.env.NEXT_PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',

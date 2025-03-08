@@ -232,23 +232,8 @@ export default function AgentMarket() {
     'Memes',
   ]
 
-  const extraCategories = [
-    'Original Characters',
-    'Male',
-    'Female', 
-    'Non-Binary',
-    'Non-Human',
-    'Action',
-    'Fictional',
-    'Finance',
-    'Politics',
-    'Philosophy',
-    'Romance',
-    'Historical',
-    'Horror'
-  ]
 
-  const visibleCategories = showAllCategories ? [...categories, ...extraCategories] : categories
+  const visibleCategories = showAllCategories ? [...categories] : categories
 
   // console.log('Tokens:', tokens)
 
@@ -306,15 +291,6 @@ export default function AgentMarket() {
                 {category}
               </button>
             ))}
-          </div>
-          <div className='flex items-center'>
-            <Button 
-              variant="outline" 
-              className="text-gray-400 hover:bg-[#1C2333] hover:text-white` text-sm"
-              onClick={() => setShowAllCategories(!showAllCategories)}
-            >
-              {showAllCategories ? <Minus size={16} /> : <Plus size={16} />}
-            </Button>
           </div>
         </div>
       </div>

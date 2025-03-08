@@ -30,12 +30,12 @@ const Hero: React.FC = () => {
   }, [sonicPriceData]);
 
   const fetchTransactions = async (tokenAddress: string) => {
-    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=30d`);
+    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=24h`);
     const result = await response.json();
     return result.data;
   }
 
-  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+  const { data: transactionsData24h, isLoading: transactionsLoading24h } = useQuery({
       queryKey: ['transactions', tokens[tokens.length - 1]?.address],
       queryFn: () => fetchTransactions(tokens[tokens.length - 1]?.address),
       enabled: !!tokens[tokens.length - 1]?.address,
@@ -44,16 +44,16 @@ const Hero: React.FC = () => {
 
 
   const transactions = useMemo(() => {
-    if (!transactionsData) return [];
-    return transactionsData;
-  }, [transactionsData]);
+    if (!transactionsData24h) return [];
+    return transactionsData24h;
+  }, [transactionsData24h]); 
   
   const totalVolume30d = useMemo(() => {
     if (!transactionsData30d) return 0;
     const ancient8Transactions = transactionsData30d.filter((tx: any) => tx.network === 'Ancient8');
-    const ancient8TotalVolume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.totalValue, 0) * ethPrice;
+    const ancient8TotalVolume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
     const sonicTransactions = transactionsData30d.filter((tx: any) => tx.network === 'Sonic');
-    const sonicTotalVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.totalValue, 0) * sonicPrice;
+    const sonicTotalVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
     return ancient8TotalVolume + sonicTotalVolume;
   }, [transactionsData30d]);
 
@@ -71,8 +71,10 @@ const Hero: React.FC = () => {
 
   const totalVolumeToken = useMemo(() => {
     if (!transactions) return 0;
-    const ancient8Volume = transactions.filter((tx: any) => tx.network === 'Ancient8').reduce((acc: number, curr: any) => acc + curr.totalValue, 0);
-    const sonicVolume = transactions.filter((tx: any) => tx.network === 'Sonic').reduce((acc: number, curr: any) => acc + curr.totalValue, 0);
+    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8');
+    const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+    const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
+    const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
     return ancient8Volume || sonicVolume;
   }, [transactions]);
   

@@ -81,14 +81,14 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
         }, 0);
     }, [transactionsData]);
 
-    const totalMarketCapToken = useMemo(() => {
+    const totalVolumeToken = useMemo(() => {
         if (!transactionsData) return 0;
-    
-        const ancient8MarketCap = transactionsData.filter((tx: any) => tx.network === 'Ancient8').reduce((acc: number, curr: any) => acc + curr.marketCap, 0) * ethPrice;
-        const sonicMarketCap = transactionsData.filter((tx: any) => tx.network === 'Sonic').reduce((acc: number, curr: any) => acc + curr.marketCap, 0) * sonicPrice;
-    
-        return ancient8MarketCap || sonicMarketCap;
-      }, [transactionsData]);
+        const ancient8Transactions = transactionsData.filter((tx: any) => tx.network === 'Ancient8');
+        const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+        const sonicTransactions = transactionsData.filter((tx: any) => tx.network === 'Sonic');
+        const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+        return ancient8Volume || sonicVolume;
+    }, [transactionsData]);
 
     return (
         <TableRow 
@@ -130,7 +130,7 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
             </TableCell>
             <TableCell className="text-right text-white">${transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * ethPrice)*INITIAL_SUPPLY) : formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * sonicPrice)*INITIAL_SUPPLY)||"-"}</TableCell>
             <TableCell className="text-right text-white">
-                ${formatNumber((Number(totalMarketCapToken)/10**18))}
+                ${formatNumber(totalVolumeToken)}
             </TableCell>
 
             <TableCell className="text-right text-white">{token.metrics?.followersCount||"-"}</TableCell>
