@@ -15,7 +15,7 @@ export const initiateTwitterAuth = async () => {
 
     const authUrl = new URL('https://twitter.com/i/oauth2/authorize');
     authUrl.searchParams.append('response_type', 'code');
-    authUrl.searchParams.append('client_id', process.env.NEXT_PUBLIC_TWITTER_CLIENT_ID!);
+    authUrl.searchParams.append('client_id', process.env.PUBLIC_TWITTER_CLIENT_ID!);
     authUrl.searchParams.append('redirect_uri', `${BASE_URL}/api/auth/callback/twitter`);
     authUrl.searchParams.append('scope', 'tweet.read tweet.write users.read offline.access');
     authUrl.searchParams.append('code_challenge', codeChallenge);

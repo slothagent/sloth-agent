@@ -92,7 +92,7 @@ function TokenDetails() {
     };
 
     const fetchTokenByAddress = async () => {
-        const token = await axios.get(`/api/token?address=${tokenAddress}`);
+        const token = await axios.get(`${import.meta.env.PUBLIC_API_NEW}/api/token?address=${tokenAddress}`);
         return token.data;
     }
 
@@ -175,7 +175,7 @@ function TokenDetails() {
                         console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
-                            await fetch('/api/transaction', {
+                            await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -204,7 +204,7 @@ function TokenDetails() {
                             toast.success('Buy successful!', { id: loadingToast });
                         }else{
                             // Save price history after successful transaction
-                            await fetch('/api/transaction', {
+                            await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',

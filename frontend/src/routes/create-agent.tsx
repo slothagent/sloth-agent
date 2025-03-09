@@ -134,7 +134,7 @@ function CreateAgent() {
 
 
             
-            const response = await fetch('/api/generate-image', {
+            const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/generate-image`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -176,7 +176,7 @@ function CreateAgent() {
 
             // // Fetch user information after successful authentication
             if (tokenData?.accessToken) {
-                const response = await fetch('/api/twitter/user', {
+                const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/twitter/user`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -248,7 +248,7 @@ function CreateAgent() {
                 } : null
             };
 
-            const response = await fetch('/api/agent', {
+            const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/agent`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -15,7 +15,7 @@ interface EthPriceResponse {
 }
 
 const fetchEthPrice = async (): Promise<EthPriceData & { warning?: string }> => {
-  const response = await fetch('/api/binance-eth-price');
+  const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/binance-eth-price`);
   const result: EthPriceResponse = await response.json();
   
   if (!result.success) {

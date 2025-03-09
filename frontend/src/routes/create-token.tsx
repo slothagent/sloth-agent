@@ -210,7 +210,7 @@ function CreateToken() {
                 // Generate image with Replicate
                 const prompt = `Create a funny, anime-style logo for a token named "${tokenName}". The design should be playful and meme-inspired, incorporating elements like exaggerated facial expressions, chibi characters, or internet meme aesthetics. It should still maintain a modern and minimalist look, making it suitable for a crypto token. Ensure the logo is clear, memorable, and scalable across different sizes. ${imagePrompt}`;
                 
-                const response = await fetch(`/api/generate-image`, {
+                const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/generate-image`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -338,7 +338,7 @@ function CreateToken() {
                             await refetchBalanceOfToken();
                             
                             // Save transaction to database
-                            await fetch('/api/transaction', {
+                            await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -484,7 +484,7 @@ function CreateToken() {
 
             // console.log('Sending payload:', payload); // Debug log
 
-            const response = await fetch('/api/token', {
+            const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

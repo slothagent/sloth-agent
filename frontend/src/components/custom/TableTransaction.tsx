@@ -16,7 +16,7 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
     // console.log(tx)
 
     const fetchTokenByAddress = async (address: string) => {
-        const token = await fetch(`/api/token?address=${address}`);
+        const token = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token?address=${address}`);
         return token.json();
     }
 

@@ -15,7 +15,7 @@ const WalletButton: React.FC = () => {
       setIsChecking(true);
       setError(null);
       
-      const response = await fetch(`/api/user/check?address=${address}`);
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/user/check?address=${address}`);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -58,7 +58,7 @@ const WalletButton: React.FC = () => {
       setIsRegistering(true);
       setError(null);
       
-      const response = await fetch('/api/user/register', {
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/user/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

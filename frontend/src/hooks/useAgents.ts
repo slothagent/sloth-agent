@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Agent } from '@/models/agent';
+import { Agent } from '../models/agent';
 
 export interface AgentResponse {
   data: Agent[];
@@ -32,7 +32,7 @@ export const useAgents = (options: UseAgentsOptions = {}) => {
         ...(owner && { owner }),
       });
       
-      const response = await fetch(`/api/agent?${params}`);
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/agent?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch agents');
       }
@@ -47,7 +47,7 @@ export const useCreateAgent = () => {
   
   return useMutation({
     mutationFn: async (agentData: Partial<Agent>) => {
-      const response = await fetch('/api/agent', {
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/agent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ export const useUpdateAgent = () => {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Agent> }) => {
-      const response = await fetch(`/api/agent/${id}`, {
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/agent/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ export const useDeleteAgent = () => {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/agent/${id}`, {
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/agent/${id}`, {
         method: 'DELETE',
       });
       

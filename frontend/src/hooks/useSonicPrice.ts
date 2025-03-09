@@ -15,7 +15,7 @@ interface SonicPriceResponse {
 }
 
 const fetchSonicPrice = async (): Promise<SonicPriceData & { warning?: string }> => {
-  const response = await fetch('/api/sonic-price');
+  const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/sonic-price`);
   const result: SonicPriceResponse = await response.json();
   
   if (!result.success) {

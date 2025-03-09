@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Token } from '@/models/token';
+import { Token } from '../models/token';
 
 export interface TokenResponse {
   data: Token[];
@@ -30,7 +30,7 @@ export const useTokens = (options: UseTokensOptions = {}) => {
         ...(search && { search }),
       });
       
-      const response = await fetch(`/api/token?${params}`);
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch tokens');
       }
@@ -45,7 +45,7 @@ export const useCreateToken = () => {
   
   return useMutation({
     mutationFn: async (tokenData: Partial<Token>) => {
-      const response = await fetch('/api/token', {
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ export const useUpdateToken = () => {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Token> }) => {
-      const response = await fetch(`/api/token/${id}`, {
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +95,7 @@ export const useDeleteToken = () => {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/token/${id}`, {
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token/${id}`, {
         method: 'DELETE',
       });
       
