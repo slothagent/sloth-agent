@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { Input } from "@/components/ui/input";
 
 interface CapabilitiesProps {
     knowledgeAreas: string;

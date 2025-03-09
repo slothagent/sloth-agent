@@ -16,7 +16,7 @@ contract Factory is Ownable {
     uint256 public constant FIXED_INITIAL_SUPPLY = 1_000_000_000 * 10**18; // 1 billion tokens
     uint256 public constant CURVE_ALLOCATION = 800000; // 80% for bonding curve
     uint256 public constant CREATOR_ALLOCATION = 200000; // 20% for creator
-    uint256 public constant CREATION_FEE = 1 ether; // Fixed creation fee
+    uint256 public constant CREATION_FEE = 0.001 ether; // Fixed creation fee
 
     // Mappings for token tracking
     mapping(address => address) public tokenToCurve;

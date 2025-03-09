@@ -10,7 +10,16 @@ export default defineConfig({
     template: "./index.html",
   },
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: process.env.PUBLIC_API_NEW,
+        secure: false,
+        changeOrigin: true,
+        ws: true,
+      },
+    },
+
   },
   dev: {
     writeToDisk: true,

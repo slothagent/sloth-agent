@@ -11,9 +11,8 @@ describe("Factory and BondingCurve", function () {
     let curve;
 
     // Constants from contracts
-    const INITIAL_PRICE = ethers.parseEther("0.0001"); // 0.0001 ETH
-    const FUNDING_GOAL = ethers.parseEther("400000"); // 400,000 ETH
-    const INITIAL_SUPPLY = ethers.parseEther("1000000000"); // 1 billion tokens
+    const INITIAL_PRICE = ethers.parseEther("0.00000001"); // 0.000001 ETH
+    const FUNDING_GOAL = ethers.parseEther("10"); // Update to match the contract's 10 ETH
 
     beforeEach(async function () {
         // Get signers
@@ -24,12 +23,13 @@ describe("Factory and BondingCurve", function () {
         factory = await Factory.deploy();
         await factory.waitForDeployment();
 
-        // Create new token and curve with 1 ETH buy amount
+        // Create new token and curve with 0.01 ETH buy amount
+        const buyAmount = ethers.parseEther("0.01");
         const tx = await factory.connect(owner).createTokenAndCurve(
             "Test Token",
             "TEST",
-            ethers.parseEther("1"), // buyAmount parameter - 1 ETH
-            { value: ethers.parseEther("2") } // 1 ETH for creation fee + 1 ETH for buying
+            buyAmount, // 0.01 ETH buy amount
+            { value: buyAmount + ethers.parseEther("0.001") } // 0.001 ETH for creation fee + 0.01 ETH for buying
         );
         const receipt = await tx.wait();
 
@@ -54,7 +54,18 @@ describe("Factory and BondingCurve", function () {
             expect(await token.symbol()).to.equal("TEST");
             expect(await curve.INITIAL_PRICE()).to.equal(INITIAL_PRICE);
             expect(await curve.FUNDING_GOAL()).to.equal(FUNDING_GOAL);
+            
+            // Check INITIAL_SUPPLY constant
+            const INITIAL_SUPPLY = ethers.parseEther("1000000000"); // 1 billion tokens
+            expect(await curve.INITIAL_SUPPLY()).to.equal(INITIAL_SUPPLY);
+            
+            // Check that totalSupply is greater than 0 (some tokens were bought in setup)
             expect(await curve.totalSupply()).to.be.gt(0);
+            
+            // Check initialSupply state variable - this is set in the constructor
+            // and might be different from INITIAL_SUPPLY constant
+            const initialSupply = await curve.initialSupply();
+            console.log(`Initial supply from contract: ${ethers.formatEther(initialSupply)}`);
         });
     });
 
@@ -62,8 +73,8 @@ describe("Factory and BondingCurve", function () {
         it("Should show price impact with large and small purchases", async function () {
             const formatEther = (bn) => ethers.formatEther(bn);
             
-            // First purchase - 100 ETH
-            const buyAmount = ethers.parseEther("100");
+            // First purchase - 0.01 ETH
+            const buyAmount = ethers.parseEther("0.01");
             
             // Get initial states
             const initialPrice = await curve.getCurrentPrice();
@@ -74,11 +85,11 @@ describe("Factory and BondingCurve", function () {
             console.log(`Initial price: ${formatEther(initialPrice)} ETH`);
             console.log(`Initial supply: ${formatEther(initialSupply)}`);
 
-            // Calculate expected tokens for 100 ETH
+            // Calculate expected tokens for 0.01 ETH
             const expectedTokens = await curve.calculateTokensForEth(buyAmount);
-            console.log(`\nFirst Purchase (100 ETH):`);
+            console.log(`\nFirst Purchase (0.01 ETH):`);
             console.log(`Expected tokens: ${formatEther(expectedTokens)}`);
-            console.log(`Effective price per token: ${formatEther(buyAmount * ethers.parseEther("1") / expectedTokens)} ETH`);
+            console.log(`Effective price per token: ${formatEther(buyAmount * ethers.parseEther("0.01") / expectedTokens)} ETH`);
             
             // Execute first buy with higher slippage tolerance
             await curve.connect(buyer).buy(
@@ -92,20 +103,20 @@ describe("Factory and BondingCurve", function () {
             const supplyAfterFirstBuy = await curve.totalSupply();
             const firstBuyBalance = await token.balanceOf(buyer.address);
 
-            console.log("\nAfter First Buy (100 ETH):");
+            console.log("\nAfter First Buy (0.01 ETH):");
             console.log(`Price after buy: ${formatEther(priceAfterFirstBuy)} ETH`);
             console.log(`Price increase: ${formatEther(priceAfterFirstBuy - initialPrice)} ETH`);
             console.log(`Tokens received: ${formatEther(firstBuyBalance)}`);
             console.log(`Total supply: ${formatEther(supplyAfterFirstBuy)}`);
 
-            // Second purchase - 1 ETH
-            const secondBuyAmount = ethers.parseEther("1");
+            // Second purchase - 0.001 ETH
+            const secondBuyAmount = ethers.parseEther("0.001");
             
-            // Calculate expected tokens for 1 ETH
+            // Calculate expected tokens for 0.001 ETH
             const expectedTokens2 = await curve.calculateTokensForEth(secondBuyAmount);
-            console.log(`\nSecond Purchase (1 ETH):`);
+            console.log(`\nSecond Purchase (0.001 ETH):`);
             console.log(`Expected tokens: ${formatEther(expectedTokens2)}`);
-            console.log(`Effective price per token: ${formatEther(secondBuyAmount * ethers.parseEther("1") / expectedTokens2)} ETH`);
+            console.log(`Effective price per token: ${formatEther(secondBuyAmount * ethers.parseEther("0.001") / expectedTokens2)} ETH`);
             
             // Execute second buy
             await curve.connect(buyer).buy(
@@ -120,7 +131,7 @@ describe("Factory and BondingCurve", function () {
             const finalBalance = await token.balanceOf(buyer.address);
             const secondBuyTokens = finalBalance - firstBuyBalance;
 
-            console.log("\nAfter Second Buy (1 ETH):");
+            console.log("\nAfter Second Buy (0.001 ETH):");
             console.log(`Final price: ${formatEther(finalPrice)} ETH`);
             console.log(`Price increase from first buy: ${formatEther(finalPrice - priceAfterFirstBuy)} ETH`);
             console.log(`Additional tokens received: ${formatEther(secondBuyTokens)}`);
@@ -133,16 +144,53 @@ describe("Factory and BondingCurve", function () {
             console.log(`Tokens per ETH (second buy): ${formatEther(secondBuyTokens)}`);
             console.log(`Price increase percentage: ${((finalPrice - initialPrice) * 100n / initialPrice).toString()}%`);
 
-            // Verify expected behaviors
+            // Verify expected behaviors - with updated expectations for the higher price impact
             expect(finalPrice).to.be.gt(priceAfterFirstBuy);
             expect(finalPrice).to.be.gt(initialPrice);
-            expect(secondBuyTokens).to.be.lt(firstBuyBalance / 100n); // Should get fewer tokens per ETH on second buy
+            
+            // We're not checking the exact token amounts here since the formula has changed
+            // Just verify that the second buy gets fewer tokens per ETH than the first buy
+            const tokensPerEthFirstBuy = firstBuyBalance * ethers.parseEther("1") / buyAmount;
+            const tokensPerEthSecondBuy = secondBuyTokens * ethers.parseEther("1") / secondBuyAmount;
+            expect(tokensPerEthSecondBuy).to.be.lt(tokensPerEthFirstBuy);
         });
 
         it("Should fail when sending 0 ETH", async function () {
             await expect(
                 curve.connect(buyer).buy(0, buyer.address, { value: 0 })
             ).to.be.revertedWith("Must send ETH");
+        });
+
+        it("Should emit token info in UpdateInfo event", async function () {
+            const buyAmount = ethers.parseEther("0.01");
+            
+            // Lắng nghe sự kiện UpdateInfo
+            const tx = await curve.connect(buyer).buy(
+                0, // Min tokens
+                buyer.address,
+                { value: buyAmount }
+            );
+            
+            const receipt = await tx.wait();
+            
+            // Tìm sự kiện UpdateInfo
+            const updateEvent = receipt.logs.find(
+                log => log.fragment && log.fragment.name === 'UpdateInfo'
+            );
+            
+            // Hiển thị thông tin token từ sự kiện
+            console.log("\nToken Info from UpdateInfo event:");
+            console.log("------------------------");
+            console.log(updateEvent.args);
+            // console.log(`Current Price: ${ethers.formatEther(updateEvent.args[1])} ETH`);
+            // console.log(`Total Supply: ${ethers.formatEther(updateEvent.args[1])}`);
+            // console.log(`Market Cap: ${ethers.formatEther(updateEvent.args[2])} ETH`);
+            // console.log(`Funding Raised: ${ethers.formatEther(updateEvent.args[3])} ETH`);
+            
+            // Kiểm tra thông tin token
+            expect(updateEvent.args[4]).to.equal("Test Token");
+            expect(updateEvent.args[5]).to.equal("TEST");
+            expect(updateEvent.args[6]).to.equal(token.target);
         });
     });
 
@@ -152,7 +200,7 @@ describe("Factory and BondingCurve", function () {
             await curve.connect(buyer).buy(
                 0, // Min tokens
                 buyer.address,
-                { value: ethers.parseEther("1") }
+                { value: ethers.parseEther("0.01") }
             );
 
             // Approve maximum amount for selling
@@ -202,9 +250,9 @@ describe("Factory and BondingCurve", function () {
             
             // Make multiple purchases and track changes
             const purchases = [
-                ethers.parseEther("1"),    // 1 ETH
-                ethers.parseEther("1"),    // 1 ETH
-                ethers.parseEther("1"),    // 1 ETH
+                ethers.parseEther("0.01"),    // 1 ETH
+                ethers.parseEther("0.01"),    // 1 ETH
+                ethers.parseEther("0.01"),    // 1 ETH
             ];
 
             console.log("\nTesting multiple purchases:");
@@ -269,7 +317,7 @@ describe("Factory and BondingCurve", function () {
             const formatEther = (bn) => ethers.formatEther(bn);
             
             // First buy some tokens with smaller amount
-            const buyAmount = ethers.parseEther("0.1");
+            const buyAmount = ethers.parseEther("0.01");
             
             console.log("\nInitial Purchase:");
             console.log("------------------------");
@@ -354,7 +402,7 @@ describe("Factory and BondingCurve", function () {
             console.log(`Initial pool balance: ${formatEther(initialBalance)} ETH`);
 
             // Buy tokens
-            const buyAmount = ethers.parseEther("1");
+            const buyAmount = ethers.parseEther("0.01");
             const expectedTokens = await curve.calculateTokensForEth(buyAmount);
             
             await curve.connect(buyer).buy(

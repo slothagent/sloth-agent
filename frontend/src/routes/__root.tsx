@@ -2,6 +2,9 @@ import { Outlet, createRootRoute } from "@tanstack/react-router";
 import React from "react";
 import { Providers } from "../components/Layout/Providers";
 import Header from "../components/Layout/Header";
+import { Toaster } from "react-hot-toast";
+
+
 export const Route = createRootRoute({
   component: RootComponent,
   notFoundComponent: () => <NotFound />,
@@ -35,6 +38,7 @@ function RootComponent() {
         <Header />
         <Outlet />
         <TanStackRouterDevtools position="bottom-right" />
+        <Toaster position="top-center" />
       </Providers>
     </>
   );

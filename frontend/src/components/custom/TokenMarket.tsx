@@ -26,7 +26,7 @@ const formatLaunchDate = (dateString?: string) => {
 
 const TokenCard = ({ token }: { token: Token }) => {
   const fetchTransactions = async (tokenAddress: string) => {
-    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=30d`);
+    const response = await fetch(`/api/transaction?tokenAddress=${tokenAddress}&timeRange=30d`);
     const result = await response.json();
     return result.data;
   }

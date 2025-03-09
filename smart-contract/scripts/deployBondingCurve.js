@@ -4,7 +4,7 @@ async function main() {
   console.log("Deploying BondingCurve contract...");
 
   // Deploy BondingCurve
-  const BondingCurve = await hre.ethers.deployContract("BondingCurve", ['0x0e8AB8A9fDa2d1d01b2d0Da98D678004df47aa2d', 500000, 800000000]);
+  const BondingCurve = await hre.ethers.deployContract("BondingCurve", ['0xcbca219204536abACF03172c127d142be789052b', 500000, 800000000]);
   await BondingCurve.waitForDeployment();
   console.log("BondingCurve deployed to:", BondingCurve.target);
 
@@ -13,7 +13,7 @@ async function main() {
   try {
     await hre.run("verify:verify", {
       address: BondingCurve.target,
-      constructorArguments: ['0x0e8AB8A9fDa2d1d01b2d0Da98D678004df47aa2d', 500000, 800000000]
+      constructorArguments: ['0xcbca219204536abACF03172c127d142be789052b', 500000, 800000000]
     });
     console.log("Contract verified successfully");
   } catch (error) {

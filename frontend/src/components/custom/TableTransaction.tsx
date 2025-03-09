@@ -2,7 +2,6 @@ import { formatAddress } from "../../utils/utils";
 import { formatDistance } from "date-fns";
 import { Transaction } from "../../models/transactions";
 import { formatNumber } from "../../utils/utils";
-import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 

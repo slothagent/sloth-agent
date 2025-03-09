@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Input } from "@/components/ui/input";
 import { CirclePlus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../ui/dialog";
 
 interface PersonalityBackgroundProps {
     agentLore: string;

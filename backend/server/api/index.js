@@ -17,6 +17,21 @@ import { TokenModel } from '../models/token.js';
 const app = new Hono().basePath('/api');
 const context = {};
 
+app.use('*', async (c, next) => {
+    const allowedOrigins = ['http://localhost:3000', 'https://www.slothai.xyz', 'https://slothai.xyz','http://localhost:5173'];
+    const origin = c.req.header('Origin');
+    
+    if (origin && allowedOrigins.includes(origin)) {
+        c.res.headers.set('Access-Control-Allow-Origin', origin);
+    } else {
+        c.res.headers.set('Access-Control-Allow-Origin', 'https://www.slothai.xyz');
+    }
+    
+    c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return await next();
+});
+
 // Health check route
 app.get("/health", (c) => {
     const health = {

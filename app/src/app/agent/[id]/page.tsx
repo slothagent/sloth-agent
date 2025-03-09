@@ -84,28 +84,37 @@ export default function ChatPage() {
       
       const data = await response.data;
   
-      if (data.texts) {
-        // Send each tweet as a separate message
-        data.texts.forEach((tweet: string, index: number) => {
-          const botResponse: Message = {
-            id: (Date.now() + index).toString(),
-            content: { texts: [tweet] },
-            role: "assistant",
-            timestamp: new Date(),
-            type: 'tweets'
-          };
-          setMessages((prev) => [...prev, botResponse]);
-        });
-      } else {
-        const botResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          content: "No response from API.",
-          role: "assistant",
-          timestamp: new Date(),
-          type: 'text'
-        };
-        setMessages((prev) => [...prev, botResponse]);
-      }
+      const botResponse: Message = {
+        id: (Date.now()).toString(),
+        content: { texts: [data.texts[0]] },
+        role: "assistant",
+        timestamp: new Date(),
+        type: 'tweets'
+      };
+      setMessages((prev) => [...prev, botResponse]);
+
+      // if (data.texts) {
+      //   // Send each tweet as a separate message
+      //   data.texts.forEach((tweet: string, index: number) => {
+      //     const botResponse: Message = {
+      //       id: (Date.now() + index).toString(),
+      //       content: { texts: [tweet] },
+      //       role: "assistant",
+      //       timestamp: new Date(),
+      //       type: 'tweets'
+      //     };
+      //     setMessages((prev) => [...prev, botResponse]);
+      //   });
+      // } else {
+      //   const botResponse: Message = {
+      //     id: (Date.now() + 1).toString(),
+      //     content: "No response from API.",
+      //     role: "assistant",
+      //     timestamp: new Date(),
+      //     type: 'text'
+      //   };
+      //   setMessages((prev) => [...prev, botResponse]);
+      // }
     } catch (error) {
       // console.error("Failed to get bot response:", error);
       let errorMessage = "API bị lỗi hoặc không có phản hồi.";
@@ -129,17 +138,16 @@ export default function ChatPage() {
     }
 };
 
-const handlePostTweet = async (tweet: string) => {
-  try {
-    // Here you would implement the actual tweet posting logic
-    console.log("Posting tweet:", tweet);
-    // Add your tweet posting API call here
-    alert("Tweet posted successfully!");
-  } catch (error) {
-    console.error("Failed to post tweet:", error);
-    alert("Failed to post tweet. Please try again.");
-  }
-};
+  const handlePostTweet = async (tweet: string) => {
+    try {
+      const tweetText = encodeURIComponent(tweet);
+      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+      window.open(twitterShareUrl, '_blank');
+    } catch (error) {
+      console.error("Failed to open Twitter:", error);
+      alert("Failed to open Twitter. Please try again.");
+    }
+  };
 
   return (
     <div className="flex flex-col h-[89vh] bg-gray-950 border border-gray-800 w-full sm:w-3/4 text-gray-100 mx-auto mt-4">

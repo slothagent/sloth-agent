@@ -4,7 +4,7 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '../utils/pinata';
 import { toast } from 'react-hot-toast';
-import { useRouter } from '@tanstack/react-router';
+import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
 import { factoryAbi } from '../abi/factoryAbi';
 import { Button } from '../components/ui/button';
@@ -22,7 +22,11 @@ import { useEthPrice } from '../hooks/useEthPrice';
 import { configAncient8 } from '../config/wagmi';
 import { configSonicBlaze } from '../config/wagmi';
 
-const CreateToken: React.FC = () => {
+export const Route = createFileRoute("/token/create")({
+    component: CreateToken
+});
+
+function CreateToken() {
     const [tokenName, setTokenName] = useState<string|null>(null);
     const [description, setDescription] = useState<string|null>(null);
     const [ticker, setTicker] = useState<string|null>(null);
@@ -206,7 +210,7 @@ const CreateToken: React.FC = () => {
                 // Generate image with Replicate
                 const prompt = `Create a funny, anime-style logo for a token named "${tokenName}". The design should be playful and meme-inspired, incorporating elements like exaggerated facial expressions, chibi characters, or internet meme aesthetics. It should still maintain a modern and minimalist look, making it suitable for a crypto token. Ensure the logo is clear, memorable, and scalable across different sizes. ${imagePrompt}`;
                 
-                const response = await fetch('/api/generate-image', {
+                const response = await fetch(`/api/generate-image`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -334,7 +338,7 @@ const CreateToken: React.FC = () => {
                             await refetchBalanceOfToken();
                             
                             // Save transaction to database
-                            await fetch('/api/transactions', {
+                            await fetch('/api/transaction', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -430,7 +434,7 @@ const CreateToken: React.FC = () => {
 
             try {
                 const tx = await writeContractAsync({
-                    address: chain?.id == 57054 ? process.env.NEXT_PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.NEXT_PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
+                    address: chain?.id == 57054 ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createTokenAndCurve',
                     value: price,

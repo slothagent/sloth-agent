@@ -15,7 +15,7 @@ interface SonicPriceResponse {
 }
 
 const fetchSonicPrice = async (): Promise<SonicPriceData & { warning?: string }> => {
-  const response = await fetch('/api/binance-price');
+  const response = await fetch('/api/sonic-price');
   const result: SonicPriceResponse = await response.json();
   
   if (!result.success) {

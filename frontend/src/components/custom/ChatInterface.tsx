@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react';
-import { Card } from '@/components/ui/card';
+import { Card } from '../ui/card';
 
 const ChatInterface: React.FC = () => {
     return (

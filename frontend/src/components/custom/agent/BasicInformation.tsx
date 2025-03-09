@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Input } from "../../ui/input";
+import { Switch } from "../../ui/switch";
+import { Label } from "../../ui/label";
 
 interface BasicInformationProps {
     agentName: string;

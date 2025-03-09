@@ -1,6 +1,6 @@
 import { generateCodeVerifier, generateCodeChallenge } from './oauth';
 
-const BASE_URL = process.env.NEXT_PUBLIC_REDIRECT_URI?.replace('/api/auth/callback/twitter', '') || '';
+const BASE_URL = process.env.PUBLIC_REDIRECT_URI?.replace('/api/auth/callback/twitter', '') || '';
 
 export const initiateTwitterAuth = async () => {
   try {

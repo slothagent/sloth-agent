@@ -28,7 +28,7 @@ const Hero: React.FC = () => {
   }, [sonicPriceData]);
 
   const fetchTransactions = async (tokenAddress: string) => {
-    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=24h`);
+    const response = await fetch(`/api/transaction?tokenAddress=${tokenAddress}&timeRange=24h`);
     const result = await response.json();
     return result.data;
   }

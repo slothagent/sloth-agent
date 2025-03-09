@@ -7,7 +7,7 @@ import Capabilities from '../components/custom/agent/Capabilities';
 import AgentPreview from '../components/custom/agent/AgentPreview';
 import { uploadImageToPinata } from '../utils/pinata';
 import { toast } from 'react-hot-toast';
-import { useRouter } from '@tanstack/react-router';
+import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } from 'wagmi';
 import { factoryAbi } from '../abi/factoryAbi';
 import { initiateTwitterAuth } from '../utils/twitter';
@@ -28,7 +28,11 @@ interface TwitterUserInfo {
 }
 
 
-const CreateAgent: React.FC = () => {
+export const Route = createFileRoute("/agent/create")({
+    component: CreateAgent
+});
+
+function CreateAgent() {
 
     const [currentStep, setCurrentStep] = useState<number>(1);
     const totalSteps = 5;

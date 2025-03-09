@@ -18,7 +18,7 @@ contract BondingCurve is Ownable, ReentrancyGuard {
     IERC20 public token;  // Token being traded
     uint256 public constant PRECISION = 1e18;  // Standard precision
     uint256 public constant MAX_RESERVE_RATIO = 1000000; // 100% in ppm
-    uint256 public constant FUNDING_GOAL = 400000 ether; // 400,000 ETH funding goal
+    uint256 public constant FUNDING_GOAL = 25000 ether; // 400,000 ETH funding goal
     uint256 public constant INITIAL_PRICE = 0.0001 ether; // Initial price: 0.0001 ETH per token
     uint256 public constant INITIAL_SUPPLY = 1_000_000_000 * 1e18; // 1 billion tokens
     uint256 public constant INITIAL_RESERVE = 100000 ether; // Initial reserve of 100,000 ETH
@@ -38,7 +38,7 @@ contract BondingCurve is Ownable, ReentrancyGuard {
     event Sell(address indexed seller, uint256 tokenAmount, uint256 paymentAmount);
     event FundingRaised(uint256 amount);
     event FundingGoalReached(uint256 timestamp);
-    event UpdateInfo(uint256 newPrice, uint256 newSupply, uint256 newTotalMarketCap, uint256 newFundingRaised);
+    event UpdateInfo(uint256 newPrice, uint256 newSupply, uint256 newTotalMarketCap, uint256 newFundingRaised, uint256 amountTokenToReceive);
     event PoolBalanceUpdated(uint256 newBalance);
 
     constructor(
@@ -269,7 +269,7 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         token.safeTransfer(buyer, tokensToReceive);
 
         // Emit price update after state changes
-        emit UpdateInfo(getCurrentPrice(), totalSupply, getTotalMarketCap(), fundingRaised);
+        emit UpdateInfo(getCurrentPrice(), totalSupply, getTotalMarketCap(), fundingRaised, tokensToReceive);
 
         // Check if funding goal is reached
         if (fundingRaised >= FUNDING_GOAL && !fundingGoalReached) {
@@ -310,7 +310,7 @@ contract BondingCurve is Ownable, ReentrancyGuard {
         require(success, "ETH transfer failed");
         
         // Emit events
-        emit UpdateInfo(getCurrentPrice(), totalSupply, getTotalMarketCap(), fundingRaised);
+        emit UpdateInfo(getCurrentPrice(), totalSupply, getTotalMarketCap(), fundingRaised, tokenAmount);
         emit Sell(msg.sender, tokenAmount, ethToReceive);
     }
 

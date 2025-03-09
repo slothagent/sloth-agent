@@ -8,8 +8,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-
-
 function Index() {
   return (
     <main className="min-h-screen mx-auto flex flex-col bg-[#0B0E17]">   

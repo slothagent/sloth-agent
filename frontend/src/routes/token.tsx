@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useTokens, useDeleteToken } from '../hooks/useTokens';
 import { Input } from '../components/ui/input';
@@ -9,7 +9,11 @@ import { Token } from '../models/token';
 
 const DEFAULT_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200"%3E%3Crect width="400" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="16" fill="%236b7280"%3EAI Agent%3C/text%3E%3C/svg%3E';
 
-const Tokens = () => {
+export const Route = createFileRoute("/token")({
+    component: Tokens
+});
+
+function Tokens() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const pageSize = 10;
@@ -98,7 +102,7 @@ const Tokens = () => {
                                             <p className="text-gray-400 text-sm truncate">{token.ticker}</p>
                                         </div>
                                         <div className="flex space-x-1 ml-2 shrink-0">
-                                            <Link to={`/token/${token.address?.toString() || ''}`}>
+                                            <Link to={`/token/${token.address?.toString() || ''}` as any}>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#1F2937]">
                                                     <Edit2 className="w-4 h-4 text-gray-400 hover:text-white" />
                                                 </Button>
@@ -120,7 +124,7 @@ const Tokens = () => {
                                     </p>
 
                                     <Link 
-                                        to={`/token/${token.address?.toString() || '' }`}
+                                        to={`/token/${token.address?.toString() || '' }` as any}
                                         className="inline-flex items-center px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-all text-sm font-medium justify-center"
                                     >
                                         View Details

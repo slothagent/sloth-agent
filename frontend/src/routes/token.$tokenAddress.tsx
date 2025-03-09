@@ -27,6 +27,7 @@ import { useSonicPrice } from  '../hooks/useSonicPrice';
 import { configAncient8,configSonicBlaze } from '../config/wagmi';
 import { useSwitchChain } from 'wagmi';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import axios from 'axios';
 
 
 export const Route = createFileRoute("/token/$tokenAddress")({
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/token/$tokenAddress")({
     beforeLoad: ({ params }) => {
         // Validate that tokenAddress is a valid Ethereum address
         const { tokenAddress } = params;
+        console.log('tokenAddress', tokenAddress);
         if (!/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
             throw new Error('Invalid token address');
         }
@@ -90,16 +92,11 @@ function TokenDetails() {
     };
 
     const fetchTokenByAddress = async () => {
-        const token = await fetch(`/api/token?address=${tokenAddress?.toString()}`,{
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        });
-        return token.json();
+        const token = await axios.get(`/api/token?address=${tokenAddress}`);
+        return token.data;
     }
 
-    const { data: tokenDatas, isLoading: isTokenDataLoading, error: tokenDataError } = useQuery({
+    const { data: tokenDatas } = useQuery({
         queryKey: ['token', tokenAddress],
         queryFn: () => fetchTokenByAddress(),
         staleTime: 60 * 1000,
@@ -109,7 +106,7 @@ function TokenDetails() {
         retry: 1,
     });
 
-    const { token: tokenResult, loading: isTokenResultLoading } = useTokenByAddress(tokenAddress as string);
+    const { token: tokenResult } = useTokenByAddress(tokenAddress as string);
 
     const tokenData = useMemo(() => {
         const token = tokenDatas?.data ?? tokenResult
@@ -120,39 +117,6 @@ function TokenDetails() {
         };
     }, [tokenDatas, tokenResult]);
 
-    // Handle loading and error states
-    if (isTokenDataLoading || isTokenResultLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen">
-                <LoadingSpinner size="lg" />
-                <p className="mt-4 text-lg">Loading token data...</p>
-            </div>
-        );
-    }
-
-    if (tokenDataError) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen">
-                <h1 className="text-4xl font-bold mb-4">Error</h1>
-                <p className="text-lg mb-6">Failed to load token data</p>
-                <Link to="/" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                    Go Home
-                </Link>
-            </div>
-        );
-    }
-
-    if (!tokenData) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-screen">
-                <h1 className="text-4xl font-bold mb-4">Token Not Found</h1>
-                <p className="text-lg mb-6">The token with address {tokenAddress} does not exist or could not be loaded.</p>
-                <Link to="/" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                    Go Home
-                </Link>
-            </div>
-        );
-    }
 
     const { data: balance } = useBalance({
         address: address,
@@ -211,7 +175,7 @@ function TokenDetails() {
                         console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
-                            await fetch('/api/transactions', {
+                            await fetch('/api/transaction', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -240,7 +204,7 @@ function TokenDetails() {
                             toast.success('Buy successful!', { id: loadingToast });
                         }else{
                             // Save price history after successful transaction
-                            await fetch('/api/transactions', {
+                            await fetch('/api/transaction', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',

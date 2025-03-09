@@ -1,9 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import Image from 'next/image';
+import { Button } from "../../ui/button";
 import { Upload, Sparkles, Pencil, User, Shirt, Package, Footprints, Crown, Smile, X, Check } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 
 interface VisualSystemProps {
     imageUrl: string;
@@ -429,7 +426,7 @@ const VisualSystem: React.FC<VisualSystemProps> = ({
                                                     onClick={() => handleAvatarPresetSelect(preset.id)}
                                                 >
                                                     <div className="absolute inset-0 flex items-center justify-center">
-                                                        <Image
+                                                        <img
                                                             src={preset.imageUrl}
                                                             alt={preset.name}
                                                             width={200}

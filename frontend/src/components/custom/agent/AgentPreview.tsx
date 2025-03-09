@@ -1,7 +1,5 @@
 import React from 'react';
-import Image from 'next/image';
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "../../ui/card";
 import { Bot, Star } from 'lucide-react';
 
 interface AgentPreviewProps {
