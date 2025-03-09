@@ -19,7 +19,6 @@ export default defineConfig({
         ws: true,
       },
     },
-
   },
   dev: {
     writeToDisk: true,

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://api-new.slothai.xyz/api/:path*"
+    }
+  ]
+} 

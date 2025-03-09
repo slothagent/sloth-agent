@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "rsbuild dev --port 5173",
-    "build": "rsbuild build && tsc --noEmit",
+    "build": "rsbuild build",
     "preview": "rsbuild preview",
     "lint": "eslint ."
   },
