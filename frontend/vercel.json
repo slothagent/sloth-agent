@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://api-new.slothai.xyz/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
