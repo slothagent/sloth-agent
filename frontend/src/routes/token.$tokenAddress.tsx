@@ -17,7 +17,7 @@ import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits, MaxUint256 } from "ethers";
 import { bondingCurveAbi } from '../abi/bondingCurveAbi';
 import Launching from '../components/custom/Launching';
-import { decodeEventLog } from 'viem';
+import { decodeEventLog, formatEther } from 'viem';
 import { tokenAbi } from '../abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '../hooks/useWebSocketData';
 import { LoadingSpinner } from '../components/ui/loading-spinner';
@@ -53,7 +53,8 @@ function TokenDetails() {
     const { switchChain } = useSwitchChain();
     const { data: sonicPriceData  } = useSonicPrice();
     const { data: ethPriceData } = useEthPrice();
-  
+    const [amountToReceive, setAmountToReceive] = useState<number>(0);
+
     // Get the ETH price for calculations, fallback to 2500 if not available
     const ethPrice = useMemo(() => {
       return ethPriceData?.price || 2500;
@@ -176,7 +177,8 @@ function TokenDetails() {
                                     userAddress: address,
                                     tokenAddress: tokenData?.address,
                                     price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
-                                    amountToken: parseFloat(amount||"0"),
+                                    amountToken: amountToReceive,
+                                    amount: parseFloat(amount||"0"),
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
                                     totalSupply: parseFloat(newSupply||"0"),
@@ -206,10 +208,12 @@ function TokenDetails() {
                                     price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     userAddress: address,
                                     amountToken: parseFloat(amount||"0"),
+                                    amount: amountToReceive,
                                     transactionType: 'SELL',
                                     transactionHash: txHash as `0x${string}`,
                                     totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0")
+                                    marketCap: parseFloat(newTotalMarketCap||"0"),
+                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
                                 }),
                             });
                             await refetchBalanceOfToken();
@@ -307,6 +311,7 @@ function TokenDetails() {
         if (balance && balance.value < parseEther(amount||"0")){
             return toast.error('Insufficient balance');
         }
+        setAmountToReceive(Number(tokensToReceive||"0")/10**18);
 
         const loadingToast = toast.loading('Buying...');
         try {
@@ -350,6 +355,7 @@ function TokenDetails() {
         const loadingToast = toast.loading('Selling...');
         try {
             await refetchTokensToReceive();
+            setAmountToReceive(Number(ethToReceive?.toString()||"0")/10**18);
             const tx = await writeContractAsync({
                 address: tokenData?.curveAddress as `0x${string}`,
                 abi: bondingCurveAbi,
