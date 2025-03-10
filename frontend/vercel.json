@@ -1,8 +1,11 @@
 {
     "rewrites": [
       {
-        "source": "/(.*)",
-        "destination": "https://staging.slothai.xyz/$1"
+        "source": "/api/(.*)",
+        "destination": "https://api.slothai.xyz/$1"
       }
+    ],
+    "routes": [
+      { "src": "/(.*)", "dest": "/index.html" }
     ]
   }
