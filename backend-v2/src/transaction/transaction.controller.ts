@@ -8,7 +8,7 @@ export class TransactionController {
   @Post()
   async createTransaction(@Body() body: any) {
     try {
-      const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash, totalSupply, marketCap, network, fundingRaised, amountTokensToReceive } = body;
+      const { tokenAddress, userAddress, price, amountToken, amount,transactionType, transactionHash, totalSupply, marketCap, network, fundingRaised } = body;
 
       if (!tokenAddress || !userAddress || !price || !amountToken || !transactionType || !transactionHash) {
         throw new HttpException("Missing required fields", HttpStatus.BAD_REQUEST);
@@ -17,17 +17,17 @@ export class TransactionController {
       const result = await this.transactionService.createTransaction({
         from: tokenAddress,
         to: userAddress,
-        amount: amountToken,
+        amountToken,
+        amount,
         price,
         transactionType,
         transactionHash,
         timestamp: new Date(),
-        totalValue: price * amountTokensToReceive,
+        totalValue: price *  amountToken,
         supply: totalSupply,
         marketCap: marketCap,
         network: network,
-        fundingRaised: fundingRaised,
-        amountTokensToReceive: amountTokensToReceive
+        fundingRaised: fundingRaised
       });
 
       return { success: true, data: result };

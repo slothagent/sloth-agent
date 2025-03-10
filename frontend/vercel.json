@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://staging.slothai.xyz/$1"
+      "destination": "https://www.slothai.xyz/$1"
     },
     {
       "source": "/(.*)",
