@@ -6,10 +6,11 @@ import { useQuery } from '@tanstack/react-query';
 import TableTransaction from './TableTransaction';
 import { useSonicPrice } from '../../hooks/useSonicPrice';
 import { useEthPrice } from '../../hooks/useEthPrice';
+import axios from 'axios';
 
 const fetchTransactions = async (page: number): Promise<{ data: Transaction[], total: number }> => {
-  const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?page=${page}&limit=10`);
-  const result = await response.json();
+  const response = await  axios.get(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?page=${page}&limit=10`);
+  const result = await response.data;
   return {
     data: result.data,
     total: result.total

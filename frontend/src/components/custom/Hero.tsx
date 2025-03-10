@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSonicPrice } from '../../hooks/useSonicPrice';
 import { useEthPrice } from '../../hooks/useEthPrice';
 import { INITIAL_SUPPLY } from '../../lib/contants';
+import axios from 'axios';
 
 const Hero: React.FC = () => {
   const router = useRouter();
@@ -28,8 +29,8 @@ const Hero: React.FC = () => {
   }, [sonicPriceData]);
 
   const fetchTransactions = async (tokenAddress: string) => {
-    const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?tokenAddress=${tokenAddress}&timeRange=24h`);
-    const result = await response.json();
+    const response = await axios.get(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?tokenAddress=${tokenAddress}&timeRange=24h`);
+    const result = await response.data;
     return result.data;
   }
 
