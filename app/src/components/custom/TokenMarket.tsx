@@ -5,9 +5,16 @@ import { Button } from '../ui/button'
 import { useRouter } from 'next/navigation'
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
-import { useTokensData } from '@/hooks/useWebSocketData'
+import { useTokensData, useTransactionsData } from '@/hooks/useWebSocketData'
 import { Token } from '@/models'
-
+import { formatNumber } from '@/utils/utils'
+import { http, useReadContract } from 'wagmi'
+import { bondingCurveAbi } from '@/abi/bondingCurveAbi'
+import { useQuery } from '@tanstack/react-query'
+import { useEthPrice } from '@/hooks/useEthPrice'
+import { useSonicPrice } from '@/hooks/useSonicPrice'
+import { configAncient8, configSonicBlaze } from '@/wagmi'
+import { INITIAL_SUPPLY } from '@/lib/contants'
 
 const formatLaunchDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
@@ -19,27 +26,56 @@ const formatLaunchDate = (dateString?: string) => {
   }
 }
 
-const formatSupply = (value: string) => {
-  // Convert from wei to token amount (divide by 10^18)
-  const num = Number(value) / 1e18
-  
-  // Nếu số nhỏ hơn 1000, giữ nguyên và làm tròn 2 chữ số thập phân
-  if (num < 1000) {
-    return num.toFixed(2)
-  }
-  
-  // Nếu số lớn hơn hoặc bằng 1000
-  const tier = Math.floor(Math.log10(num) / 3)
-  if (tier === 0) return num.toFixed(2)
-  
-  const scale = Math.pow(10, tier * 3)
-  const scaled = num / scale
-  
-  // Giữ lại 2 số thập phân và thêm đơn vị K, M, B, T
-  return scaled.toFixed(2).replace(/\.?0+$/, '') + ['', 'K', 'M', 'B', 'T'][tier]
-}
-
 const TokenCard = ({ token }: { token: Token }) => {
+  const fetchTransactions = async (tokenAddress: string) => {
+    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=30d`);
+    const result = await response.json();
+    return result.data;
+  }
+
+  const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+  const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+
+  // Get the ETH price for calculations, fallback to 2500 if not available
+  const ethPrice = useMemo(() => {
+    return ethPriceData?.price || 2500;
+  }, [ethPriceData]);
+  
+  const sonicPrice = useMemo(() => {
+    return sonicPriceData?.price || 0.7;
+  }, [sonicPriceData]);
+
+  const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+      queryKey: ['transactions', token?.address],
+      queryFn: () => fetchTransactions(token?.address)
+  });
+
+  const transactions = useMemo(() => {
+    if (!transactionsData) return [];
+    return transactionsData
+  }, [transactionsData]);
+  // console.log(`transactionsData: ${token?.address}`,formatNumber(Number(transactions.reduce((acc: number, curr: any) => acc + curr.marketCap, 0))/10**18))
+  
+  const {data: fundingRaised} = useReadContract({
+    address: token?.curveAddress as `0x${string}`,
+    abi: bondingCurveAbi,
+    functionName: 'fundingRaised',
+    args: [],
+    config: transactions[0]?.network === 'Ancient8' ? configAncient8 : configSonicBlaze
+  });
+
+  const totalMarketCapToken = useMemo(() => {
+    if (!transactions) return 0;
+
+    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8')
+    const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
+    const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
+    const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
+    const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
+    const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
+    return ancient8MarketCap || sonicMarketCap;
+  }, [transactions]);
+
   return (
     <Link href={`/token/${token.address}`}>
       <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors">
@@ -77,8 +113,8 @@ const TokenCard = ({ token }: { token: Token }) => {
             <p className="text-sm text-gray-400 mt-2">{token.description}</p>
             <div className="flex gap-2 justify-between">
               <div className="flex flex-col gap-2">
-                  <span className="text-blue-500">TOTAL SUPPLY</span>
-                  <span className="text-blue-500">$ {formatSupply(token.totalSupply)}</span>
+                  <span className="text-blue-500">TOTAL MARKET CAP</span>
+                  <span className="text-blue-500">$ {formatNumber(totalMarketCapToken)}</span>
               </div>
               <div className="flex flex-col gap-2">
                   <span className="text-gray-400">LAUNCH TIME</span>
@@ -91,12 +127,12 @@ const TokenCard = ({ token }: { token: Token }) => {
               <div 
                 className="h-2 rounded-full"
                 style={{ 
-                  width: '100%',
+                  width: `${(Number(formatNumber(Number(fundingRaised)/10**18))/22700)*100}%`,
                   background: `linear-gradient(90deg, #161B28 0%, rgb(59 130 246) 100%)`
                 }}
               />
             </div>
-            <span className="text-blue-500 text-sm mt-1 block">100%</span>
+            <span className="text-blue-500 text-sm mt-1 block">{parseFloat((Number(formatNumber(Number(fundingRaised)/10**18))/22700*100).toFixed(2))}%</span>
           </div>
         </div>
       </div>
@@ -111,14 +147,11 @@ const sortTokensByPriority = (tokens: Token[], query: string) => {
     const aTicker = a.ticker.toLowerCase()
     const bTicker = b.ticker.toLowerCase()
 
-    // Priority 1: Tên bắt đầu bằng query
     const aStartsWithName = aName.startsWith(query)
     const bStartsWithName = bName.startsWith(query)
     
     if (aStartsWithName && !bStartsWithName) return -1
     if (!aStartsWithName && bStartsWithName) return 1
-
-    // Priority 2: Ticker bắt đầu bằng query (nếu tên không match)
     if (!aStartsWithName && !bStartsWithName) {
       const aStartsWithTicker = aTicker.startsWith(query)
       const bStartsWithTicker = bTicker.startsWith(query)
@@ -127,14 +160,12 @@ const sortTokensByPriority = (tokens: Token[], query: string) => {
       if (!aStartsWithTicker && bStartsWithTicker) return 1
     }
 
-    // Priority 3: Tên chứa query
     const aContainsName = aName.includes(query)
     const bContainsName = bName.includes(query)
     
     if (aContainsName && !bContainsName) return -1
     if (!aContainsName && bContainsName) return 1
 
-    // Priority 4: Ticker chứa query (nếu tên không chứa)
     if (!aContainsName && !bContainsName) {
       const aContainsTicker = aTicker.includes(query)
       const bContainsTicker = bTicker.includes(query)
@@ -143,7 +174,6 @@ const sortTokensByPriority = (tokens: Token[], query: string) => {
       if (!aContainsTicker && bContainsTicker) return 1
     }
 
-    // Priority 5: Sắp xếp theo thời gian tạo nếu cùng mức độ ưu tiên
     return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
   })
 }
@@ -152,19 +182,10 @@ export default function AgentMarket() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllCategories, setShowAllCategories] = useState(false)
+  const { tokens, loading: tokensLoading } = useTokensData();
   const [defaultVisible, setDefaultVisible] = useState(1);
-  const { tokens: tokens, loading: tokensLoading } = useTokensData();
-  
-  // const { data: tokens, isLoading } = useQuery({
-  //   queryKey: ['token'],
-  //   queryFn: () => fetchTokens(),
-  //   staleTime: 10 * 1000,
-  //   gcTime: 5 * 60 * 1000,
-  //   refetchOnWindowFocus: false,
-  //   refetchOnMount: false,
-  //   refetchInterval: 10 * 1000,
-  //   retry: 1,
-  // })
+
+
   useEffect(() => {
     // Kiểm tra kích thước màn hình để set số lượng category hiển thị
     const handleResize = () => {
@@ -177,18 +198,38 @@ export default function AgentMarket() {
     return () => window.removeEventListener("resize", handleResize); // Cleanup
   }, []);
 
+
+  const {data: tokensData, isLoading: tokensDataLoading} = useQuery({
+    queryKey: ['tokens'],
+    queryFn: async () => {
+      const response = await fetch(`/api/token?page=1&pageSize=10`);
+      const result = await response.json();
+      return result.data;
+    }
+  });
+
+  // Show loading state when both sources are loading and no data is available yet
+  const isLoading = (tokensLoading || tokensDataLoading) && !tokens && !tokensData;
+
   const filteredTokens = useMemo(() => {
-    if (!tokens) return []
-    if (!searchQuery) return tokens
-
-    const query = searchQuery.toLowerCase()
-    const filtered = tokens.filter((token: Token) => 
-      token.name.toLowerCase().includes(query) ||
-      token.ticker.toLowerCase().includes(query)
+    // Use tokensData if tokens is not available
+    const sourceTokens = tokens || tokensData || [];
+    
+    let result = !searchQuery ? [...sourceTokens] : sourceTokens.filter((token: Token) => 
+      token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      token.ticker.toLowerCase().includes(searchQuery.toLowerCase())
     )
-
-    return sortTokensByPriority(filtered, query)
-  }, [tokens, searchQuery])
+    
+    if (searchQuery) {
+      result = sortTokensByPriority(result, searchQuery.toLowerCase())
+    } else {
+      result.sort((a, b) => {
+        return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
+      })
+    }
+    
+    return result
+  }, [tokens, tokensData, searchQuery])
 
   const categories = [
     'All',
@@ -202,14 +243,14 @@ export default function AgentMarket() {
   
   // console.log('Tokens:', tokens)
 
-  if (tokensLoading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col pt-6">
         <div className="flex items-center justify-between">
           <p className="text-white text-2xl font-bold">Tokens Market</p>
         </div>
         <div className="flex gap-4 py-4">
-          {[1, 2, 3, 4, 5].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex-shrink-0 w-[300px] h-[200px] bg-[#161B28] animate-pulse" />
           ))}
         </div>
@@ -272,9 +313,7 @@ export default function AgentMarket() {
       </div>
       <div className='flex gap-4 py-4 overflow-x-auto'>
         {filteredTokens.map((token: Token, index: number) => (
-          <div key={`${token._id}-${index}`} className="flex-shrink-0">
-            <TokenCard token={token} />
-          </div>
+          <TokenCard key={index} token={token} />
         ))}
         {filteredTokens.length === 0 && searchQuery && (
           <div className="flex flex-col items-center justify-center w-full py-8">

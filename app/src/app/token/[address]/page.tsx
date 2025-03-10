@@ -1,6 +1,5 @@
 "use client";
 
-import Image from 'next/image';
 import Link from 'next/link';
 import {  
     Star,
@@ -26,8 +25,13 @@ import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import Launching from '@/components/custom/Launching';
 import { decodeEventLog } from 'viem';
 import { tokenAbi } from '@/abi/tokenAbi';
-
-
+import { useEthPrice } from '@/hooks/useEthPrice';
+import { useSonicPrice } from '@/hooks/useSonicPrice';
+import { useSwitchChain } from 'wagmi';
+import { configAncient8 } from '@/wagmi';
+import { configSonicBlaze } from '@/wagmi';
+import { formatNumber } from '@/utils/utils';
+import { INITIAL_SUPPLY } from '@/lib/contants';
 
 const TokenDetails: NextPage = () => {
     const { address: tokenAddress } = useParams();
@@ -37,17 +41,21 @@ const TokenDetails: NextPage = () => {
     const [timeRange, setTimeRange] = useState('30d');
     const [txHash, setTxHash] = useState<string | null>(null);
     const [transactionType, setTransactionType] = useState<string | null>(null);
+    const [amountEthToReceive, setAmountEthToReceive] = useState<string|null>(null);
+    const { switchChain } = useSwitchChain();
+    const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+    const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+  
+    // Get the ETH price for calculations, fallback to 2500 if not available
+    const ethPrice = useMemo(() => {
+      return ethPriceData?.price || 2500;
+    }, [ethPriceData]);
+    
+    const sonicPrice = useMemo(() => {
+      return sonicPriceData?.price || 0.7;
+    }, [sonicPriceData]);
 
-    const { data: balance, refetch: refetchBalance } = useBalance({
-        address: address,
-    });
-
-    const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
-        address: tokenAddress as `0x${string}`,
-        abi: tokenAbi,
-        functionName: 'balanceOf',
-        args: [address as `0x${string}`]
-    });
+    
     
     // console.log('balanceOfToken', balanceOfToken);
 
@@ -80,7 +88,7 @@ const TokenDetails: NextPage = () => {
         return token.json();
     }
 
-    const { data: token } = useQuery({
+    const { data: token, isLoading } = useQuery({
         queryKey: ['token', tokenAddress],
         queryFn: () => fetchTokenByAddress(),
         staleTime: 60 * 1000,
@@ -98,10 +106,23 @@ const TokenDetails: NextPage = () => {
         };
     }, [token]);
 
+    const { data: balance, refetch: refetchBalance } = useBalance({
+        address: address,
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
+    });
+
+    const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
+    });
     // console.log('tokenData', tokenData);
 
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
     
     // console.log('Receipt:', receipt);
@@ -135,14 +156,14 @@ const TokenDetails: NextPage = () => {
                             topics: eventLog.topics,
                         });
                         await refetchBalanceOfToken();
-                        const { newPrice, newSupply, newTotalMarketCap, newFundingRaised } = decoded.args as any;
+                        const { newPrice, newSupply, newTotalMarketCap, newFundingRaised, amountTokenToReceive } = decoded.args as any;
                         // console.log('newPrice', newPrice);
                         // console.log('newSupply', newSupply);
                         // console.log('newTotalMarketCap', newTotalMarketCap);
                         // console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
-                            await fetch('/api/transactions', {
+                            await fetch(`/api/transactions`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -150,12 +171,15 @@ const TokenDetails: NextPage = () => {
                                 body: JSON.stringify({
                                     userAddress: address,
                                     tokenAddress: tokenData?.address,
-                                    price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
+                                    network: tokenData?.network,
+                                    price: tokenData?.network == "Sonic" ? parseFloat(formatUnits(newPrice||BigInt(0), 18)) : parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     amountToken: parseFloat(amount||"0"),
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
                                     totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0")
+                                    marketCap: parseFloat(newTotalMarketCap||"0"),
+                                    amountTokensToReceive: parseFloat(formatUnits(amountTokenToReceive||BigInt(0), 18)),
+                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
                                 }),
                             });
                             await writeContractAsync({
@@ -169,20 +193,23 @@ const TokenDetails: NextPage = () => {
                             toast.success('Buy successful!', { id: loadingToast });
                         }else{
                             // Save price history after successful transaction
-                            await fetch('/api/transactions', {
+                            await fetch(`/api/transactions`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
                                 },
                                 body: JSON.stringify({
                                     tokenAddress: tokenData?.address,
+                                    network: tokenData?.network,
                                     price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     userAddress: address,
-                                    amountToken: parseFloat(amount||"0"),
+                                    amountToken: parseFloat(amountEthToReceive||"0"),
                                     transactionType: 'SELL',
                                     transactionHash: txHash as `0x${string}`,
                                     totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0")
+                                    marketCap: parseFloat(newTotalMarketCap||"0"),
+                                    amountTokensToReceive: parseFloat(amount||"0"),
+                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
                                 }),
                             });
                             await refetchBalanceOfToken();
@@ -214,36 +241,27 @@ const TokenDetails: NextPage = () => {
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
         functionName: 'balanceOf',
-        args: [tokenData?.curveAddress as `0x${string}`]
+        args: [tokenData?.curveAddress as `0x${string}`],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
 
-    const {data: totalMarketCap} = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'getTotalMarketCap',
-        args: []
-    });
 
-    const {data: fundingRaised} = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'fundingRaised',
-        args: []
-    });
 
     const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
         functionName: 'calculateTokensForEth',
-        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
+        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8   
     });
 
     const { data: ethToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
         functionName: 'calculateEthForTokens',
-        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
+        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
 
@@ -262,6 +280,19 @@ const TokenDetails: NextPage = () => {
         refetchInterval: 5000, // Refetch every 5 seconds
     });
 
+    const totalMarketCapToken = useMemo(() => {
+        if (!transactionHistory) return 0;
+    
+        const ancient8Transactions = transactionHistory.filter((tx: any) => tx.network === 'Ancient8')
+        const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
+        const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
+        const sonicTransactions = transactionHistory.filter((tx: any) => tx.network === 'Sonic');
+        const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
+        const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
+        return ancient8MarketCap || sonicMarketCap;
+    }, [transactionHistory]);
+      
+
     // /console.log('transactionHistory', transactionHistory);
     
     const handleTimeRangeChange = (value: string) => {
@@ -274,11 +305,23 @@ const TokenDetails: NextPage = () => {
         return (balanceNum * percentage / 100).toString();
     };
 
+    if (isLoading || !tokenData) {
+        return <div>Loading...</div>;
+    }
 
 
     const handleBuy = async () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
+        if(tokenData?.network == "Sonic"){
+            switchChain({
+                chainId: 57054
+            });
+        }else{
+            switchChain({
+                chainId: 28122024
+            });
+        }
         if (BigInt(tokensToReceive||0) <= 0) return toast.error('Insufficient tokens to receive');
         if (balance && balance.value < parseEther(amount||"0")){
             return toast.error('Insufficient balance');
@@ -315,9 +358,20 @@ const TokenDetails: NextPage = () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
 
+        if(tokenData?.network == "Sonic"){
+            switchChain({
+                chainId: 57054
+            });
+        }else{
+            switchChain({
+                chainId: 28122024
+            });
+        }
+
         const loadingToast = toast.loading('Selling...');
         try {
             await refetchTokensToReceive();
+            setAmountEthToReceive(ethToReceive?.toString()||"0");
             const tx = await writeContractAsync({
                 address: tokenData?.curveAddress as `0x${string}`,
                 abi: bondingCurveAbi,
@@ -440,26 +494,20 @@ const TokenDetails: NextPage = () => {
                         <div className="w-full lg:flex hidden flex-col">
                             <div className="lg:flex w-full items-center">                        
                                 <div className="lg:flex items-center gap-3 h-full hidden">
-                                    {tokenData?.imageUrl && (
-                                        <img 
-                                            src={tokenData?.imageUrl}
-                                            alt="Token Logo"
-                                            className="w-28 h-28 rounded-xl"
-                                            loading="lazy"
-                                            width={64}
-                                            height={64}
-                                            onError={(e) => {
-                                                const target = e.target as HTMLImageElement;
-                                                target.style.display = 'none';
-                                            }}
-                                        />
-                                    )}
+                                    <img 
+                                        src={tokenData?.imageUrl}
+                                        alt="Token Logo"
+                                        className="w-28 h-28 rounded-xl"
+                                        loading="lazy"
+                                        width={64}
+                                        height={64}
+                                    />
                                     <div className="lg:flex flex-col justify-center h-full">
                                         <div>
                                             <div className="flex items-center gap-2">
                                                 <h1 className="text-3xl font-medium mb-1 text-white">{tokenData?.name}</h1>
                                             </div>
-                                            <p className="text-xs text-gray-400">{tokenData?.ticker}</p>
+                                            <p className="text-xs text-gray-400">@{tokenData?.ticker}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -516,12 +564,12 @@ const TokenDetails: NextPage = () => {
                                 <div className="w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
                                     <div className="flex flex-col h-full">
                                         <div className="text-sm mb-auto flex items-center gap-1.5 font-medium text-gray-400">
-                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src="https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" style={{ color: 'transparent' }} />
+                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-6" src={tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"}    style={{ color: 'transparent' }} />
                                             Contract address
                                         </div>
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
                                             {tokenData?.address ? (
-                                                <Link href={`https://testnet.sonicscan.org/address/${tokenData.address}`} className='hover:underline' target="_blank">
+                                                <Link href={`${tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/address/" : "https://scanv2-testnet.ancient8.gg/address/"}${tokenData.address}`} className='hover:underline' target="_blank">
                                                     {tokenData.address.slice(0, 4)}...{tokenData.address.slice(-4)}
                                                 </Link>
                                             ) : (
@@ -574,8 +622,8 @@ const TokenDetails: NextPage = () => {
                                         <div className="flex items-center rounded justify-center font-sans font-medium w-fit bg-[#161B28] text-gray-400 h-6 gap-1 text-xs px-2 border border-[#1F2937]">
                                             {tokenData?.ticker}
                                         </div>
-                                        <Link href={`https://scanv2-testnet.ancient8.gg/address/${tokenData?.address}`} target="_blank" className="flex items-center rounded justify-center font-medium w-fit bg-[#161B28] text-gray-400 text-[10px] leading-[12px] gap-1 px-1 h-auto py-1 border border-[#1F2937]">
-                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-4" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
+                                        <Link href={`${tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/address/" : "https://scanv2-testnet.ancient8.gg/address/"}${tokenData?.address}`} target="_blank" className="flex items-center rounded justify-center font-medium w-fit bg-[#161B28] text-gray-400 text-[10px] leading-[12px] gap-1 px-1 h-auto py-1 border border-[#1F2937]">
+                                            <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-4" src={tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"}    style={{ color: 'transparent' }} />
                                             {tokenData?.address.slice(0, 4)}...{tokenData?.address.slice(-4)}
                                         </Link>
                                     </div>
@@ -605,10 +653,10 @@ const TokenDetails: NextPage = () => {
                                     <div className="flex items-center gap-1">Trade</div>
                                 </TabsTrigger>      
                                 <TabsTrigger 
-                                    value="overview"
+                                    value="analytics"
                                     className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
                                 >
-                                    <div className="flex items-center gap-1 text-xs md:text-base">Overview</div>
+                                    <div className="flex items-center gap-1 text-xs md:text-base">Analytics</div>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="social"
@@ -638,7 +686,7 @@ const TokenDetails: NextPage = () => {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(transactionHistory?.[transactionHistory.length - 1]?.price||0).toFixed(8)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">{(transactionHistory?.[transactionHistory.length - 1]?.price||0).toFixed(10)} {tokenData?.network}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
@@ -680,7 +728,7 @@ const TokenDetails: NextPage = () => {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm text-gray-400">Balance:</span>
-                                                <span className="text-sm font-medium text-white">{parseFloat(formatUnits(balanceOfToken||BigInt(0), 18).toString()).toFixed(3)} {tokenData?.ticker}</span>
+                                                <span className="text-sm font-medium text-white">{formatNumber(Number(balanceOfToken||BigInt(0))/10**18)} {tokenData?.ticker}</span>
                                             </div>
                                         </div>
                                         <TabsContent value="buy">
@@ -727,7 +775,7 @@ const TokenDetails: NextPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {(Number(tokensToReceive?.toString()||"0")/10**18).toFixed(6)} {tokenData?.ticker}</span>
+                                                    <span>You will receive: {formatNumber(Number(tokensToReceive?.toString()||"0")/10**18)} {tokenData?.ticker}</span>
                                                 </div>
                                                 <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Buy
@@ -776,7 +824,7 @@ const TokenDetails: NextPage = () => {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {(Number(ethToReceive?.toString()||"0")/10**18).toFixed(6)} S</span>
+                                                    <span>You will receive: {formatNumber(Number(ethToReceive?.toString()||"0")/10**18)} S</span>
                                                 </div>
                                                 <Button onClick={handleSell} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Sell
@@ -792,8 +840,12 @@ const TokenDetails: NextPage = () => {
                         </div>
                         
                     </TabsContent>
-                    <TabsContent value="overview" className="mt-4">
-                        <Overview />
+                    <TabsContent value="analytics" className="mt-4">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-sm text-gray-400">Coming Soon</span>
+                            </div>
+                        </div>
                     </TabsContent>
                     <TabsContent value="social" className="mt-4">
                         <Social tokenData={tokenData} />
@@ -806,7 +858,7 @@ const TokenDetails: NextPage = () => {
                         </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
+                        <Launching totalMarketCap={totalMarketCapToken} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} transactions={transactionHistory as any|| []} bondingCurveAddress={tokenData?.curveAddress||''} tokenAddress={tokenData?.address||''} network={tokenData?.network||''} sonicPrice={sonicPrice} ethPrice={ethPrice} />
                     </TabsContent>
                 </Tabs>
                 </div>

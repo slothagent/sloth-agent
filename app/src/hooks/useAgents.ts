@@ -15,19 +15,21 @@ interface UseAgentsOptions {
   page?: number;
   pageSize?: number;
   search?: string;
+  owner?: string;
 }
 
 export const useAgents = (options: UseAgentsOptions = {}) => {
-  const { page = 1, pageSize = 10, search = '' } = options;
+  const { page = 1, pageSize = 10, search = '', owner = '' } = options;
   const queryClient = useQueryClient();
   
   return useQuery<AgentResponse>({
-    queryKey: ['agents', page, pageSize, search],
+    queryKey: ['agents', page, pageSize, search, owner],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: page.toString(),
         pageSize: pageSize.toString(),
         ...(search && { search }),
+        ...(owner && { owner }),
       });
       
       const response = await fetch(`/api/agent?${params}`);

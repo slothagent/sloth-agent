@@ -1,26 +1,36 @@
 "use client"
 import Link from 'next/link';
-import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAgents, useDeleteAgent, AgentResponse } from '@/hooks/useAgents';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Trash2, Edit2, Plus } from 'lucide-react';
+import { Search, Trash2, Edit2, Plus, Filter } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Agent } from '@/models/agent';
+import { useAccount } from 'wagmi';
 
 const DEFAULT_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200"%3E%3Crect width="400" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="16" fill="%236b7280"%3EAI Agent%3C/text%3E%3C/svg%3E';
 
-const Agents = () => {
+const Agents: React.FC = () => {
+    const { address, isConnected } = useAccount();
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState<string>('');
     const pageSize = 10;
-
-    const { data: agentsData, isLoading } = useAgents({
-        page,
-        pageSize,
-        search,
-    });
+    
+    // Only fetch agents if the user is connected
+    const { data: agentsData, isLoading } = useAgents(
+        address && isConnected ? {
+            page,
+            pageSize,
+            search,
+            owner: address,
+        } : {
+            // Dummy values that won't return any results when not connected
+            page: 0,
+            pageSize: 0,
+            owner: 'not-connected'
+        }
+    );
 
     const deleteAgent = useDeleteAgent();
 
@@ -32,6 +42,21 @@ const Agents = () => {
             toast.error('Failed to delete agent');
         }
     };
+
+    // Show login message if not connected
+    if (!address || !isConnected) {
+        return (
+            <div className="min-h-screen bg-[#0B0E17] py-12 sm:py-12">
+                <div className="container mx-auto px-4 flex flex-col items-center justify-center min-h-[60vh]">
+                    <h1 className="text-3xl font-bold text-white mb-4 text-center">Connect Your Wallet</h1>
+                    <p className="text-gray-400 text-center mb-8">Please connect your wallet to view and manage your agents.</p>
+                    <div className="w-full max-w-md">
+                        {/* You can add a connect wallet button here if needed */}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
@@ -50,7 +75,9 @@ const Agents = () => {
                 {/* Header Section */}
                 <div className="flex justify-between items-start mb-12">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">My Agents</h1>
+                        <h1 className="text-3xl font-bold text-white mb-2">
+                            My Agents
+                        </h1>
                         <p className="text-gray-400">Manage and monitor your AI agents for blockchain technology.</p>
                     </div>
                     <Link 
@@ -62,8 +89,9 @@ const Agents = () => {
                     </Link>
                 </div>
 
-                {/* Search Bar */}
-                <div className="mb-8">
+                {/* Filters Section */}
+                <div className="mb-8 space-y-4">
+                    {/* Search Bar */}
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input

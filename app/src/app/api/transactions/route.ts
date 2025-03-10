@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createTransaction, getTransactionHistory, getLatestTransaction, getPaginatedTransactions, calculateTotalVolume } from "@/models/transactions";
 
+// 24h Volume = amountTokensToReceive * price
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash, totalSupply, marketCap } = body;
+    const { tokenAddress, userAddress, price, amountToken, transactionType, transactionHash, totalSupply, marketCap, network, fundingRaised, amountTokensToReceive } = body;
 
     if (!tokenAddress || !userAddress || !price || !amountToken || !transactionType || !transactionHash) {
       return NextResponse.json(
@@ -21,9 +22,12 @@ export async function POST(req: NextRequest) {
       transactionType,
       transactionHash,
       timestamp: new Date(),
-      totalValue: price * amountToken,
+      totalValue: price * amountTokensToReceive,
       supply: totalSupply,
-      marketCap: marketCap
+      marketCap: marketCap,
+      network: network,
+      fundingRaised: fundingRaised,
+      amountTokensToReceive: amountTokensToReceive
     });
 
     return NextResponse.json({ success: true, data: result });

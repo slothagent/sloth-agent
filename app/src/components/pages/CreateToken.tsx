@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect } from 'react';
-import { CirclePlus, Coins, Upload } from 'lucide-react';
+import { useRef, useState, useEffect, useMemo } from 'react';
+import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '@/utils/pinata';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -16,9 +16,13 @@ import { Dialog } from '../ui/dialog';
 import { bondingCurveAbi } from '@/abi/bondingCurveAbi';
 import { tokenAbi } from '@/abi/tokenAbi';
 import { MaxUint256 } from 'ethers';
+import { useSwitchChain } from 'wagmi';
+import { useSonicPrice } from '@/hooks/useSonicPrice';
+import { useEthPrice } from '@/hooks/useEthPrice';
+import { configAncient8 } from '@/wagmi';
+import { configSonicBlaze } from '@/wagmi';
 
 const CreateToken: React.FC = () => {
-
     const [tokenName, setTokenName] = useState<string|null>(null);
     const [description, setDescription] = useState<string|null>(null);
     const [ticker, setTicker] = useState<string|null>(null);
@@ -33,27 +37,57 @@ const CreateToken: React.FC = () => {
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [txHash, setTxHash] = useState<string | null>(null);
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
-    const { address: OwnerAddress, isConnected } = useAccount()
+    const { address: OwnerAddress, isConnected,chain } = useAccount()
     const [amount, setAmount] = useState<string|null>(null);
     const [transactionType, setTransactionType] = useState<string|null>(null);
     const [tokenAddress, setTokenAddress] = useState<string|null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [isBuyOpen, setIsBuyOpen] = useState<boolean>(false);
+    const [isTwitterShareOpen, setIsTwitterShareOpen] = useState<boolean>(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
+    const { switchChain,chains } = useSwitchChain();
+
+    const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+    const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+  
+    // Get the ETH price for calculations, fallback to 2500 if not available
+    const ethPrice = useMemo(() => {
+      return ethPriceData?.price || 2500;
+    }, [ethPriceData]);
+    
+    const sonicPrice = useMemo(() => {
+      return sonicPriceData?.price || 0.7;
+    }, [sonicPriceData]);
 
 
     const { data: balance, refetch: refetchBalance } = useBalance({
         address: OwnerAddress,
+        config: chain?.id == 57054 ? configSonicBlaze : configAncient8
     });
-    
+
     const router = useRouter();
     
     const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
         functionName: 'balanceOf',
-        args: [OwnerAddress as `0x${string}`]
+        args: [OwnerAddress as `0x${string}`],
+        config: chain?.id == 57054 ? configSonicBlaze : configAncient8
     });
+
+    const networks = [
+        {
+            icon: <img src="/assets/chains/a8.png" alt="Ancient8" className="w-4 h-4" />,
+            label: "Ancient8",
+            id: 28122024
+        },
+        {
+            icon: <img src="https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" alt="Sonic" className="w-4 h-4" />,
+            label: "Sonic",
+            id: 57054
+        }
+    ]
 
     // Validation states
     const [errors, setErrors] = useState<{
@@ -280,8 +314,8 @@ const CreateToken: React.FC = () => {
                         
                         const { token, bondingCurve } = decoded.args as any;
                         // Create token in database with the token address
-                        console.log("token", token)
-                        console.log("bondingCurve", bondingCurve)
+                        // console.log("token", token)
+                        // console.log("bondingCurve", bondingCurve)
                         setTokenAddress(token);
                         // setCurrentTokenAddress(bondingCurve);
                         await refetchBalanceOfToken();
@@ -296,7 +330,7 @@ const CreateToken: React.FC = () => {
                                 data: eventLog2.data,
                                 topics: eventLog2.topics,
                             });
-                            const { newPrice, newSupply, newTotalMarketCap } = decoded.args as any;
+                            const { newPrice, newSupply, newTotalMarketCap, newFundingRaised, amountTokenToReceive } = decoded.args as any;
                             await refetchBalanceOfToken();
                             
                             // Save transaction to database
@@ -308,12 +342,15 @@ const CreateToken: React.FC = () => {
                                 body: JSON.stringify({
                                     userAddress: OwnerAddress,
                                     tokenAddress: token,
-                                    price: parseFloat(formatUnits(newPrice || BigInt(0), 18)),
+                                    network: chain?.id == 57054 ? "Sonic" : "Ancient8",
+                                    price: parseFloat(formatUnits(newPrice || BigInt(0), 18))*(chain?.id == 57054 ? sonicPrice : ethPrice),
                                     amountToken: parseFloat(amount || "0"),
+                                    amountTokensToReceive: parseFloat(formatUnits(amountTokenToReceive||BigInt(0), 18)),
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
-                                    totalSupply: parseFloat(formatUnits(newSupply || BigInt(0), 18)),
-                                    marketCap: parseFloat(formatUnits(newTotalMarketCap || BigInt(0), 18))
+                                    totalSupply: parseFloat(newSupply||"0"),
+                                    marketCap: parseFloat(newTotalMarketCap||"0"),
+                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
                                 }),
                             });
                             await writeContractAsync({
@@ -325,7 +362,8 @@ const CreateToken: React.FC = () => {
                             setAmount(null);
                             toast.dismiss(toastId);
                             toast.success('Token bought successfully!');
-                            router.push(`/token/${token}`);
+                            // Show Twitter share dialog after token creation
+                            setIsTwitterShareOpen(true);
                         }
                     } 
 
@@ -360,10 +398,12 @@ const CreateToken: React.FC = () => {
             toast.error('Please connect your wallet');
             return;
         }
+        if(!selectedNetwork){
+            toast.error('Please select a network');
+            return;
+        }
 
-        // console.log('balance', Number(balance?.value)/10**18);
-
-        if (balance?.value && Number(balance.value)/10**18 < 1) {
+        if (balance?.value && Number(balance.value)/10**18 < 0.001) {
             toast.error('Insufficient balance');
             return;
         }
@@ -386,12 +426,14 @@ const CreateToken: React.FC = () => {
                 return;
             }
             
+            const price = chain?.id == 57054 ? parseEther('1')+parseEther(amount||"0") : parseEther('0.001')+parseEther(amount||"0");
+
             try {
                 const tx = await writeContractAsync({
-                    address: process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}`,
+                    address: chain?.id == 57054 ? process.env.NEXT_PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.NEXT_PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createTokenAndCurve',
-                    value: parseEther('1')+parseEther(amount||"0"),
+                    value: price,
                     args: [tokenName, ticker, parseEther(amount||"0")]
                 });
                 
@@ -432,6 +474,7 @@ const CreateToken: React.FC = () => {
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
                 curveAddress: curveAddress,
+                network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                 categories: selectedCategories || []
             };
 
@@ -452,14 +495,42 @@ const CreateToken: React.FC = () => {
             }
 
             toast.success('Token created successfully!', { id: loadingToast });
+            
             if(!amount){
-                router.push(`/token/${address}`);
+                // Show Twitter share dialog after token creation
+                setIsTwitterShareOpen(true);
             }
+            
         } catch (error) {
             console.error('Error creating token:', error);
             toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
         }
     }
+
+    // Function to handle Twitter sharing
+    const handleTwitterShare = () => {
+        const loadingToast = toast.loading('Sharing on Twitter...');
+        const tweetText = encodeURIComponent(
+            `🎉 ${tokenName || 'Epic token'} (${ticker || ''}) drops on Sloth Agent!\n` +
+            `🔥 Grab it: https://slothai.xyz/token/${tokenAddress}\n` +
+            `#SlothAgent #${ticker} #S`
+        );
+        const twitterShareUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+        
+        window.open(twitterShareUrl, '_blank');
+        setIsTwitterShareOpen(false);
+        setIsBuyOpen(false);
+        router.push(`/token/${tokenAddress}`);
+        toast.success('Please wait...', { id: loadingToast });
+    }
+    // Function to skip Twitter sharing
+    const handleSkipTwitterShare = () => {
+        const loadingToast = toast.loading('Skipping Twitter share...');
+        setIsTwitterShareOpen(false);
+        setIsBuyOpen(false);
+        router.push(`/token/${tokenAddress}`);
+        toast.success('Please wait...', { id: loadingToast });
+    };
 
     const categories = {
         Categories: [
@@ -502,6 +573,11 @@ const CreateToken: React.FC = () => {
             setAmount(value);
         }
     };
+
+    const handleSwitchNetwork = async (label: string,id: number) => {
+        setSelectedNetwork(label);
+        switchChain({chainId: id});
+    }
 
     return (
         <main className="min-h-screen bg-[#0B0E17]">
@@ -554,21 +630,63 @@ const CreateToken: React.FC = () => {
                             )}
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">Category</label>
-                            <p className='text-gray-500 text-sm'>
-                                Useful for making your character discoverable by others in Sloth Agent
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2">
-                                {selectedCategories.map(category => (
-                                    <span key={category} className="px-3 py-1 bg-[#1F2937] rounded-full text-sm text-white">
-                                        {category}
-                                    </span>
+                            <label className="text-sm font-medium text-gray-400">Symbol</label>
+                            <Input
+                                value={ticker||''}
+                                onChange={(e) => {
+                                    const value = e.target.value.toUpperCase();
+                                    if (value.length <= 5) {
+                                        setTicker(value);
+                                        setErrors({...errors, ticker: undefined});
+                                    }
+                                }}
+                                placeholder="Enter symbol (e.g. SLOTH)"
+                                className={`w-full bg-[#0B0E17] border-[#1F2937] text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] uppercase ${errors.ticker ? 'border-red-500' : ''}`}
+                                maxLength={5}
+                            />
+                            {errors.ticker && (
+                                <p className="text-sm text-red-500 mt-1">{errors.ticker}</p>
+                            )}
+                            <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-400">Network</label>
+                            <div className="flex flex-wrap gap-2">
+                                {networks.map(({ icon, label,id }) => (
+                                    <button
+                                        key={label}
+                                        onClick={() => handleSwitchNetwork(label,id)}
+                                        className={`flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
+                                            selectedNetwork === label
+                                                ? 'bg-[#2196F3] text-white'
+                                                : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
+                                        }`}
+                                    >
+                                        <span>{icon}</span>
+                                        <span>{label}</span>
+                                    </button>
                                 ))}
-                                <CirclePlus 
-                                    onClick={() => setIsOpen(true)}
-                                    className='w-4 h-4 text-gray-500 hover:text-gray-400 transition-colors cursor-pointer' 
-                                />
                             </div>
+                        </div>
+                        <div className="space-y-2 flex items-center justify-between">
+                            <div>
+                                <label className="text-sm font-medium text-gray-400">Category</label>
+                                <p className='text-gray-500 text-sm'>
+                                    Useful for making your character discoverable by others in Sloth Agent
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                    {selectedCategories.map(category => (
+                                        <span key={category} className="px-3 py-1 bg-[#1F2937] text-sm text-white">
+                                            {category}
+                                        </span>
+                                    ))}
+                                    
+                                </div>
+                            </div>
+                            <CirclePlus 
+                                onClick={() => setIsOpen(true)}
+                                className='w-5 h-5 text-white hover:text-gray-400 transition-colors cursor-pointer' 
+                            />
                         </div>
                         <Dialog open={isOpen} onOpenChange={setIsOpen}>
                             <DialogContent className="bg-[#0B0E17] text-white border-[#1F2937] max-w-2xl">
@@ -584,7 +702,7 @@ const CreateToken: React.FC = () => {
                                                     <button
                                                         key={label}
                                                         onClick={() => toggleCategory(label)}
-                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${
+                                                        className={`flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
                                                             selectedCategories.includes(label)
                                                                 ? 'bg-[#2196F3] text-white'
                                                                 : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
@@ -730,26 +848,7 @@ const CreateToken: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400">Symbol</label>
-                            <Input
-                                value={ticker||''}
-                                onChange={(e) => {
-                                    const value = e.target.value.toUpperCase();
-                                    if (value.length <= 5) {
-                                        setTicker(value);
-                                        setErrors({...errors, ticker: undefined});
-                                    }
-                                }}
-                                placeholder="Enter symbol (e.g. SLOTH)"
-                                className={`w-full bg-[#0B0E17] border-[#1F2937] text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] uppercase ${errors.ticker ? 'border-red-500' : ''}`}
-                                maxLength={5}
-                            />
-                            {errors.ticker && (
-                                <p className="text-sm text-red-500 mt-1">{errors.ticker}</p>
-                            )}
-                            <p className="text-xs text-gray-500">Maximum 5 characters, automatically converted to uppercase</p>
-                        </div>
+                        
 
                         {/* <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-400">Total Supply</label>
@@ -909,8 +1008,8 @@ const CreateToken: React.FC = () => {
                                                 </DialogHeader>
                                                 <div className="space-y-4 mt-10">
                                                     <div className='space-y-2 flex flex-col'>
-                                                        <label className="text-lg font-medium">Enter SONIC amount (optional)</label>
-                                                        <span className="text-sm text-gray-400">Balance: {balance?.value ? Number(balance.value)/10**18 : 0} S</span>
+                                                        <label className="text-lg font-medium">Enter {selectedNetwork == "Sonic" ? "SONIC" : "ETH"} amount (optional)</label>
+                                                        <span className="text-sm text-gray-400">Balance: {balance?.value ? Number(balance.value)/10**18 : 0} {selectedNetwork == "Sonic" ? "S" : "ETH"}</span>
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Input
@@ -984,6 +1083,55 @@ const CreateToken: React.FC = () => {
                 </div>
                 
             </div>
+
+            {/* Twitter Share Dialog */}
+            <Dialog open={isTwitterShareOpen} onOpenChange={setIsTwitterShareOpen}>
+                <DialogContent className="bg-[#0B0E17] text-white border-[#1F2937] max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-bold text-white">Share Your New Token</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                        <div className="flex items-center justify-center p-4 bg-[#161B28] rounded-lg">
+                            <div className="flex items-center space-x-3">
+                                <img src="/assets/icon/x-light.svg" alt="twitter" className='w-7 h-7' />
+                                <div>
+                                    <p className="text-lg font-medium text-white">Share on Twitter</p>
+                                    <p className="text-sm text-gray-400">Let your followers know about your new token!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 flex space-y-2 flex-col bg-[#161B28] rounded-lg text-wrap">
+                            <p className="text-sm text-gray-300">
+                                🎉 ${tokenName || 'Epic token'} (${ticker || ''}) drops on Sloth Agent!
+                            </p>
+                            <p className="text-sm text-gray-300">
+                                🔥 Grab it: <a href={`https://slothai.xyz/token/${tokenAddress}`} target="_blank" rel="noopener noreferrer" className='underline'>0xd1837C13E86a3c4d5EF59055F9d36E41df68A351</a>
+                            </p>
+                            <p className="text-sm text-gray-300">
+                                #SlothAgent #${ticker} #S
+                            </p>
+                        </div>
+                        
+                        <div className="flex gap-3 mt-6">
+                            <Button
+                                onClick={handleSkipTwitterShare}
+                                variant="outline"
+                                className="flex-1 bg-[#161B28] text-gray-400 hover:bg-[#1C2333] hover:text-white border border-[#1F2937]"
+                            >
+                                Skip
+                            </Button>
+                            <Button
+                                onClick={handleTwitterShare}
+                                className="flex-1 bg-[#1DA1F2] text-white hover:bg-[#1a94df]"
+                            >
+                                <Twitter className="w-4 h-4 mr-2" />
+                                Share
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </main>
     );
 };

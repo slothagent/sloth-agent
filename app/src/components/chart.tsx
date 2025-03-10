@@ -35,6 +35,13 @@ const Chart: FC<ChartProps> = ({ height = '430px', transactionHistory = [] }) =>
                 style: {
                     color: '#9CA3AF',
                     fontSize: '10px'
+                },
+                formatter: function() {
+                    const date = new Date(this.value);
+                    const day = date.getDate().toString().padStart(2, '0');
+                    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${day}/${month}/${year}`;
                 }
             },
             lineColor: '#1F2937',
@@ -59,7 +66,14 @@ const Chart: FC<ChartProps> = ({ height = '430px', transactionHistory = [] }) =>
                     fontSize: '10px'
                 },
                 formatter: function() {
-                    return '$' + (typeof this.value === 'number' ? this.value.toFixed(8) : this.value);
+                    if (typeof this.value !== 'number') return '$' + this.value;
+                    
+                    // Format number without scientific notation
+                    return '$' + this.value.toLocaleString('en-US', {
+                        minimumFractionDigits: 8,
+                        maximumFractionDigits: 8,
+                        useGrouping: false
+                    });
                 }
             },
             gridLineColor: '#1F2937',
@@ -116,7 +130,15 @@ const Chart: FC<ChartProps> = ({ height = '430px', transactionHistory = [] }) =>
             ]),
             tooltip: {
                 valuePrefix: '$',
-                valueDecimals: 8
+                valueDecimals: 8,
+                pointFormatter: function() {
+                    // Format price without scientific notation
+                    return `<span style="color: #3B82F6">●</span> ${this.series.name}: <b>$${this.y?.toLocaleString('en-US', {
+                        minimumFractionDigits: 8,
+                        maximumFractionDigits: 8,
+                        useGrouping: false
+                    })}</b>`;
+                }
             }
         }],
         tooltip: {
@@ -130,7 +152,8 @@ const Chart: FC<ChartProps> = ({ height = '430px', transactionHistory = [] }) =>
             shadow: false,
             padding: 8,
             headerFormat: '<span style="font-size: 10px">{point.key}</span><br/>',
-            pointFormat: '<span style="color: #3B82F6">●</span> {series.name}: <b>${point.y:.8f}</b>'
+            xDateFormat: '%d/%m/%Y',
+            useHTML: true
         },
         legend: {
             enabled: false

@@ -7,81 +7,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Agent } from "@/types/agent";
-import { TokenMetrics } from "@/models/agentMetrics";
-import { useQuery } from "@tanstack/react-query";
 import TableToken from "./TableToken";
 import { useTokensData } from "@/hooks/useWebSocketData";
+import { useSonicPrice } from "@/hooks/useSonicPrice";
+import { useEthPrice } from "@/hooks/useEthPrice";
 
-
-type TokenWithMetrics = Agent & {
-  _id: string;
-  metrics: TokenMetrics | null;
-  createdAt: string | Date;
-};
-
-type PaginationMetadata = {
-  currentPage: number;
-  totalPages: number;
-  totalCount: number;
-  pageSize: number;
-};
-
-type PaginatedResponse<T> = {
-  data: T[];
-  metadata: PaginationMetadata;
-};
-
-type ApiResponse = {
-  data: TokenWithMetrics[];
-  metadata: PaginationMetadata;
-};
-
-const fetchTokens = async (page: number, pageSize: number): Promise<PaginatedResponse<TokenWithMetrics>> => {
-  try {
-    const response = await fetch(`/api/token?page=${page}&pageSize=${pageSize}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      console.error('Failed to fetch tokens:', {
-        status: response.status,
-        statusText: response.statusText,
-        errorData
-      });
-      throw new Error(`Failed to fetch tokens: ${response.statusText}`);
-    }
-
-    const data: ApiResponse = await response.json();
-
-    const { currentPage, pageSize: responsePageSize, totalPages, totalCount } = data.metadata;
-    
-    if (typeof currentPage !== 'number' || 
-        typeof responsePageSize !== 'number' || 
-        typeof totalPages !== 'number' || 
-        typeof totalCount !== 'number') {
-      console.error('Invalid metadata format', data.metadata);
-      throw new Error('Invalid metadata format from server');
-    }
-
-    return {
-      data: data.data,
-      metadata: {
-        currentPage,
-        pageSize: responsePageSize,
-        totalPages,
-        totalCount
-      }
-    };
-  } catch (error) {
-    console.error('Error in fetchTokens:', error);
-    throw error;
-  }
-};
 
 const TableSkeleton = () => {
   return (
@@ -178,13 +108,38 @@ const TrendingTokens: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
   const { tokens, loading: tokensLoading } = useTokensData();
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
+
+  const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+  const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
+
+  // Get the ETH price for calculations, fallback to 2500 if not available
+  const ethPrice = useMemo(() => {
+    return ethPriceData?.price || 2500;
+  }, [ethPriceData]);
+  
+  const sonicPrice = useMemo(() => {
+    return sonicPriceData?.price || 0.7;
+  }, [sonicPriceData]);
+
 
   // Implement client-side pagination
   const paginatedTokens = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return tokens.slice(startIndex, endIndex);
-  }, [tokens, currentPage, pageSize]);
+    
+    // First sort the tokens based on the sortBy state
+    const sortedTokens = [...tokens].sort((a, b) => {
+      const dateA = new Date(a.createdAt?.toString() || '').getTime();
+      const dateB = new Date(b.createdAt?.toString() || '').getTime();
+      
+      // Sort by newest (descending) or oldest (ascending)
+      return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+    
+    // Then paginate the sorted tokens
+    return sortedTokens.slice(startIndex, endIndex);
+  }, [tokens, currentPage, pageSize, sortBy]);
 
   // Calculate pagination metadata
   const metadata = useMemo(() => {
@@ -218,21 +173,31 @@ const TrendingTokens: React.FC = () => {
 
   return (
     <div>
-      <h2 className="text-2xl mt-6 font-bold mb-4 text-white">Tokens Index</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl mt-6 font-bold mb-4 text-white">Tokens Index</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 text-sm">Sort by:</span>
+          <select 
+            className="bg-[#1C2333] text-white border border-gray-700 rounded-md px-2 py-1 text-sm"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'newest' | 'oldest')}
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+      </div>
       <Card className="bg-[#161B28] border-none rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="border-b w-auto border-gray-800 hover:bg-transparent">
               <TableHead className="text-gray-400">Token</TableHead>
               <TableHead className="text-gray-400">Age</TableHead>
-              <TableHead className="text-right text-gray-400 text-nowrap">Liq $/MC</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">MindShare</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Holders</TableHead>
-              <TableHead className="text-right text-gray-400 text-nowrap">Smart $/KOL</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">24h TXs</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">24h Vol</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Price</TableHead>
-              <TableHead className="text-right text-gray-400 text-nowrap">Δ7D</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Market Cap</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Volume</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Followers</TableHead>
@@ -241,7 +206,7 @@ const TrendingTokens: React.FC = () => {
           </TableHeader>
           <TableBody>
             {paginatedTokens.map((token) => (
-              <TableToken key={token._id?.toString() || ''} token={token} />
+              <TableToken key={token._id?.toString() || ''} token={token} ethPrice={ethPrice} sonicPrice={sonicPrice} />
             ))}
           </TableBody>
         </Table>

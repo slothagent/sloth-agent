@@ -6,12 +6,14 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, MessageSquare, Clock, Copy, Layout, Send, Star, User } from 'lucide-react';
 import { useAgents } from '@/hooks/useAgents';
 import Link from 'next/link';
+import axios from 'axios';
 
 interface Message {
   id: string;
-  content: string;
+  content: string | { texts: string[] };
   role: 'user' | 'assistant';
   timestamp: Date;
+  type?: 'text' | 'tweets';
 }
 
 export default function ChatPage() {
@@ -65,47 +67,87 @@ export default function ChatPage() {
     setIsLoading(true);
   
     try {
-      const response = await fetch("https://api.slothai.xyz/generate_post", {
-        method: "POST",
+      const response = await axios.post("https://api.slothai.xyz/generate_post", {
+        name: agentsData?.data[0].name,
+        prompt: message,
+        image: false
+      }, {
         headers: {
           "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: agentsData?.data[0].name, 
-          prompt: message,
-          image: true,
-        }),
+        }
       });
-      console.log(response);
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      // console.log(response);
+
+      if (response.status !== 200) {
+        return;
       }
-  
-      const data = await response.json();
+      
+      const data = await response.data;
   
       const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: data.content || "No response from API.", // Check content đúng format
+        id: (Date.now()).toString(),
+        content: { texts: [data.texts[0]] },
         role: "assistant",
         timestamp: new Date(),
+        type: 'tweets'
       };
-  
       setMessages((prev) => [...prev, botResponse]);
+
+      // if (data.texts) {
+      //   // Send each tweet as a separate message
+      //   data.texts.forEach((tweet: string, index: number) => {
+      //     const botResponse: Message = {
+      //       id: (Date.now() + index).toString(),
+      //       content: { texts: [tweet] },
+      //       role: "assistant",
+      //       timestamp: new Date(),
+      //       type: 'tweets'
+      //     };
+      //     setMessages((prev) => [...prev, botResponse]);
+      //   });
+      // } else {
+      //   const botResponse: Message = {
+      //     id: (Date.now() + 1).toString(),
+      //     content: "No response from API.",
+      //     role: "assistant",
+      //     timestamp: new Date(),
+      //     type: 'text'
+      //   };
+      //   setMessages((prev) => [...prev, botResponse]);
+      // }
     } catch (error) {
-      console.error("Failed to get bot response:", error);
+      // console.error("Failed to get bot response:", error);
+      let errorMessage = "API bị lỗi hoặc không có phản hồi.";
+      
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        errorMessage = error.response.data.detail || errorMessage;
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
-          content: "API bị lỗi hoặc không có phản hồi.",
+          content: errorMessage,
           role: "assistant",
           timestamp: new Date(),
+          type: 'text'
         },
       ]);
     } finally {
       setIsLoading(false);
     }
 };
+
+  const handlePostTweet = async (tweet: string) => {
+    try {
+      const tweetText = encodeURIComponent(tweet);
+      const twitterShareUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+      window.open(twitterShareUrl, '_blank');
+    } catch (error) {
+      console.error("Failed to open Twitter:", error);
+      alert("Failed to open Twitter. Please try again.");
+    }
+  };
 
   return (
     <div className="flex flex-col h-[89vh] bg-gray-950 border border-gray-800 w-full sm:w-3/4 text-gray-100 mx-auto mt-4">
@@ -188,7 +230,7 @@ export default function ChatPage() {
                         <User className="w-4 h-4" />
                         Overview
                     </button>
-                    <button
+                    {/* <button
                         onClick={() => setActiveTab('settings')}
                         className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
                             ${activeTab === 'settings'
@@ -197,7 +239,7 @@ export default function ChatPage() {
                     >
                         <User className="w-4 h-4" />
                         quẻn rồi
-                    </button>
+                    </button> */}
                 </div>
             </div>
           </div>
@@ -207,30 +249,53 @@ export default function ChatPage() {
               <div className="flex flex-col flex-1 h-full">
                 {/* Chat Messages */}
                 <div className="flex-1 h-full overflow-y-auto p-4 space-y-4">
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {msg.role === 'assistant' && (
-                        <img 
-                          src={agentsData?.data[0].imageUrl}
-                          alt="Bot"
-                          className="w-8 h-8 rounded-lg mr-2"
-                        />
-                      )}
+                  {messages.map((msg, index) => {
+                    const isFirstInGroup = index === 0 || messages[index - 1].role !== msg.role;
+                    
+                    return (
                       <div
-                        className={`max-w-[80%] p-4 rounded-2xl ${
-                          msg.role === 'user' ? 'bg-[#2196F3] text-white' : 'bg-gray-800 text-gray-100'
-                        }`}
+                        key={msg.id}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        <span className="text-[10px] opacity-50 mt-1 block">
-                          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        {msg.role === 'assistant' && isFirstInGroup && (
+                          <img 
+                            src={agentsData?.data[0].imageUrl}
+                            alt="Bot"
+                            className="w-8 h-8 rounded-lg mr-2"
+                          />
+                        )}
+                        {msg.role === 'assistant' && !isFirstInGroup && (
+                          <div className="w-8 mr-2" /> /* Spacer for alignment */
+                        )}
+                        <div
+                          className={`max-w-[80%] p-4 rounded-2xl ${
+                            msg.role === 'user' ? 'bg-[#2196F3] text-white' : 'bg-gray-800 text-gray-100'
+                          }`}
+                        >
+                          {msg.type === 'tweets' && typeof msg.content === 'object' && 'texts' in msg.content ? (
+                            <div className="space-y-4">
+                              {msg.content.texts.map((tweet, index) => (
+                                <div key={index} className="border border-gray-700 p-3 rounded-lg">
+                                  <p className="text-sm whitespace-pre-wrap mb-2">{tweet}</p>
+                                  <Button
+                                    onClick={() => handlePostTweet(tweet)}
+                                    className="bg-[#1DA1F2] hover:bg-[#1DA1F2]/80 text-white text-xs py-1 px-3 rounded-full"
+                                  >
+                                    Post Tweet
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm whitespace-pre-wrap">{msg.content as string}</p>
+                          )}
+                          <span className="text-[10px] opacity-50 mt-1 block">
+                            {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {isLoading && (
                     <div className="flex justify-start items-end">
                       <img 

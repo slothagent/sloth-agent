@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       slug: body.slug,
       ticker: body.ticker,
       tokenAddress: body.tokenAddress,
+      network: body.network,
       owner: body.owner,
       description: body.description || '',
       imageUrl: body.imageUrl || '',
@@ -42,20 +43,6 @@ export async function POST(req: Request) {
 
     // Create the agent
     const agentResult = await AgentModel.create(agentData);
-
-    // If twitterAuth is provided, create it
-    // if (body.twitterAuth) {
-    //   const { accessToken, refreshToken, expiresAt } = body.twitterAuth;
-    //   if (accessToken && refreshToken && expiresAt) {
-    //     await TwitterAuthModel.create({
-    //       agentId: agentResult.insertedId.toString(),
-    //       accessToken,
-    //       refreshToken,
-    //       expiresAt: new Date(expiresAt),
-    //     });
-    //   }
-    // }
-
     // Get the created agent with its Twitter auth
     const agent = await AgentModel.findById(agentResult.insertedId.toString());
 
@@ -93,34 +80,46 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const symbol = searchParams.get('symbol');
+    const id = searchParams.get('id');
+    const owner = searchParams.get('owner');
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
     const search = searchParams.get('search');
 
-    console.log('Fetching agents with params:', { symbol, page, pageSize, search });
+    console.log('Fetching agents with params:', { symbol, id, owner, page, pageSize, search });
 
-    const collection = await AgentModel.getCollection();
-    
-    // First check if we have any agents at all
-    const totalCount = await collection.countDocuments();
-    console.log('Total agents in database:', totalCount);
-
-    if (totalCount === 0) {
-      return NextResponse.json({
-        data: [],
-        metadata: {
-          currentPage: 1,
-          pageSize,
-          totalPages: 0,
-          totalCount: 0
+    // Get agent by ID
+    if (id) {
+      try {
+        const agent = await AgentModel.findById(id);
+        
+        if (!agent) {
+          return NextResponse.json(
+            { error: 'Agent not found' },
+            { status: 404 }
+          );
         }
-      });
+        
+        return NextResponse.json({ 
+          data: agent,
+          metadata: {
+            currentPage: 1,
+            pageSize: 1,
+            totalPages: 1,
+            totalCount: 1
+          }
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { error: 'Invalid agent ID' },
+          { status: 400 }
+        );
+      }
     }
 
+    // Get agent by symbol/ticker
     if (symbol) {
-      // Get agent by symbol/ticker
-      const agent = await collection.findOne({ ticker: symbol.toUpperCase() });
-      console.log('Found agent by symbol:', agent ? 'yes' : 'no');
+      const agent = await AgentModel.findByTicker(symbol);
       
       if (!agent) {
         return NextResponse.json(
@@ -128,10 +127,9 @@ export async function GET(req: Request) {
           { status: 404 }
         );
       }
-      // Get Twitter auth information
-      const twitterAuth = await TwitterAuthModel.findByAgentId(agent._id.toString());
+      
       return NextResponse.json({ 
-        data: { ...agent, twitterAuth },
+        data: agent,
         metadata: {
           currentPage: 1,
           pageSize: 1,
@@ -141,76 +139,88 @@ export async function GET(req: Request) {
       });
     }
 
-    if (search) {
-      // Search agents by name or ticker
-      const agents = await collection.find({
-        $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { ticker: { $regex: search, $options: 'i' } }
-        ]
-      }).sort({ createdAt: -1 }).toArray();
-
-      console.log('Found agents by search:', agents.length);
-
-      // Get Twitter auth for each agent
-      const agentsWithTwitterAuth = await Promise.all(
-        agents.map(async (agent) => {
-          const twitterAuth = await TwitterAuthModel.findByAgentId(agent._id.toString());
-          return { ...agent, twitterAuth };
-        })
-      );
-
-      return NextResponse.json({ 
-        data: agentsWithTwitterAuth,
-        metadata: {
-          currentPage: 1,
-          pageSize: agents.length,
-          totalPages: 1,
-          totalCount: agents.length
-        }
-      });
-    }
-
-    // Get paginated agents
-    const skip = (page - 1) * pageSize;
-    
-    // Validate pagination
-    if (skip >= totalCount) {
+    // Get agents by owner
+    if (owner) {
+      const collection = await AgentModel.getCollection();
+      const skip = (page - 1) * pageSize;
+      
+      // Count total agents for this owner
+      const totalCount = await collection.countDocuments({ owner });
+      
+      if (totalCount === 0) {
+        return NextResponse.json({
+          data: [],
+          metadata: {
+            currentPage: page,
+            pageSize,
+            totalPages: 0,
+            totalCount: 0
+          }
+        });
+      }
+      
+      // Validate pagination
+      if (skip >= totalCount) {
+        return NextResponse.json({
+          data: [],
+          metadata: {
+            currentPage: page,
+            pageSize,
+            totalPages: Math.ceil(totalCount / pageSize),
+            totalCount
+          }
+        });
+      }
+      
+      // Get paginated agents for this owner
+      const agents = await collection.find({ owner })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .toArray();
+      
       return NextResponse.json({
-        data: [],
+        data: agents,
         metadata: {
           currentPage: page,
           pageSize,
           totalPages: Math.ceil(totalCount / pageSize),
-          totalCount: totalCount
+          totalCount
         }
       });
     }
 
-    const agents = await collection.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(pageSize)
-      .toArray();
+    // Search agents
+    if (search) {
+      const result = await AgentModel.findAll({
+        page,
+        limit: pageSize,
+        search
+      });
+      
+      return NextResponse.json({
+        data: result.agents,
+        metadata: result.metadata
+      });
+    }
 
-    console.log('Found paginated agents:', agents.length);
-
-    // Get Twitter auth for each agent
-    const agentsWithTwitterAuth = await Promise.all(
-      agents.map(async (agent) => {
-        const twitterAuth = await TwitterAuthModel.findByAgentId(agent._id.toString());
-        return { ...agent, twitterAuth };
-      })
-    );
-
+    // Get all agents with pagination
+    const result = await AgentModel.findAll({
+      page,
+      limit: pageSize
+    });
+    
+    // If no agents found
+    if (result.agents.length === 0) {
+      return NextResponse.json({
+        data: [],
+        metadata: result.metadata
+      });
+    }
+    
     return NextResponse.json({
-      data: agentsWithTwitterAuth,
-      metadata: {
-        currentPage: page,
-        pageSize,
-        totalPages: Math.ceil(totalCount / pageSize),
-        totalCount: totalCount
-      }
+      data: result.agents,
+      metadata: result.metadata
     });
   } catch (error) {
     console.error('Error fetching agents:', error);

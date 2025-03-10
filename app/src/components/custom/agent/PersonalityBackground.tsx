@@ -21,9 +21,7 @@ interface ValidationErrors {
 }
 
 const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
-    agentLore,
     personality,
-    onLoreChange,
     onPersonalityChange,
     onSelectedCategories,
     selectedCategories,
@@ -46,13 +44,6 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
 
         // Only show errors if showValidation is true
         if (showValidation) {
-            // Validate agent lore
-            if (!agentLore) {
-                newErrors.agentLore = 'Short bio is required';
-            } else if (agentLore.length < 20) {
-                newErrors.agentLore = 'Short bio must be at least 20 characters';
-            }
-
             // Validate personality
             if (!personality) {
                 newErrors.personality = 'Personality description is required';
@@ -70,8 +61,6 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
 
         // Always check validation state even if not showing errors
         const isValid = !!(
-            agentLore && 
-            agentLore.length >= 20 && 
             personality && 
             personality.length >= 20 && 
             selectedCategories.length > 0
@@ -86,7 +75,7 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
 
     useEffect(() => {
         validateFields();
-    }, [agentLore, personality, selectedCategories, showValidation]);
+    }, [personality, selectedCategories, showValidation]);
 
     const categories = {
         Categories: [
@@ -131,22 +120,6 @@ const PersonalityBackground: React.FC<PersonalityBackgroundProps> = ({
 
     return (
         <div className="space-y-6">
-            <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Short Bio</label>
-                <textarea
-                    value={agentLore}
-                    onChange={(e) => onLoreChange(e.target.value)}
-                    placeholder="Enter the background story of your agent"
-                    rows={4}
-                    className={`w-full bg-[#0B0E17] border border-[#1F2937] rounded-md p-3 text-white placeholder:text-gray-500 focus:border-[#2196F3] focus:ring-1 focus:ring-[#2196F3] focus:outline-none resize-none ${
-                        errors.agentLore ? 'border-red-500' : ''
-                    }`}
-                />
-                {errors.agentLore && (
-                    <p className="text-sm text-red-500">{errors.agentLore}</p>
-                )}
-            </div>
-
             <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-400">Personality</label>
                 <textarea

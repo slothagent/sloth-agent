@@ -12,6 +12,8 @@ interface BasicInformationProps {
     onTickerChange: (value: string) => void;
     onValidationChange?: (isValid: boolean) => void;
     showValidation?: boolean;
+    selectedNetwork: string|null;
+    onSwitchNetwork: (network: string,id: number) => void;
 }
 
 interface ValidationErrors {
@@ -29,6 +31,8 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
     onTickerChange,
     onValidationChange,
     showValidation = false,
+    selectedNetwork,
+    onSwitchNetwork,
 }) => {
     const [createToken, setCreateToken] = React.useState(false);
     const [errors, setErrors] = React.useState<ValidationErrors>({
@@ -36,6 +40,19 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
         description: '',
         ticker: '',
     });
+
+    const networks = [
+        {
+            icon: <img src="/assets/chains/a8.png" alt="Ancient8" className="w-4 h-4" />,
+            label: "Ancient8",
+            id: 28122024
+        },
+        {
+            icon: <img src="https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" alt="Sonic" className="w-4 h-4" />,
+            label: "Sonic",
+            id: 57054
+        }
+    ]
 
     const validateFields = () => {
         const newErrors: ValidationErrors = {
@@ -122,7 +139,25 @@ const BasicInformation: React.FC<BasicInformationProps> = ({
                     <p className="text-sm text-red-500">{errors.description}</p>
                 )}
             </div>
-
+            <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Network</label>
+                <div className="flex flex-wrap gap-2">
+                    {networks.map(({ icon, label,id }) => (
+                        <button
+                            key={label}
+                            onClick={() => onSwitchNetwork(label,id)}
+                            className={`flex items-center gap-2 px-3 py-1.5 text-sm transition-colors ${
+                                selectedNetwork === label
+                                    ? 'bg-[#2196F3] text-white'
+                                    : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
+                            }`}
+                        >
+                            <span>{icon}</span>
+                            <span>{label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
             <div className="flex items-center space-x-2">
                 <Switch
                     id="create-token"

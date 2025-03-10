@@ -4,33 +4,80 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatNumber } from '@/utils/utils';
-import { useTokensData, useAgentsData, useTransactionsData, useTotalVolumeData } from '@/hooks/useWebSocketData';
+import { useTokensData, useAgentsData, useTransactionsData, useTotalVolumeData, useAllTransactionsData } from '@/hooks/useWebSocketData';
+import { useQuery } from '@tanstack/react-query';
+import { useSonicPrice } from '@/hooks/useSonicPrice';
+import { useEthPrice } from '@/hooks/useEthPrice';
+import { INITIAL_SUPPLY } from '@/lib/contants';
 
 const Hero: React.FC = () => {
   const router = useRouter();
   const { tokens: tokens, loading: tokensLoading } = useTokensData();
   const { agents: agents, loading: agentsLoading } = useAgentsData();
   const {totalVolume: totalVolumeData, loading: totalVolumeLoading} = useTotalVolumeData();
+  const {transactions: transactionsData30d, loading: transactionsLoading30d} = useAllTransactionsData('30d');
 
+  const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
+  const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
 
-  const { transactions: transactionsData, loading: transactionsLoading } = useTransactionsData(tokens[0]?.address);
+  // Get the ETH price for calculations, fallback to 2500 if not available
+  const ethPrice = useMemo(() => {
+    return ethPriceData?.price || 2500;
+  }, [ethPriceData]);
+  
+  const sonicPrice = useMemo(() => {
+    return sonicPriceData?.price || 0.7;
+  }, [sonicPriceData]);
+
+  const fetchTransactions = async (tokenAddress: string) => {
+    const response = await fetch(`/api/transactions?tokenAddress=${tokenAddress}&timeRange=24h`);
+    const result = await response.json();
+    return result.data;
+  }
+
+  const { data: transactionsData24h, isLoading: transactionsLoading24h } = useQuery({
+      queryKey: ['transactions', tokens[tokens.length - 1]?.address],
+      queryFn: () => fetchTransactions(tokens[tokens.length - 1]?.address),
+      enabled: !!tokens[tokens.length - 1]?.address,
+      refetchInterval: 10000
+  });
+
 
   const transactions = useMemo(() => {
-    if (!transactionsData) return [];
-    return transactionsData;
-  }, [transactionsData]);
+    if (!transactionsData24h) return [];
+    return transactionsData24h;
+  }, [transactionsData24h]); 
   
-  // console.log(transactions);
+  const totalVolume30d = useMemo(() => {
+    if (!transactionsData30d) return 0;
+    const ancient8Transactions = transactionsData30d.filter((tx: any) => tx.network === 'Ancient8');
+    const ancient8TotalVolume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+    const sonicTransactions = transactionsData30d.filter((tx: any) => tx.network === 'Sonic');
+    const sonicTotalVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+    return ancient8TotalVolume + sonicTotalVolume;
+  }, [transactionsData30d]);
 
   const totalMarketCapToken = useMemo(() => {
     if (!transactions) return 0;
-    return transactions.reduce((acc: number, curr: any) => acc + curr.marketCap, 0);
+
+    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8')
+    const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
+    const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
+    const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
+    const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
+    const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
+    return ancient8MarketCap || sonicMarketCap;
   }, [transactions]);
 
   const totalVolumeToken = useMemo(() => {
     if (!transactions) return 0;
-    return transactions.reduce((acc: number, curr: any) => acc + curr.totalValue, 0);
+    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8');
+    const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+    const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
+    const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+    return ancient8Volume || sonicVolume;
   }, [transactions]);
+  
 
   const MainCardSkeleton = useCallback(() => (
     <Card className="w-full md:w-[400px] h-[200px] bg-[#161B28] border-none rounded-lg">
@@ -57,17 +104,17 @@ const Hero: React.FC = () => {
           {/* Featured Agent Card */}
           {tokensLoading ? (
             <MainCardSkeleton />
-          ) : tokens[0] && (
+          ) : tokens[tokens.length - 1] && (
             <Card 
-              onClick={() => router.push(`/token/${tokens[0].address}`)}
+              onClick={() => router.push(`/token/${tokens[tokens.length - 1].address}`)}
               className="w-full lg:w-[400px] h-auto min-h-[200px] bg-[#161B28] hover:bg-[#1C2333] transition-colors duration-200 cursor-pointer border-none rounded-lg"
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  {tokens[0].imageUrl &&(
-                    <Image  
-                      src={tokens[0].imageUrl}
-                      alt={tokens[0].name}
+                  {tokens[tokens.length - 1].imageUrl &&(
+                    <Image
+                      src={tokens[tokens.length - 1].imageUrl || ''}
+                      alt={tokens[tokens.length - 1].name}
                       width={48}
                       height={48}
                       unoptimized
@@ -78,14 +125,14 @@ const Hero: React.FC = () => {
                     />
                   )}
                   <div>
-                    <h3 className="text-xl font-semibold text-white">{tokens[0].name}</h3>
-                    <p className="text-gray-400">{tokens[0].ticker}</p>
+                    <h3 className="text-xl font-semibold text-white">{tokens[tokens.length - 1].name}</h3>
+                    <p className="text-gray-400">{tokens[tokens.length - 1].ticker}</p>
                   </div>
                 </div>
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-400">Market Cap</span>
-                    <span className="text-white">${formatNumber(Number(totalMarketCapToken)/10**18)}</span>
+                    <span className="text-white">${formatNumber(totalMarketCapToken)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">24h Volume</span>
@@ -114,7 +161,7 @@ const Hero: React.FC = () => {
               <Card className="bg-[#161B28] border-none rounded-lg p-4">
                 <h4 className="text-gray-400 mb-2">Total Volume</h4>
                 <p className="text-2xl font-semibold text-white">
-                  {totalVolumeLoading ? <Skeleton className="h-8 w-20" /> : `$${totalVolumeData ? formatNumber(Number(totalVolumeData.toString())) : 0}`}
+                  {!totalVolume30d ? <Skeleton className="h-8 w-20" /> : `$${totalVolume30d ? formatNumber(totalVolume30d) : 0}`}
                 </p>
               </Card>
             </div>

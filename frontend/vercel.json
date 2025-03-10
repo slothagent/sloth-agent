@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+      {
+        "source": "/(.*)",
+        "destination": "https://staging.slothai.xyz/$1"
+      }
+    ]
+  }

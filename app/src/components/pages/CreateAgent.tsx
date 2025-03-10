@@ -14,9 +14,7 @@ import { useAccount, useReadContract, useWriteContract, useWatchContractEvent } 
 import { factoryAbi } from '@/abi/factoryAbi';
 import { initiateTwitterAuth } from '@/utils/twitter';
 import { Button } from '../ui/button';
-import { parseEther,parseUnits } from 'viem';
-import Image from 'next/image';
-
+import { useSwitchChain } from 'wagmi';
 interface TwitterAuthData {
     accessToken: string | null;
     refreshToken: string | null;
@@ -53,11 +51,12 @@ const CreateAgent: React.FC = () => {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [imagePrompt, setImagePrompt] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState<boolean>(false)
+    const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
 
     const router = useRouter();
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected } = useAccount()
-
+    const { switchChain } = useSwitchChain();
     const [stepValidation, setStepValidation] = useState<{ [key: number]: boolean }>({
         1: false,
         2: false,
@@ -232,12 +231,12 @@ const CreateAgent: React.FC = () => {
                 description: description || '',
                 ticker: ticker,
                 imageUrl: imageUrl || '',
-                agentLore: agentLore || '',
                 personality: personality || '',
                 knowledgeAreas: knowledgeAreas || '',
                 tokenAddress: address,
                 owner: OwnerAddress,
                 categories: selectedCategories,
+                network: selectedNetwork,
                 twitterAuth: twitterAuth ? {
                     accessToken: twitterAuth.accessToken || null,
                     refreshToken: twitterAuth.refreshToken || null,
@@ -275,13 +274,15 @@ const CreateAgent: React.FC = () => {
     }, [twitterAuth, skipTwitter]);
 
     const validateTwitterStep = () => {
-        // For step 5, we'll consider it valid if either:
-        // 1. Twitter is connected (twitterAuth exists)
-        // 2. User has chosen not to connect Twitter (we'll add a skip option)
         const isValid = !!twitterAuth || skipTwitter;
         handleStepValidation(5, isValid);
         return isValid;
     };
+
+    const handleSwitchNetwork = async (label: string,id: number) => {
+        setSelectedNetwork(label);
+        switchChain({chainId: id});
+    }
 
     const renderStepContent = () => {
         switch (currentStep) {
@@ -291,6 +292,8 @@ const CreateAgent: React.FC = () => {
                         agentName={agentName || ''}
                         description={description || ''}
                         ticker={ticker || ''}
+                        selectedNetwork={selectedNetwork}
+                        onSwitchNetwork={handleSwitchNetwork}
                         onNameChange={setAgentName}
                         onDescriptionChange={setDescription}
                         onTickerChange={setTicker}
@@ -426,16 +429,16 @@ const CreateAgent: React.FC = () => {
             fields: ["Name", "Description", "Ticker"]
         },
         {
-            title: "Visual & System",
-            fields: ["Image", "System Type"]
+            title: "Image",
+            fields: ["Image"]
         },
         {
-            title: "Personality & Background",
-            fields: ["Agent Lore", "Personality", "Style"]
+            title: "Personality",
+            fields: ["Personality"]
         },
         {
-            title: "Capabilities",
-            fields: ["Knowledge", "Tools", "Examples"]
+            title: "Knowledge",
+            fields: ["Knowledge"]
         },
         {
             title: "Twitter Config",

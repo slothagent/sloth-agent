@@ -1,4 +1,3 @@
-import { Token } from "@/models/token";
 import { TableCell, TableRow } from "../ui/table";
 import { useRouter } from "next/navigation";
 import { timeAgo } from "@/utils/utils";
@@ -6,13 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { Transaction } from "@/models/transactions";
 import { formatNumber } from "@/utils/utils";
+import { INITIAL_SUPPLY } from "@/lib/contants";
 
 interface TableTokenProps {
     token: any;
+    ethPrice: number;
+    sonicPrice: number;
 }
 
 
-const TableToken = ({ token }: TableTokenProps) => {
+const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
     const router = useRouter();
 
     const fetchTransactions = async (tokenAddress: string) => {
@@ -21,9 +23,10 @@ const TableToken = ({ token }: TableTokenProps) => {
         return result.data;
     }
 
-    const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
+    const { data: transactionsData } = useQuery({
         queryKey: ['transactions', token?.address],
-        queryFn: () => fetchTransactions(token?.address)
+        queryFn: () => fetchTransactions(token?.address),
+        refetchInterval: 1000
     });
     
     // console.log(transactionsData);
@@ -63,14 +66,6 @@ const TableToken = ({ token }: TableTokenProps) => {
         return uniqueHolders.size;
     }, [transactionsData]);
 
-    const totalVolume = useMemo(() => {
-        if (!transactionsData) return 0;
-        
-        return transactionsData.reduce((total: number, tx: Transaction) => {
-            return total + (tx.totalValue || 0);
-        }, 0);
-    }, [transactionsData]);
-
     const volume24h = useMemo(() => {
         if (!transactionsData) return 0;
         
@@ -86,10 +81,14 @@ const TableToken = ({ token }: TableTokenProps) => {
         }, 0);
     }, [transactionsData]);
 
-    const totalMarketCap = useMemo(() => {
+    const totalVolumeToken = useMemo(() => {
         if (!transactionsData) return 0;
-        return transactionsData.reduce((acc: number, curr: any) => acc + curr.marketCap, 0);
-      }, [transactionsData]);
+        const ancient8Transactions = transactionsData.filter((tx: any) => tx.network === 'Ancient8');
+        const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+        const sonicTransactions = transactionsData.filter((tx: any) => tx.network === 'Sonic');
+        const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+        return ancient8Volume || sonicVolume;
+    }, [transactionsData]);
 
     return (
         <TableRow 
@@ -108,42 +107,32 @@ const TableToken = ({ token }: TableTokenProps) => {
                 />
                 <div className="flex flex-col min-w-0">
                 <span className="font-medium truncate text-white">{token.name}</span>
-                <span className="text-sm text-gray-400 truncate">{token.address.slice(0, 6)}...{token.address.slice(-4)}</span>
+                <span className="text-sm text-gray-400 truncate">{token.curveAddress.slice(0, 6)}...{token.curveAddress.slice(-4)}</span>
                 </div>
             </div>
             </TableCell>
             <TableCell className="text-gray-400">{timeAgo(token.createdAt)}</TableCell>
-            <TableCell className="text-right">
-            <div className="text-white">{token.metrics?.liquidityAmount||"-"} 🔥</div>
-            <div className="text-sm text-gray-400">{token.metrics?.liquidityValue||"-"}</div>
+            <TableCell className="text-center">
+                <div className="text-white">{"-"}</div>
             </TableCell>
-            <TableCell className="text-right text-white">{token.metrics?.blueChipHolding||"-"}</TableCell>
             <TableCell className="text-right">
                 <div className="text-white">{totalHolders||"-"}</div>
-            </TableCell>
-            <TableCell className="text-right">
-            <div className="text-white">{token.metrics?.smartMoneyValue||"-"}</div>
-            <div className="text-sm text-gray-400">{token.metrics?.smartMoneyKol||"-"} KOL</div>
             </TableCell>
             <TableCell className="text-right">
                 <div className="text-white">{transactionsData?.length||"-"}</div>
                 <div className="text-sm text-gray-400">{transactions24h.buys||"-"}/{transactions24h.sells||"-"}</div>
             </TableCell>
-            <TableCell className="text-right text-white">
-                ${volume24h ? volume24h.toFixed(2) : "-"}
-            </TableCell>
-            <TableCell className="text-right text-white">{token.metrics?.currentPrice||"-"}</TableCell>
-            <TableCell className="text-right">
-                <span className={token.metrics?.priceChange1m && Number(token.metrics.priceChange1m) > 0 ? 'text-green-400' : 'text-red-400'}>
-                    {token.metrics?.priceChange1m||"-"}
-                </span>
+            <TableCell className="text-center">
+                <div className="text-white">{"-"}</div>
             </TableCell>
             <TableCell className="text-right text-white">
-                ${formatNumber(Number(totalMarketCap)/10**18)}
+                {transactionsData?.[transactionsData?.length - 1]?.price ? transactionsData?.[transactionsData?.length - 1]?.price.toFixed(8) : "-"} {transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? "ETH" : "S"}
             </TableCell>
+            <TableCell className="text-right text-white">${transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * ethPrice)*INITIAL_SUPPLY) : formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * sonicPrice)*INITIAL_SUPPLY)||"-"}</TableCell>
             <TableCell className="text-right text-white">
-                ${totalVolume ? totalVolume.toFixed(2) : "-"}
+                ${formatNumber(totalVolumeToken)}
             </TableCell>
+
             <TableCell className="text-right text-white">{token.metrics?.followersCount||"-"}</TableCell>
             <TableCell className="text-center text-white">{token.metrics?.topTweetsCount||"-"}</TableCell>
         </TableRow>
