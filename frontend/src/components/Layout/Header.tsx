@@ -30,7 +30,7 @@ const Header: React.FC = () => {
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <Input 
-                className="w-full pl-12 pr-4 py-2 h-10 bg-[#161B28] border-none text-white placeholder-gray-400 rounded text-sm focus:ring-1 focus:ring-[#2D3748] focus:outline-none"
+                className="w-full pl-12 pr-4 py-2 h-10 bg-[#161B28] border-none text-white  rounded text-sm focus:ring-1 focus:ring-[#2D3748] focus:outline-none"
                 placeholder="Search for people, funds, exchanges, and ENS..."
               />
             </div>
