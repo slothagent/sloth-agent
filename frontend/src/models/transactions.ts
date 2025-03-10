@@ -1,4 +1,4 @@
-import clientPromise from "@/lib/mongodb";
+import clientPromise from "../lib/mongodb";
 import { ObjectId } from "mongodb";
 
 export interface Transaction {
@@ -15,7 +15,7 @@ export interface Transaction {
   marketCap: number;
   network: string;
   fundingRaised: number;
-  amountTokensToReceive: number;
+  amountToken: number;
 }
 
 export async function createTransaction(transaction: Omit<Transaction, '_id'>) {

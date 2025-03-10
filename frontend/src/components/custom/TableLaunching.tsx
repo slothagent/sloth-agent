@@ -27,7 +27,7 @@ const TableLaunching: React.FC<TableLaunchingProps> = ({address,index,tokenAddre
         config: network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
-    console.log(balanceOfToken)
+    // console.log(balanceOfToken)
 
     return (
         <div key={index} className="flex items-center justify-between">

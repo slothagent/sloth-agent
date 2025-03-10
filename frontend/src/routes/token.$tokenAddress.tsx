@@ -20,7 +20,6 @@ import Launching from '../components/custom/Launching';
 import { decodeEventLog, formatEther } from 'viem';
 import { tokenAbi } from '../abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '../hooks/useWebSocketData';
-import { LoadingSpinner } from '../components/ui/loading-spinner';
 import { formatNumber } from '../utils/utils';
 import { useEthPrice } from '../hooks/useEthPrice';
 import { useSonicPrice } from  '../hooks/useSonicPrice';
@@ -28,6 +27,7 @@ import { configAncient8,configSonicBlaze } from '../config/wagmi';
 import { useSwitchChain } from 'wagmi';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import axios from 'axios';
+import { INITIAL_SUPPLY } from '../lib/contants';
 
 
 export const Route = createFileRoute("/token/$tokenAddress")({
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/token/$tokenAddress")({
     beforeLoad: ({ params }) => {
         // Validate that tokenAddress is a valid Ethereum address
         const { tokenAddress } = params;
-        console.log('tokenAddress', tokenAddress);
+        // console.log('tokenAddress', tokenAddress);
         if (!/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
             throw new Error('Invalid token address');
         }
@@ -164,7 +164,7 @@ function TokenDetails() {
                         // console.log('newPrice', newPrice);
                         // console.log('newSupply', newSupply);
                         // console.log('newTotalMarketCap', newTotalMarketCap);
-                        console.log('newFundingRaised', newFundingRaised);
+                        // console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
@@ -249,16 +249,6 @@ function TokenDetails() {
         config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
-
-    const {data: totalMarketCap} = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'getTotalMarketCap',
-        args: [],
-        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
-    });
-
-
     const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
@@ -282,6 +272,19 @@ function TokenDetails() {
         return transactionsData;
     }, [transactionsData]);
     
+
+    const totalMarketCapToken = useMemo(() => {
+        if (!transactionHistory) return 0;
+    
+        const ancient8Transactions = transactionHistory.filter((tx: any) => tx.network === 'Ancient8')
+        const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
+        const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
+        const sonicTransactions = transactionHistory.filter((tx: any) => tx.network === 'Sonic');
+        const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
+        const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
+        return ancient8MarketCap || sonicMarketCap;
+    }, [transactionHistory]);
+
     
     const handleTimeRangeChange = (value: string) => {
         setTimeRange(value);
@@ -670,7 +673,7 @@ function TokenDetails() {
                                 <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(transactionHistory[0]?.price.toString()||"0")* (tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">{(parseFloat(transactionHistory[0]?.price.toString()||"0")).toFixed(8)} {tokenData?.network == "Sonic" ? `S` : "ETH"}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
@@ -680,6 +683,7 @@ function TokenDetails() {
                                         <div className="flex flex-col w-full h-full relative pt-3">
                                             <TokenPriceChart 
                                                 transactionHistory={transactionHistory as any} 
+                                                valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
                                             />
                                         </div>
                                     </div>
@@ -842,7 +846,7 @@ function TokenDetails() {
                         </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching network={tokenData?.network||''} sonicPrice={sonicPrice} ethPrice={ethPrice} tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
+                        <Launching network={tokenData?.network||''} sonicPrice={sonicPrice} ethPrice={ethPrice} tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={totalMarketCapToken} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
                     </TabsContent>
                 </Tabs>
                 </div>

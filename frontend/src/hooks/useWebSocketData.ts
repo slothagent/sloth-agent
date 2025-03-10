@@ -218,6 +218,7 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
     const removeListener = addDataListener('allTransactions', (data: any) => {
       // Xử lý dữ liệu transactions
       if (Array.isArray(data)) {
+        // console.log('data',data);
         setTransactions(data);
         setLoading(false);
       } else if (data.change && data.change.operationType) {

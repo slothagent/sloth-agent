@@ -53,8 +53,7 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
 
     const totalHolders = useMemo(() => {
         if (!transactionsData) return 0;
-        
-        // Create a map to track unique addresses
+    
         const uniqueHolders = new Set<string>();
         
         transactionsData.forEach((tx: Transaction) => {
@@ -70,11 +69,27 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
     const totalVolumeToken = useMemo(() => {
         if (!transactionsData) return 0;
         const ancient8Transactions = transactionsData.filter((tx: any) => tx.network === 'Ancient8');
-        const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+        const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
         const sonicTransactions = transactionsData.filter((tx: any) => tx.network === 'Sonic');
-        const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+        const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
         return ancient8Volume || sonicVolume;
     }, [transactionsData]);
+
+    const totalVolume24h = useMemo(() => {
+        if (!transactionsData) return 0;
+        const oneDayAgo = new Date();
+        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+        const last24hTxs = transactionsData.filter((tx: Transaction) => 
+            new Date(tx.timestamp) >= oneDayAgo
+        );
+        const ancient8Transactions = last24hTxs.filter((tx: any) => tx.network === 'Ancient8');
+        const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+        const sonicTransactions = last24hTxs.filter((tx: any) => tx.network === 'Sonic');
+        const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+        return ancient8Volume || sonicVolume;
+    }, [transactionsData]);
+
+    // console.log(totalVolume24h);
 
     return (
         <TableRow 
@@ -106,10 +121,10 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
             </TableCell>
             <TableCell className="text-right">
                 <div className="text-white">{transactionsData?.length||"-"}</div>
-                <div className="text-sm text-gray-400">{transactions24h.buys||"-"}/{transactions24h.sells||"-"}</div>
+                <div className="text-sm text-gray-400"><span className="text-green-500">{transactions24h.buys||"-"}</span>/<span className="text-red-500">{transactions24h.sells||"-"}</span></div>
             </TableCell>
             <TableCell className="text-center">
-                <div className="text-white">{"-"}</div>
+                <div className="text-white">${formatNumber(totalVolume24h)}</div>
             </TableCell>
             <TableCell className="text-right text-white">
                 {transactionsData?.[transactionsData?.length - 1]?.price ? transactionsData?.[transactionsData?.length - 1]?.price.toFixed(8) : "-"} {transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? "ETH" : "S"}

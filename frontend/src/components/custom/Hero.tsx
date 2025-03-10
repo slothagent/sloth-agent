@@ -50,9 +50,15 @@ const Hero: React.FC = () => {
   const totalVolume30d = useMemo(() => {
     if (!transactionsData30d) return 0;
     const ancient8Transactions = transactionsData30d.filter((tx: any) => tx.network === 'Ancient8');
-    const ancient8TotalVolume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+    const ancient8TotalVolume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
     const sonicTransactions = transactionsData30d.filter((tx: any) => tx.network === 'Sonic');
-    const sonicTotalVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+    const sonicTotalVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+    if(ancient8TotalVolume > 0) {
+      return ancient8TotalVolume;
+    }
+    if(sonicTotalVolume > 0) {
+      return sonicTotalVolume;
+    }
     return ancient8TotalVolume + sonicTotalVolume;
   }, [transactionsData30d]);
 
@@ -71,9 +77,9 @@ const Hero: React.FC = () => {
   const totalVolumeToken = useMemo(() => {
     if (!transactions) return 0;
     const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8');
-    const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
+    const ancient8Volume = ancient8Transactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * ancient8Transactions[ancient8Transactions.length - 1]?.price * ethPrice;
     const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
-    const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountTokensToReceive, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
+    const sonicVolume = sonicTransactions.reduce((acc: number, curr: any) => acc + curr.amountToken, 0) * sonicTransactions[sonicTransactions.length - 1]?.price * sonicPrice;
     return ancient8Volume || sonicVolume;
   }, [transactions]);
   
