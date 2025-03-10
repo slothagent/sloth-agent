@@ -85,7 +85,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="light">
-      <body className={`${spaceGrotesk.variable} font-sans bg-white text-gray-900`}>
+      <body className={`${spaceGrotesk.variable} font-sans bg-[#0a0d16]`}>
         <Providers>
           <Header />
           <Suspense fallback={ <Loading /> }>
