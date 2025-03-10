@@ -473,9 +473,9 @@ function TokenDetails() {
         {/* Main Content */}
         <div className="container mx-auto flex flex-col sm:mt-4 mb-6 lg:px-4 lg:mb-12">
             <div className="lg:mb-10 hidden sm:block">
-                <div className="flex max-lg:p-2 h-full w-full lg:justify-between relative">
-                    <div className="hidden lg:grid lg:grid-cols-[1fr,_420px] gap-4 w-full">
-                        <div className="w-full lg:flex hidden flex-col">
+                <div className="flex flex-col max-lg:p-2 h-full w-full">
+                    <div className="hidden lg:flex gap-4 w-full">
+                        <div className="lg:flex hidden flex-col">
                             <div className="lg:flex w-full items-center">                        
                                 <div className="lg:flex items-center gap-3 h-full hidden">
                                     <img 
@@ -666,8 +666,8 @@ function TokenDetails() {
 
                     <TabsContent value="trade" className="mt-4">
                         <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-1 md:grid-cols-[1fr,_400px] gap-4">
-                                <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
                                             <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(transactionHistory[0]?.price.toString()||"0")* (tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)}</p>
@@ -676,7 +676,7 @@ function TokenDetails() {
                                             </span> */}
                                         </div>
                                     </div>
-                                    <div className="flex-1 w-full p-2 sm:p-4 relative">
+                                    <div className="col-span-1  flex-1 p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
                                             <TokenPriceChart 
                                                 transactionHistory={transactionHistory as any} 
@@ -685,7 +685,7 @@ function TokenDetails() {
                                     </div>
                                 </div>
 
-                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[550px] rounded-lg bg-[#161B28]">
+                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[550px] bg-[#161B28]">
                                     <Tabs defaultValue="buy" className="flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
                                             <div className="w-[200px]">
