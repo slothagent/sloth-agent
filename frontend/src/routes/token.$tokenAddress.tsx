@@ -39,16 +39,7 @@ export const Route = createFileRoute("/token/$tokenAddress")({
         if (!/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
             throw new Error('Invalid token address');
         }
-    },
-    errorComponent: ({ error }) => (
-        <div className="flex flex-col items-center justify-center min-h-screen">
-            <h1 className="text-4xl font-bold mb-4">Error</h1>
-            <p className="text-lg mb-6">{error.message || 'An error occurred'}</p>
-            <Link to="/" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                Go Home
-            </Link>
-        </div>
-    ),
+    }
 });
 
 function TokenDetails() {

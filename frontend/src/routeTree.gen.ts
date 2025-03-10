@@ -5,6 +5,7 @@ import { Route as TokenImport } from "./routes/token";
 import { Route as AgentCreateImport } from "./routes/create-agent";
 import { Route as AgentsImport } from "./routes/agents";
 import { Route as TokenCreateImport } from "./routes/create-token";
+import { Route as AgentDetailsImport } from "./routes/agent.$agentId";
 
 // Create/Update Routes
 const IndexRoute = IndexImport.update({
@@ -36,6 +37,13 @@ const AgentsRoute = AgentsImport.update({
   path: "/agent",
   getParentRoute: () => rootRoute,
 } as any);
+
+const AgentDetailsRoute = AgentDetailsImport.update({
+  id: "/agent/$agentId",
+  path: "/agent/$agentId",
+  getParentRoute: () => rootRoute,
+} as any);
+
 
 const TokenCreateRoute = TokenCreateImport.update({
   id: "/token/create",
@@ -89,7 +97,14 @@ declare module "@tanstack/react-router" {
       path: "/token/create";
       fullPath: "/token/create";
       preLoaderRoute: typeof TokenCreateImport;
-    }
+    };
+    "/agent/$agentId": {
+      id: "/agent/$agentId";
+      path: "/agent/$agentId";
+      fullPath: "/agent/$agentId";
+      preLoaderRoute: typeof AgentDetailsImport;
+      parentRoute: typeof rootRoute;
+    };
   }
 }
 
@@ -102,6 +117,7 @@ export interface FileRoutesByFullPath {
   "/agent/create": typeof AgentCreateRoute;
   "/agent": typeof AgentsRoute;
   "/token/create": typeof TokenCreateRoute;
+  "/agent/$agentId": typeof AgentDetailsRoute;
 }
 
 export interface FileRoutesByTo {
@@ -111,6 +127,7 @@ export interface FileRoutesByTo {
   "/agent/create": typeof AgentCreateRoute;
   "/agent": typeof AgentsRoute;
   "/token/create": typeof TokenCreateRoute;
+  "/agent/$agentId": typeof AgentDetailsRoute;
 }
 
 export interface FileRoutesById {
@@ -121,14 +138,15 @@ export interface FileRoutesById {
   "/agent/create": typeof AgentCreateRoute;
   "/agent": typeof AgentsRoute;
   "/token/create": typeof TokenCreateRoute;
+  "/agent/$agentId": typeof AgentDetailsRoute;
 }
 
 export type FileRouteTypes = {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create";
+  fullPaths: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create";
-  id: "__root__" | "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create";
+  to: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId";
+  id: "__root__" | "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId";
   fileRoutesById: FileRoutesById;
 }
 
@@ -139,6 +157,7 @@ export interface RootRouteChildren {
   AgentCreateRoute: typeof AgentCreateRoute;
   AgentsRoute: typeof AgentsRoute;
   TokenCreateRoute: typeof TokenCreateRoute;
+  AgentDetailsRoute: typeof AgentDetailsRoute;
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -148,6 +167,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentCreateRoute: AgentCreateRoute,
   AgentsRoute: AgentsRoute,
   TokenCreateRoute: TokenCreateRoute,
+  AgentDetailsRoute: AgentDetailsRoute,
 };
 
 export const routeTree = rootRoute
