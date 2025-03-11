@@ -113,6 +113,9 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
             </div>
             </TableCell>
             <TableCell className="text-gray-400">{timeAgo(token.createdAt)}</TableCell>
+            <TableCell className="text-gray-400">
+                <img alt="Chain" loading="lazy" width="16" height="16" decoding="async" data-nimg="1" className="w-5" src={ token.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
+            </TableCell>
             <TableCell className="text-center">
                 <div className="text-white">{"-"}</div>
             </TableCell>

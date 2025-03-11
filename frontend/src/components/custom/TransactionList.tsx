@@ -55,12 +55,13 @@ const TransactionList: React.FC = () => {
       {/* Desktop View - Hidden on mobile */}
       <div className="hidden md:block">
         <Card className="bg-[#161B28] border-none rounded-none overflow-hidden">
-          <div className="grid grid-cols-12 gap-4 p-4 text-sm text-gray-400 border-b border-gray-800">
+          <div className="grid grid-cols-12 gap-2 p-4 text-sm text-gray-400 border-b border-gray-800">
+            <div className="col-span-1">CHAIN</div>
             <div className="col-span-2">TIME</div>
-            <div className="col-span-3">FROM</div>
-            <div className="col-span-3">TO</div>
+            <div className="col-span-2">FROM</div>
+            <div className="col-span-2">TO</div>
             <div className="col-span-1">ACTION</div>
-            <div className="col-span-1 text-right">AMOUNT</div>
+            <div className="col-span-2 text-right">AMOUNT</div>
             <div className="col-span-2 text-right">PRICE</div>
           </div>
 

@@ -128,9 +128,12 @@ const Hero: React.FC = () => {
                       }}
                     />
                   )}
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">{tokens[tokens.length - 1].name}</h3>
-                    <p className="text-gray-400">{tokens[tokens.length - 1].ticker}</p>
+                  <div className='flex items-start gap-2 justify-between w-full'>
+                    <div>
+                      <h3 className="text-xl font-semibold text-white">{tokens[tokens.length - 1].name}</h3>
+                      <p className="text-gray-400">{tokens[tokens.length - 1].ticker}</p>
+                    </div>
+                    <img alt="Chain" loading="lazy" width="16" height="16" decoding="async" data-nimg="1" className="w-6" src={ tokens[tokens.length - 1].network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
                   </div>
                 </div>
                 <div className="mt-6">

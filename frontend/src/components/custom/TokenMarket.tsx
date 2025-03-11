@@ -62,9 +62,16 @@ const TokenCard = ({ token }: { token: Token }) => {
     return ancient8MarketCap || sonicMarketCap;
   }, [transactions]);
 
+  const truncateDescription = (description: string) => {
+    if (description.length > 50) {
+      return description.substring(0, 50) + '...';
+    }
+    return description;
+  }
+
   return (
     <a href={`/token/${token.address}`}>
-      <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors">
+      <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors flex flex-col">
         <div className="flex items-start gap-4">
           <img
             src={token.imageUrl || ''}
@@ -92,33 +99,36 @@ const TokenCard = ({ token }: { token: Token }) => {
               )}
             </div>
           </div>
+          <img alt="Chain" loading="lazy" width="20" height="20" decoding="async" data-nimg="1" className="w-6" src={ token?.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
         </div>
 
-        <div className="mt-4">
-          <div className="flex flex-col justify-between gap-5 text-sm mb-1">
-            <p className="text-sm text-gray-400 mt-2">{token.description}</p>
-            <div className="flex gap-2 justify-between">
-              <div className="flex flex-col gap-2">
-                  <span className="text-blue-500">TOTAL MARKET CAP</span>
-                  <span className="text-blue-500">$ {formatNumber(totalMarketCapToken)}</span>
+        <div className="mt-4 flex-1 flex flex-col">
+          <p className="text-sm text-gray-400 mb-auto">{truncateDescription(token.description || '')}</p>
+          
+          <div className="mt-4">
+            <div className="flex justify-between">
+              <div className="flex flex-col space-y-1">
+                <span className="text-blue-500 text-xs">TOTAL MARKET CAP</span>
+                <span className="text-white text-xs">$ {formatNumber(totalMarketCapToken)}</span>
               </div>
-              <div className="flex flex-col gap-2">
-                  <span className="text-gray-400">LAUNCH TIME</span>
-                  <span className="text-gray-400">{formatLaunchDate(token.createdAt?.toString())}</span>
+              <div className="flex flex-col space-y-1">
+                <span className="text-gray-400 text-xs">LAUNCH TIME</span>
+                <span className="text-gray-400 text-xs">{formatLaunchDate(token.createdAt?.toString())}</span>
               </div>
             </div>
           </div>
+          
           <div className="mt-4">
-            <div className="w-full bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-gray-700 rounded-full h-1">
               <div 
-                className="h-2 rounded-full"
+                className="h-1 rounded-full bg-blue-500"
                 style={{ 
                   width: `${(Number(Number(transactions[transactions.length - 1]?.fundingRaised))/22700)*100}%`,
                   background: `linear-gradient(90deg, #161B28 0%, rgb(59 130 246) 100%)`
                 }}
               />
             </div>
-            <span className="text-blue-500 text-sm mt-1 block">{((Number(transactions[transactions.length - 1]?.fundingRaised)/22700)*100).toFixed(2)}%</span>
+            <span className="text-blue-500 text-sm mt-1 block">{((Number(Number(transactions[transactions.length - 1]?.fundingRaised))/22700)*100).toFixed(2)}%</span>
           </div>
         </div>
       </div>
@@ -292,7 +302,7 @@ export default function TokenMarket() {
           </div>
         </div>
       </div>
-      <div className='flex gap-4 py-4 overflow-x-auto'>
+      <div className='gap-4 py-4 overflow-x-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
         {filteredTokens.map((token: Token, index: number) => (
           <TokenCard key={index} token={token} />
         ))}
