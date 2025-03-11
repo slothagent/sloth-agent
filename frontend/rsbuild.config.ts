@@ -31,6 +31,8 @@ export default defineConfig({
       'process.env.MONGODB_DB': JSON.stringify(process.env.MONGODB_DB),
       'process.env.REPLICATE_API_TOKEN': JSON.stringify(process.env.REPLICATE_API_TOKEN),
       'process.env.CMC_API_KEY': JSON.stringify(process.env.CMC_API_KEY),
+      'process.env.REDIS_URL': JSON.stringify(process.env.REDIS_URL),
+      'process.env.REDIS_TOKEN': JSON.stringify(process.env.REDIS_TOKEN)
     }
   }
 });

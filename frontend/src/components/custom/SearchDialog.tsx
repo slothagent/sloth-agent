@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
+  DialogOverlay
 } from "../ui/dialog"
 import { Input } from "../ui/input"
 import { Search } from "lucide-react"
@@ -90,7 +91,8 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="fixed top-20 left-1/2 -translate-x-1/2 translate-y-0 sm:max-w-3xl p-0 rounded-t-none border-t-0">
+      <DialogOverlay className="backdrop-blur-sm bg-black/10" />
+      <DialogContent className="fixed top-20 left-1/2 -translate-x-1/2 translate-y-0 sm:max-w-3xl p-0 rounded-t-none border-t-0 bg-[#161B28]/80 border border-[#2D333B]/30">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <Input

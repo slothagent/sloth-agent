@@ -60,6 +60,13 @@ const Header: React.FC = () => {
               </div>
             </Link>
           )}
+          {isConnected && (
+            <Link to="/omni" className="hidden md:block">
+              <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
+                <span className="text-white text-sm">Omni</span>
+              </div>
+            </Link>
+          )}
           
           <div className="hidden md:block">
             <WalletButton />
