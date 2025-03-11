@@ -61,7 +61,8 @@ const TransactionList: React.FC = () => {
             <div className="col-span-2">FROM</div>
             <div className="col-span-2">TO</div>
             <div className="col-span-1">ACTION</div>
-            <div className="col-span-2 text-right">AMOUNT</div>
+            <div className="col-span-1 text-right">AMOUNT</div>
+            <div className="col-span-1 text-right">TOKEN</div>
             <div className="col-span-2 text-right">PRICE</div>
           </div>
 

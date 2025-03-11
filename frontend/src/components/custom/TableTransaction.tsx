@@ -59,12 +59,19 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
             <div className={`col-span-1 ${tx.transactionType === 'BUY' ? 'text-green-500' : 'text-red-500'} flex items-center`}>
                 {tx.transactionType}
             </div>
-            <div className="col-span-2 text-right text-white flex items-center justify-end">
+            <div className="col-span-1 text-right text-white flex items-center justify-end">
                 {tx.amount ? tx.transactionType === 'BUY' ? formatNumber(Number(tx.amountToken)) : formatNumber(Number(tx.amountToken)) : '-'} {token?.data?.ticker}
+            </div>
+            <div className="col-span-1 text-right text-white flex items-center justify-end">
+                <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/token/" : "https://scanv2-testnet.ancient8.gg/token/"}${tx.from}`} className="flex items-center gap-2">
+                    <img src={token?.data?.imageUrl} alt={token?.data?.name} className="w-4 h-4 rounded-full" />
+                    <span className="hover:underline">{token?.data?.ticker}</span>
+                </a>
             </div>
             <div className="col-span-2 text-right text-white flex items-center justify-end">
                 {tx.price ? price.toFixed(8): "-"} {tx.network === 'Ancient8' ? "ETH" : "S"}
             </div>
+
         </div>
     )
 }
