@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, MessageSquare, Clock, Copy, Layout, Send, Star, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare,Send, User } from 'lucide-react';
 import { useAgents } from '../hooks/useAgents';
 import axios from 'axios';
 import { createFileRoute, Link } from '@tanstack/react-router';
@@ -26,10 +26,9 @@ interface Message {
 }
 
 export default function AgentDetails() {
-    const { agentId } = Route.useParams();
     const [message, setMessage] = useState('');
-    const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
+    const [page] = useState(1);
+    const [search] = useState('');
     const pageSize = 10;
     const [activeTab, setActiveTab] = useState('chat');
     const [messages, setMessages] = useState<Message[]>([
@@ -40,7 +39,7 @@ export default function AgentDetails() {
         timestamp: new Date(),
         },
     ]);
-    const { data: agentsData, isLoading: isAgentsLoading } = useAgents({
+    const { data: agentsData } = useAgents({
         page,
         pageSize,
         search,
@@ -160,38 +159,38 @@ export default function AgentDetails() {
     };
 
     return (
-        <div className="flex flex-col h-[89vh] bg-gray-950 border border-gray-800 w-full sm:w-3/4 text-gray-100 mx-auto mt-4">
+        <div className="container flex flex-col h-[89vh] w-full text-gray-100 mx-auto mt-4">
         {/* Agent Header - Hidden after chat starts */}
             <div className="flex-shrink-0 border-b border-gray-800">
-            <div className="sm:top-12 border-[#1F2937] border-b sm:border-b-0">
-                <div className="container mx-auto sm:py-4 flex md:items-center justify-between gap-4 flex-col md:flex-row mb-0">
-                    <div className="flex items-center gap-2 justify-start">
-                        <Link to="/agent" className="flex items-center gap-3">
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200"
-                            >
-                                <div className="w-7 h-7 bg-[#161B28] flex items-center justify-center border border-[#1F2937] hover:border-gray-600">
-                                    <ArrowLeft className="w-4 h-4" />
-                                </div>
-                            </Button>
-                        </Link>
-                        
-                        <div>
-                            <button className="flex items-center justify-center gap-3 px-3 py-1 text-sm font-medium text-gray-400 border border-[#1F2937] hover:bg-[#1C2333] hover:border-gray-600 transition-all duration-200">
-                                <img 
-                                    className="w-5 h-5 rounded-md" 
-                                    alt={agentsData?.data[0].name} 
-                                    src={agentsData?.data[0].imageUrl} 
-                                    loading="lazy" 
-                                />
-                                {agentsData?.data[0].name}
-                            </button>
+                <div className="sm:top-12 border-[#1F2937] border-b sm:border-b-0">
+                    <div className='mt-6 p-4'>
+                        <div className="flex items-center gap-2 justify-start">
+                            <Link to="/agent" className="flex items-center gap-3">
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200"
+                                >
+                                    <div className="w-7 h-7 bg-[#161B28] flex items-center justify-center border border-[#1F2937] hover:border-gray-600">
+                                        <ArrowLeft className="w-4 h-4" />
+                                    </div>
+                                </Button>
+                            </Link>
+
+                            <div>
+                                <button className="flex items-center justify-center gap-3 px-3 py-1 text-sm font-medium text-gray-400 border border-[#1F2937] hover:bg-[#1C2333] hover:border-gray-600 transition-all duration-200">
+                                    <img 
+                                        className="w-5 h-5 rounded-md" 
+                                        alt={agentsData?.data[0].name} 
+                                        src={agentsData?.data[0].imageUrl} 
+                                        loading="lazy" 
+                                    />
+                                    {agentsData?.data[0].name}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             {showHeader && (
                 <div className='flex mt-4 ml-4'>
                 <div className="lg:flex w-full items-center">                        
@@ -209,22 +208,22 @@ export default function AgentDetails() {
                             <div className="flex items-center gap-2">
                                 <h1 className="text-3xl font-medium mb-1 text-white">{agentsData?.data[0].name}</h1>
                             </div>
-                            <p className="text-xs text-gray-400">{agentsData?.data[0].description}</p>
                         </div>
+                        <p className="text-sm font-medium mb-1 text-gray-400">@{agentsData?.data[0].description}</p>
                     </div>
                     </div>
                 </div>
                 
-                </div>
+             </div>
             )}
             <div>
-                <div className="mb-4 ml-4 mr-4 mt-4">
-                    <div className="flex p-1 gap-2 bg-[#161B28] rounded-lg w-fit">
+                <div className="mb-4 mt-4 pb-4 border-b border-b-[#1F2937]">
+                    <div className="flex w-fit">
                         <button
                             onClick={() => setActiveTab('chat')}
-                            className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
+                            className={`px-2 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2
                                 ${activeTab === 'chat'
-                                    ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                    ? 'text-white border-b-2 border-white'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                         >
                         <MessageSquare className='w-4 h-4' />
@@ -232,9 +231,9 @@ export default function AgentDetails() {
                         </button>
                         <button
                             onClick={() => setActiveTab('overview')}
-                            className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
+                            className={`px-2 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2
                                 ${activeTab === 'overview'
-                                    ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                    ? 'text-white border-b-2 border-white'
                                     : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                         >
                             <User className="w-4 h-4" />
@@ -254,7 +253,7 @@ export default function AgentDetails() {
                 </div>
             </div>
             </div>
-            <div className='flex-1 h-[60%] inline-block'>
+            <div className='flex-1 h-[60%] inline-block border border-[#1F2937] bg-[#0B0E17]'>
                 {activeTab === 'chat' && (
                 <div className="flex flex-col flex-1 h-full">
                     {/* Chat Messages */}
@@ -278,14 +277,14 @@ export default function AgentDetails() {
                             <div className="w-8 mr-2" /> /* Spacer for alignment */
                             )}
                             <div
-                            className={`max-w-[80%] p-4 rounded-2xl ${
+                            className={`max-w-[80%] p-4 ${
                                 msg.role === 'user' ? 'bg-[#2196F3] text-white' : 'bg-gray-800 text-gray-100'
                             }`}
                             >
                             {msg.type === 'tweets' && typeof msg.content === 'object' && 'texts' in msg.content ? (
                                 <div className="space-y-4">
                                 {msg.content.texts.map((tweet, index) => (
-                                    <div key={index} className="border border-gray-700 p-3 rounded-lg">
+                                    <div key={index} className="border border-gray-700 p-3 ">
                                     <p className="text-sm whitespace-pre-wrap mb-2">{tweet}</p>
                                     <Button
                                         onClick={() => handlePostTweet(tweet)}
@@ -311,7 +310,7 @@ export default function AgentDetails() {
                         <img 
                             src={agentsData?.data[0].imageUrl}
                             alt="Bot"
-                            className="w-8 h-8 rounded-lg mr-2"
+                            className="w-8 h-8 mr-2"
                         />
                         <div className="bg-gray-800 p-3 rounded-2xl">
                             <div className="flex space-x-2">
@@ -334,12 +333,12 @@ export default function AgentDetails() {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                        className="flex-1 bg-gray-800 border-gray-700 focus:border-gray-600 text-gray-100 rounded-xl"
+                        className="flex-1  bg-gray-800 rounded-none border-gray-700 focus:border-gray-600 text-gray-100"
                         />
                         <Button 
                         onClick={handleSendMessage}
                         disabled={isLoading || !message.trim()}
-                        className="bg-[#2196F3] hover:bg-[#2196F3]/20 transition-colors rounded-xl px-6"
+                        className="bg-[#2196F3] rounded-none hover:bg-[#2196F3]/20 transition-colors px-6"
                         >
                         <Send className="h-5 w-5" />
                         </Button>
