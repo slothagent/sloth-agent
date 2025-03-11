@@ -69,7 +69,7 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
                 </a>
             </div>
             <div className="col-span-2 text-right text-white flex items-center justify-end">
-                {tx.price ? price.toFixed(8): "-"} {tx.network === 'Ancient8' ? "ETH" : "S"}
+                {tx.price ? price.toFixed(8): "-"} USD
             </div>
 
         </div>
