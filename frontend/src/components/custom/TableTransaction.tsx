@@ -12,9 +12,6 @@ interface TableTransactionProps {
 }
 
 const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => {
-
-    // console.log(tx)
-
     const fetchTokenByAddress = async (address: string) => {
         const token = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token?address=${address}`);
         return token.json();
@@ -50,7 +47,7 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
                 {tx.transactionType}
             </div>
             <div className="col-span-1 text-right text-white">
-                {tx.amount ? tx.transactionType === 'BUY' ? formatNumber(Number(tx.amount)) : formatNumber(Number(tx.amount)/10**18) : '-'} {token?.data?.ticker}
+                {tx.amount ? tx.transactionType === 'BUY' ? formatNumber(Number(tx.amountToken)) : formatNumber(Number(tx.amountToken)) : '-'} {token?.data?.ticker}
             </div>
             <div className="col-span-2 text-right text-white">
                 {tx.price ? price.toFixed(8): "-"} {tx.network === 'Ancient8' ? "ETH" : "S"}

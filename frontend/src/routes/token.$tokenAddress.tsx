@@ -17,10 +17,9 @@ import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits, MaxUint256 } from "ethers";
 import { bondingCurveAbi } from '../abi/bondingCurveAbi';
 import Launching from '../components/custom/Launching';
-import { decodeEventLog } from 'viem';
+import { decodeEventLog, formatEther } from 'viem';
 import { tokenAbi } from '../abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '../hooks/useWebSocketData';
-import { LoadingSpinner } from '../components/ui/loading-spinner';
 import { formatNumber } from '../utils/utils';
 import { useEthPrice } from '../hooks/useEthPrice';
 import { useSonicPrice } from  '../hooks/useSonicPrice';
@@ -28,6 +27,7 @@ import { configAncient8,configSonicBlaze } from '../config/wagmi';
 import { useSwitchChain } from 'wagmi';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import axios from 'axios';
+import { INITIAL_SUPPLY } from '../lib/contants';
 
 
 export const Route = createFileRoute("/token/$tokenAddress")({
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/token/$tokenAddress")({
     beforeLoad: ({ params }) => {
         // Validate that tokenAddress is a valid Ethereum address
         const { tokenAddress } = params;
-        console.log('tokenAddress', tokenAddress);
+        // console.log('tokenAddress', tokenAddress);
         if (!/^0x[a-fA-F0-9]{40}$/.test(tokenAddress)) {
             throw new Error('Invalid token address');
         }
@@ -53,7 +53,8 @@ function TokenDetails() {
     const { switchChain } = useSwitchChain();
     const { data: sonicPriceData  } = useSonicPrice();
     const { data: ethPriceData } = useEthPrice();
-  
+    const [amountToReceive, setAmountToReceive] = useState<number>(0);
+
     // Get the ETH price for calculations, fallback to 2500 if not available
     const ethPrice = useMemo(() => {
       return ethPriceData?.price || 2500;
@@ -163,7 +164,7 @@ function TokenDetails() {
                         // console.log('newPrice', newPrice);
                         // console.log('newSupply', newSupply);
                         // console.log('newTotalMarketCap', newTotalMarketCap);
-                        console.log('newFundingRaised', newFundingRaised);
+                        // console.log('newFundingRaised', newFundingRaised);
 
                         if(transactionType === 'BUY'){
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
@@ -176,7 +177,8 @@ function TokenDetails() {
                                     userAddress: address,
                                     tokenAddress: tokenData?.address,
                                     price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
-                                    amountToken: parseFloat(amount||"0"),
+                                    amountToken: amountToReceive,
+                                    amount: parseFloat(amount||"0"),
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`,
                                     totalSupply: parseFloat(newSupply||"0"),
@@ -206,10 +208,12 @@ function TokenDetails() {
                                     price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     userAddress: address,
                                     amountToken: parseFloat(amount||"0"),
+                                    amount: amountToReceive,
                                     transactionType: 'SELL',
                                     transactionHash: txHash as `0x${string}`,
                                     totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0")
+                                    marketCap: parseFloat(newTotalMarketCap||"0"),
+                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
                                 }),
                             });
                             await refetchBalanceOfToken();
@@ -245,16 +249,6 @@ function TokenDetails() {
         config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
-
-    const {data: totalMarketCap} = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'getTotalMarketCap',
-        args: [],
-        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
-    });
-
-
     const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
         address: tokenData?.curveAddress as `0x${string}`,
         abi: bondingCurveAbi,
@@ -278,6 +272,19 @@ function TokenDetails() {
         return transactionsData;
     }, [transactionsData]);
     
+
+    const totalMarketCapToken = useMemo(() => {
+        if (!transactionHistory) return 0;
+    
+        const ancient8Transactions = transactionHistory.filter((tx: any) => tx.network === 'Ancient8')
+        const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
+        const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
+        const sonicTransactions = transactionHistory.filter((tx: any) => tx.network === 'Sonic');
+        const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
+        const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
+        return ancient8MarketCap || sonicMarketCap;
+    }, [transactionHistory]);
+
     
     const handleTimeRangeChange = (value: string) => {
         setTimeRange(value);
@@ -307,6 +314,7 @@ function TokenDetails() {
         if (balance && balance.value < parseEther(amount||"0")){
             return toast.error('Insufficient balance');
         }
+        setAmountToReceive(Number(tokensToReceive||"0")/10**18);
 
         const loadingToast = toast.loading('Buying...');
         try {
@@ -350,6 +358,7 @@ function TokenDetails() {
         const loadingToast = toast.loading('Selling...');
         try {
             await refetchTokensToReceive();
+            setAmountToReceive(Number(ethToReceive?.toString()||"0")/10**18);
             const tx = await writeContractAsync({
                 address: tokenData?.curveAddress as `0x${string}`,
                 abi: bondingCurveAbi,
@@ -467,9 +476,9 @@ function TokenDetails() {
         {/* Main Content */}
         <div className="container mx-auto flex flex-col sm:mt-4 mb-6 lg:px-4 lg:mb-12">
             <div className="lg:mb-10 hidden sm:block">
-                <div className="flex max-lg:p-2 h-full w-full lg:justify-between relative">
-                    <div className="hidden lg:grid lg:grid-cols-[1fr,_420px] gap-4 w-full">
-                        <div className="w-full lg:flex hidden flex-col">
+                <div className="flex flex-col max-lg:p-2 h-full w-full">
+                    <div className="hidden lg:flex gap-4 w-full">
+                        <div className="lg:flex hidden flex-col">
                             <div className="lg:flex w-full items-center">                        
                                 <div className="lg:flex items-center gap-3 h-full hidden">
                                     <img 
@@ -660,26 +669,27 @@ function TokenDetails() {
 
                     <TabsContent value="trade" className="mt-4">
                         <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-1 md:grid-cols-[1fr,_400px] gap-4">
-                                <div className="h-[300px] sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">${(parseFloat(transactionHistory[0]?.price.toString()||"0")* (tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">{(parseFloat(transactionHistory[0]?.price.toString()||"0")).toFixed(8)} {tokenData?.network == "Sonic" ? `S` : "ETH"}</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
                                         </div>
                                     </div>
-                                    <div className="flex-1 w-full p-2 sm:p-4 relative">
+                                    <div className="col-span-1  flex-1 p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
                                             <TokenPriceChart 
                                                 transactionHistory={transactionHistory as any} 
+                                                valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[550px] rounded-lg bg-[#161B28]">
+                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[550px] bg-[#161B28]">
                                     <Tabs defaultValue="buy" className="flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
                                             <div className="w-[200px]">
@@ -836,7 +846,7 @@ function TokenDetails() {
                         </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching network={tokenData?.network||''} sonicPrice={sonicPrice} ethPrice={ethPrice} tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={parseFloat(totalMarketCap?.toString()||"0")} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
+                        <Launching network={tokenData?.network||''} sonicPrice={sonicPrice} ethPrice={ethPrice} tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={totalMarketCapToken} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
                     </TabsContent>
                 </Tabs>
                 </div>

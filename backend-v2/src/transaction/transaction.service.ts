@@ -6,6 +6,7 @@ export interface Transaction {
   _id?: ObjectId;
   from: string;
   to: string;
+  amountToken: number;
   amount: number;
   price: number;
   timestamp: Date;
@@ -16,7 +17,6 @@ export interface Transaction {
   marketCap: number;
   network: string;
   fundingRaised: number;
-  amountTokensToReceive: number;
 }
 
 @Injectable()

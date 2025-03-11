@@ -8,9 +8,10 @@ interface ChartProps {
         price: number;
         timestamp: string;
     }[];
+    valuePrefix?: string;
 }
 
-const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory = [] }) => {
+const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory = [], valuePrefix = '$' }) => {
     const options: Highcharts.Options = {
         title: {
             text: undefined
@@ -66,14 +67,14 @@ const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory 
                     fontSize: '10px'
                 },
                 formatter: function() {
-                    if (typeof this.value !== 'number') return '$' + this.value;
+                    if (typeof this.value !== 'number') return this.value + ' ' + valuePrefix;
                     
                     // Format number without scientific notation
-                    return '$' + this.value.toLocaleString('en-US', {
+                    return this.value.toLocaleString('en-US', {
                         minimumFractionDigits: 8,
                         maximumFractionDigits: 8,
                         useGrouping: false
-                    });
+                    }) + ' ' + valuePrefix;
                 }
             },
             gridLineColor: '#1F2937',
@@ -129,15 +130,15 @@ const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory 
                 point.price
             ]),
             tooltip: {
-                valuePrefix: '$',
+                valuePrefix: valuePrefix,
                 valueDecimals: 8,
                 pointFormatter: function() {
                     // Format price without scientific notation
-                    return `<span style="color: #3B82F6">●</span> ${this.series.name}: <b>$${this.y?.toLocaleString('en-US', {
+                    return `<span style="color: #3B82F6">●</span> ${this.series.name}: <b>${this.y?.toLocaleString('en-US', {
                         minimumFractionDigits: 8,
                         maximumFractionDigits: 8,
                         useGrouping: false
-                    })}</b>`;
+                    })} ${valuePrefix}</b>`;
                 }
             }
         }],

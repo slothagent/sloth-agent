@@ -6,7 +6,6 @@ import { tokenAbi } from '../../abi/tokenAbi';
 import { useReadContract } from 'wagmi';
 import { Badge } from '../ui/badge';
 import { INITIAL_SUPPLY } from '../../lib/contants';
-import { Link } from '@tanstack/react-router';
 import { configAncient8,configSonicBlaze } from '../../config/wagmi';
 
 
@@ -22,7 +21,8 @@ interface LaunchingProps {
     ethPrice: number;
 }
 
-const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol,transactions,bondingCurveAddress,tokenAddress,network}) => {
+const Launching: React.FC<LaunchingProps> = ({totalMarketCap,totalSupply,symbol,transactions,bondingCurveAddress,tokenAddress,network,sonicPrice,ethPrice}) => {
+    
     const {data: balanceOfToken} = useReadContract({
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,

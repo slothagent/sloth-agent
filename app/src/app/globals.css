@@ -5,7 +5,7 @@
 
 @layer components {
   .button-default {
-    @apply border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground;
+    @apply border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground text-white;
   }
 }
 

@@ -30,9 +30,7 @@ const projectId = import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID;
 // Log the project ID status
 if (!projectId) {
   console.warn("WalletConnect Project ID is missing or empty. Some wallet connection features may not work properly.");
-} else {
-  console.log("Using WalletConnect Project ID:", projectId);
-}
+} 
 
 export const config = getDefaultConfig({
   appName: 'Sloth Agent',

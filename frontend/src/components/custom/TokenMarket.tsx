@@ -6,12 +6,9 @@ import { useState, useMemo, useEffect } from 'react'
 import { useTokensData } from '../../hooks/useWebSocketData'
 import { Token } from '../../models'
 import { formatNumber } from '../../utils/utils'
-import { useReadContract } from 'wagmi'
-import { bondingCurveAbi } from '../../abi/bondingCurveAbi'
 import { useQuery } from '@tanstack/react-query'
 import { useEthPrice } from '../../hooks/useEthPrice'
 import { useSonicPrice } from '../../hooks/useSonicPrice'
-import { configAncient8, configSonicBlaze } from '../../config/wagmi'
 import { INITIAL_SUPPLY } from '../../lib/contants'
 
 const formatLaunchDate = (dateString?: string) => {
@@ -52,15 +49,6 @@ const TokenCard = ({ token }: { token: Token }) => {
     if (!transactionsData) return [];
     return transactionsData
   }, [transactionsData]);
-  // console.log(`transactionsData: ${token?.address}`,formatNumber(Number(transactions.reduce((acc: number, curr: any) => acc + curr.marketCap, 0))/10**18))
-  
-  const {data: fundingRaised} = useReadContract({
-    address: token?.curveAddress as `0x${string}`,
-    abi: bondingCurveAbi,
-    functionName: 'fundingRaised',
-    args: [],
-    config: transactions[0]?.network === 'Ancient8' ? configAncient8 : configSonicBlaze
-  });
 
   const totalMarketCapToken = useMemo(() => {
     if (!transactions) return 0;
@@ -125,12 +113,12 @@ const TokenCard = ({ token }: { token: Token }) => {
               <div 
                 className="h-2 rounded-full"
                 style={{ 
-                  width: `${(Number(formatNumber(Number(fundingRaised)/10**18))/22700)*100}%`,
+                  width: `${(Number(Number(transactions[transactions.length - 1]?.fundingRaised))/22700)*100}%`,
                   background: `linear-gradient(90deg, #161B28 0%, rgb(59 130 246) 100%)`
                 }}
               />
             </div>
-            <span className="text-blue-500 text-sm mt-1 block">{parseFloat((Number(formatNumber(Number(fundingRaised)/10**18))/22700*100).toFixed(2))}%</span>
+            <span className="text-blue-500 text-sm mt-1 block">{((Number(transactions[transactions.length - 1]?.fundingRaised)/22700)*100).toFixed(2)}%</span>
           </div>
         </div>
       </div>
@@ -185,15 +173,14 @@ export default function TokenMarket() {
 
 
   useEffect(() => {
-    // Kiểm tra kích thước màn hình để set số lượng category hiển thị
     const handleResize = () => {
-      setDefaultVisible(window.innerWidth < 768 ? 3 : 13); // Mobile: 3, Desktop: 1
+      setDefaultVisible(window.innerWidth < 768 ? 3 : 13);
     };
 
-    handleResize(); // Gọi ngay lần đầu
-    window.addEventListener("resize", handleResize); // Lắng nghe sự kiện resize
+    handleResize();
+    window.addEventListener("resize", handleResize);
 
-    return () => window.removeEventListener("resize", handleResize); // Cleanup
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
 
@@ -206,11 +193,9 @@ export default function TokenMarket() {
     }
   });
 
-  // Show loading state when both sources are loading and no data is available yet
   const isLoading = (tokensLoading || tokensDataLoading) && !tokens && !tokensData;
 
   const filteredTokens = useMemo(() => {
-    // Use tokensData if tokens is not available
     const sourceTokens = tokens || tokensData || [];
     
     let result = !searchQuery ? [...sourceTokens] : sourceTokens.filter((token: Token) => 
@@ -239,8 +224,6 @@ export default function TokenMarket() {
   ]
 
   
-  // console.log('Tokens:', tokens)
-
   if (isLoading) {
     return (
       <div className="flex flex-col pt-6">
