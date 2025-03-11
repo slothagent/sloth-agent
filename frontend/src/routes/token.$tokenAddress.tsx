@@ -20,7 +20,7 @@ import Launching from '../components/custom/Launching';
 import { decodeEventLog, formatEther } from 'viem';
 import { tokenAbi } from '../abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '../hooks/useWebSocketData';
-import { formatNumber } from '../utils/utils';
+import { copyToClipboard, formatNumber } from '../utils/utils';
 import { useEthPrice } from '../hooks/useEthPrice';
 import { useSonicPrice } from  '../hooks/useSonicPrice';
 import { configAncient8,configSonicBlaze } from '../config/wagmi';
@@ -562,7 +562,7 @@ function TokenDetails() {
                                             ) : (
                                                 <span>Address not available</span>
                                             )}
-                                            <button className="ml-1 text-gray-400 hover:text-white">
+                                            <button onClick={() => copyToClipboard(tokenData?.address||'')} className="ml-1 text-gray-400 hover:text-white">
                                                 <Copy className="w-4 h-4" />
                                             </button>
                                         </div>

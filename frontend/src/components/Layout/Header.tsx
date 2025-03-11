@@ -2,13 +2,30 @@ import WalletButton from "../custom/WalletButton";
 import { Search, Menu, X } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import { Link } from "@tanstack/react-router";
+import SearchDialog from "../custom/SearchDialog";
 
 const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isConnected } = useAccount();
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if Cmd/Ctrl + K is pressed
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault(); // Prevent default browser behavior
+        setIsSearchOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <header className="sticky top-0 left-0 right-0 z-50 bg-[#0B0E17] border-b border-[#1F2937]">
       <div className="container mx-auto px-4">
@@ -24,14 +41,15 @@ const Header: React.FC = () => {
             </div>
             <span className="text-white font-bold text-lg sm:text-2xl">SLOTH AGENT</span>
           </Link>
-
-          {/* Desktop Search Bar - Hidden on mobile */}
+          
           <div className="hidden md:block flex-1 max-w-3xl">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <Input 
-                className="w-full pl-12 pr-4 py-2 h-10 bg-[#161B28] border-none text-white  rounded text-sm focus:ring-1 focus:ring-[#2D3748] focus:outline-none"
-                placeholder="Search for user address, token, transaction..."
+                className="w-full pl-12 pr-4 py-2 h-10 bg-[#161B28] border-none text-white rounded text-sm focus:ring-1 focus:ring-[#2D3748] focus:outline-none cursor-pointer"
+                placeholder="Search for user address, token, transaction... (⌘ K)"
+                onClick={() => setIsSearchOpen(true)}
+                readOnly
               />
             </div>
           </div>
@@ -43,12 +61,10 @@ const Header: React.FC = () => {
             </Link>
           )}
           
-          {/* Desktop Wallet Button - Hidden on mobile */}
           <div className="hidden md:block">
             <WalletButton />
           </div>
 
-          {/* Mobile Menu Button - Hidden on desktop */}
           <Button
             variant="ghost"
             className="md:hidden p-2"
@@ -62,15 +78,16 @@ const Header: React.FC = () => {
           </Button>
         </div>
 
-        {/* Mobile Menu - Hidden on desktop */}
         {isMobileMenuOpen && (
           <div className="md:hidden py-4 space-y-4 border-t border-[#1F2937]">
             {/* Mobile Search */}
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
               <Input 
-                className="w-full pl-12 pr-4 py-2 h-10 bg-[#161B28] border-none text-white placeholder-gray-400 rounded text-sm focus:ring-1 focus:ring-[#2D3748] focus:outline-none"
-                placeholder="Search..."
+                className="w-full pl-12 pr-4 py-2 h-10 bg-[#161B28] border-none text-white placeholder-gray-400 rounded text-sm focus:ring-1 focus:ring-[#2D3748] focus:outline-none cursor-pointer"
+                placeholder="Search for user address, token, transaction..."
+                onClick={() => setIsSearchOpen(true)}
+                readOnly
               />
             </div>
             
@@ -81,6 +98,11 @@ const Header: React.FC = () => {
           </div>
         )}
       </div>
+
+      <SearchDialog 
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </header>
   );
 };

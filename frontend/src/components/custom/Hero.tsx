@@ -88,7 +88,7 @@ const Hero: React.FC = () => {
     <Card className="w-full md:w-[400px] h-[200px] bg-[#161B28] border-none rounded-lg">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-          <Skeleton className="h-12 w-12 rounded-full" />
+          <Skeleton className="h-16 w-16" />
           <div className="flex-1">
             <Skeleton className="h-6 w-32 mb-2" />
             <Skeleton className="h-4 w-24" />
@@ -126,6 +126,7 @@ const Hero: React.FC = () => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
                       }}
+                      className="object-cover w-16 h-16"
                     />
                   )}
                   <div className='flex items-start gap-2 justify-between w-full'>
@@ -176,13 +177,13 @@ const Hero: React.FC = () => {
             <div className='flex gap-4'>
               <button 
                 onClick={() => router.navigate({to: '/agent/create'})}
-                className="flex items-center gap-2 px-6 py-2 text-sm bg-blue-500  border border-[#1F2937] text-wrap hover:bg-blue-600 text-white hover:text-white"
+                className="flex items-center gap-2 px-6 py-2 text-sm bg-blue-500  border border-[#1F2937] text-wrap hover:bg-blue-600 text-white hover:text-white cursor-pointer"
               >
                 Create New Agent
               </button>
               <button
                   onClick={()=>router.navigate({to: '/token/create'})}
-                  className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-[#161B28] border border-[#1F2937] text-gray-400 hover:bg-[#1C2333] hover:text-white`}
+                  className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-[#161B28] border border-[#1F2937] text-gray-400 hover:bg-[#1C2333] hover:text-white cursor-pointer`}
               >
                   Create New Token
               </button>

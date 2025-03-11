@@ -22,6 +22,7 @@ const formatLaunchDate = (dateString?: string) => {
 }
 
 const TokenCard = ({ token }: { token: Token }) => {
+  const router = useRouter();
   const fetchTransactions = async (tokenAddress: string) => {
     const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?tokenAddress=${tokenAddress}&timeRange=30d`);
     const result = await response.json();
@@ -70,7 +71,7 @@ const TokenCard = ({ token }: { token: Token }) => {
   }
 
   return (
-    <a href={`/token/${token.address}`}>
+    <div onClick={() => router.navigate({to: `/token/${token.address}`})} className='cursor-pointer'>
       <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors flex flex-col">
         <div className="flex items-start gap-4">
           <img
@@ -78,7 +79,7 @@ const TokenCard = ({ token }: { token: Token }) => {
             alt={token.name}
             width={48}
             height={48}
-            className="rounded-none"
+            className="rounded-none w-12 h-12 object-cover"
           />
           <div className="flex-1">
             <div className="flex flex-col">
@@ -132,7 +133,7 @@ const TokenCard = ({ token }: { token: Token }) => {
           </div>
         </div>
       </div>
-    </a>
+    </div>
   )
 }
 
