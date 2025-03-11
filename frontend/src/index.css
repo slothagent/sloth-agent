@@ -144,6 +144,10 @@ body {
   height: 8px;
 }
 
+* {
+    border-radius: 0;
+}
+
 ::-webkit-scrollbar-track {
   background: rgba(139, 115, 85, 0.1);
 }
