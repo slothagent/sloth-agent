@@ -116,7 +116,7 @@ const TrendingTokens: React.FC = () => {
   }, [ethPriceData]);
   
   const sonicPrice = useMemo(() => {
-    return sonicPriceData?.price || 0.7;
+    return sonicPriceData?.price || 0.5;
   }, [sonicPriceData]);
 
 
@@ -190,6 +190,7 @@ const TrendingTokens: React.FC = () => {
             <TableRow className="border-b w-auto border-gray-800 hover:bg-transparent">
               <TableHead className="text-gray-400">Token</TableHead>
               <TableHead className="text-gray-400">Age</TableHead>
+              <TableHead className="text-gray-400">Chain</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">MindShare</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">Holders</TableHead>
               <TableHead className="text-right text-gray-400 text-nowrap">24h TXs</TableHead>

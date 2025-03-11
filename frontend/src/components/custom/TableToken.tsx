@@ -113,6 +113,9 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
             </div>
             </TableCell>
             <TableCell className="text-gray-400">{timeAgo(token.createdAt)}</TableCell>
+            <TableCell className="text-gray-400">
+                <img alt="Chain" loading="lazy" width="16" height="16" decoding="async" data-nimg="1" className="w-5" src={ token.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
+            </TableCell>
             <TableCell className="text-center">
                 <div className="text-white">{"-"}</div>
             </TableCell>
@@ -127,9 +130,9 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
                 <div className="text-white">${formatNumber(totalVolume24h)}</div>
             </TableCell>
             <TableCell className="text-right text-white">
-                {transactionsData?.[transactionsData?.length - 1]?.price ? transactionsData?.[transactionsData?.length - 1]?.price.toFixed(8) : "-"} {transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? "ETH" : "S"}
+                ${transactionsData?.[0]?.price ? (transactionsData?.[0]?.price*(transactionsData?.[0]?.network === 'Ancient8' ? ethPrice : sonicPrice)).toFixed(8) : "-"} 
             </TableCell>
-            <TableCell className="text-right text-white">${transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * ethPrice)*INITIAL_SUPPLY) : formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * sonicPrice)*INITIAL_SUPPLY)||"-"}</TableCell>
+            <TableCell className="text-right text-white">${transactionsData?.[0]?.network === 'Ancient8' ? formatNumber((transactionsData?.[0]?.price * ethPrice)*INITIAL_SUPPLY) : formatNumber((transactionsData?.[0]?.price * sonicPrice)*INITIAL_SUPPLY)||"-"}</TableCell>
             <TableCell className="text-right text-white">
                 ${formatNumber(totalVolumeToken)}
             </TableCell>

@@ -61,7 +61,7 @@ function TokenDetails() {
     }, [ethPriceData]);
     
     const sonicPrice = useMemo(() => {
-      return sonicPriceData?.price || 0.7;
+      return sonicPriceData?.price || 0.5;
     }, [sonicPriceData]);
 
 
@@ -480,7 +480,7 @@ function TokenDetails() {
                     <div className="hidden lg:flex gap-4 w-full">
                         <div className="lg:flex hidden flex-col">
                             <div className="lg:flex w-full items-center">                        
-                                <div className="lg:flex items-center gap-3 h-full hidden">
+                                <div className="lg:flex items-start gap-3 h-full hidden">
                                     <img 
                                         src={tokenData?.imageUrl}
                                         alt="Token Logo"
@@ -490,11 +490,11 @@ function TokenDetails() {
                                         height={64}
                                     />
                                     <div className="lg:flex flex-col justify-center h-full">
-                                        <div>
+                                        <div className='flex justify-start items-start flex-col'>
                                             <div className="flex items-center gap-2">
                                                 <h1 className="text-3xl font-medium mb-1 text-white">{tokenData?.name}</h1>
                                             </div>
-                                            <p className="text-xs text-gray-400">@{tokenData?.ticker}</p>
+                                            <p className="text-lg text-gray-400">@{tokenData?.ticker}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -673,7 +673,7 @@ function TokenDetails() {
                                 <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">{(parseFloat(transactionHistory[0]?.price.toString()||"0")).toFixed(8)} {tokenData?.network == "Sonic" ? `S` : "ETH"}</p>
+                                            <p className="text-2xl sm:text-4xl font-medium text-white">{(parseFloat(transactionHistory[0]?.price.toString()||"0")*(tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)} $</p>
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
@@ -684,6 +684,7 @@ function TokenDetails() {
                                             <TokenPriceChart 
                                                 transactionHistory={transactionHistory as any} 
                                                 valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
+                                                priceUSD={tokenData?.network == "Sonic" ? sonicPrice : ethPrice}
                                             />
                                         </div>
                                     </div>

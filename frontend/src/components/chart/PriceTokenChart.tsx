@@ -9,9 +9,10 @@ interface ChartProps {
         timestamp: string;
     }[];
     valuePrefix?: string;
+    priceUSD?: number;
 }
 
-const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory = [], valuePrefix = '$' }) => {
+const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory = [], valuePrefix = '$', priceUSD = 0 }) => {
     const options: Highcharts.Options = {
         title: {
             text: undefined
@@ -70,11 +71,11 @@ const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory 
                     if (typeof this.value !== 'number') return this.value + ' ' + valuePrefix;
                     
                     // Format number without scientific notation
-                    return this.value.toLocaleString('en-US', {
+                    return (this.value*priceUSD).toLocaleString('en-US', {
                         minimumFractionDigits: 8,
                         maximumFractionDigits: 8,
                         useGrouping: false
-                    }) + ' ' + valuePrefix;
+                    }) + ' $';
                 }
             },
             gridLineColor: '#1F2937',
@@ -134,11 +135,12 @@ const TokenPriceChart: FC<ChartProps> = ({ height = '430px', transactionHistory 
                 valueDecimals: 8,
                 pointFormatter: function() {
                     // Format price without scientific notation
-                    return `<span style="color: #3B82F6">●</span> ${this.series.name}: <b>${this.y?.toLocaleString('en-US', {
+                    // @ts-ignore
+                    return `<span style="color: #3B82F6">●</span> ${this.series.name}: <b>${(this.y*priceUSD).toLocaleString('en-US', {
                         minimumFractionDigits: 8,
                         maximumFractionDigits: 8,
                         useGrouping: false
-                    })} ${valuePrefix}</b>`;
+                    })} $</b>`;
                 }
             }
         }],

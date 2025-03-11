@@ -43,7 +43,6 @@ function CreateToken() {
     const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
     const { address: OwnerAddress, isConnected,chain } = useAccount()
     const [amount, setAmount] = useState<string|null>(null);
-    const [transactionType, setTransactionType] = useState<string|null>(null);
     const [tokenAddress, setTokenAddress] = useState<string|null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [isBuyOpen, setIsBuyOpen] = useState<boolean>(false);
@@ -592,7 +591,7 @@ function CreateToken() {
                             Create Your Token
                         </h1>
                         <p className="text-lg text-gray-400 mb-8">
-                            Create your own meme token with a unique personality! Launch the next viral token with custom branding, memes, and community features.
+                            Create your own token! Launch the next viral token with custom branding, memes, and community features.
                         </p>
                     </div>
                 </div>
