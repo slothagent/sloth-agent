@@ -26,9 +26,9 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
 
     const price = useMemo(() => {
         if (tx.network === 'Ancient8') {
-            return (Number(tx.price)) * ethPrice;
+            return (Number(tx.price)) * tx.amountToken * ethPrice;
         } else {
-            return Number(tx.price) * sonicPrice;
+            return Number(tx.price) * tx.amountToken * sonicPrice;
         }
     }, [tx, ethPrice, sonicPrice]);
 
@@ -69,7 +69,7 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
                 </a>
             </div>
             <div className="col-span-2 text-right text-white flex items-center justify-end">
-                {tx.price ? price.toFixed(8): "-"} USD
+                {tx.price ? formatNumber(price): "-"} USD
             </div>
 
         </div>

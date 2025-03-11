@@ -130,9 +130,9 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
                 <div className="text-white">${formatNumber(totalVolume24h)}</div>
             </TableCell>
             <TableCell className="text-right text-white">
-                {transactionsData?.[transactionsData?.length - 1]?.price ? transactionsData?.[transactionsData?.length - 1]?.price.toFixed(8) : "-"} {transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? "ETH" : "S"}
+                ${transactionsData?.[0]?.price ? (transactionsData?.[0]?.price*(transactionsData?.[0]?.network === 'Ancient8' ? ethPrice : sonicPrice)).toFixed(8) : "-"} 
             </TableCell>
-            <TableCell className="text-right text-white">${transactionsData?.[transactionsData?.length - 1]?.network === 'Ancient8' ? formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * ethPrice)*INITIAL_SUPPLY) : formatNumber((transactionsData?.[transactionsData?.length - 1]?.price * sonicPrice)*INITIAL_SUPPLY)||"-"}</TableCell>
+            <TableCell className="text-right text-white">${transactionsData?.[0]?.network === 'Ancient8' ? formatNumber((transactionsData?.[0]?.price * ethPrice)*INITIAL_SUPPLY) : formatNumber((transactionsData?.[0]?.price * sonicPrice)*INITIAL_SUPPLY)||"-"}</TableCell>
             <TableCell className="text-right text-white">
                 ${formatNumber(totalVolumeToken)}
             </TableCell>

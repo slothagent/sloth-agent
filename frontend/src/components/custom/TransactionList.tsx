@@ -61,9 +61,9 @@ const TransactionList: React.FC = () => {
             <div className="col-span-2">FROM</div>
             <div className="col-span-2">TO</div>
             <div className="col-span-1">ACTION</div>
-            <div className="col-span-1 text-right">AMOUNT</div>
+            <div className="col-span-1 text-right">VALUE</div>
             <div className="col-span-1 text-right">TOKEN</div>
-            <div className="col-span-2 text-right">PRICE</div>
+            <div className="col-span-2 text-right">USD</div>
           </div>
 
           <div className="divide-y divide-gray-800">
@@ -91,7 +91,7 @@ const TransactionList: React.FC = () => {
           Previous
         </Button>
         <span className="text-gray-400 text-xs sm:text-sm">
-          Page {currentPage} of {Math.ceil(totalTransactions / 10)}
+          Page {currentPage} of {Math.ceil(totalTransactions / 10)+1}
         </span>
         <Button
           variant="outline"

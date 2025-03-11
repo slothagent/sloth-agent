@@ -116,7 +116,7 @@ const TrendingTokens: React.FC = () => {
   }, [ethPriceData]);
   
   const sonicPrice = useMemo(() => {
-    return sonicPriceData?.price || 0.7;
+    return sonicPriceData?.price || 0.5;
   }, [sonicPriceData]);
 
 
