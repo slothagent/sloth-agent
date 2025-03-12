@@ -68,18 +68,68 @@ function OmniChat() {
     }, [inputValue]);
 
     // Load all chats for history
-    // useEffect(() => {
-    //     async function loadAllChats() {
-    //         if (!address) return;
-    //         try {
-    //             const chats = await getUserChats(address);
-    //             setAllChats(chats);
-    //         } catch (error) {
-    //             console.error('Error loading chats:', error);
-    //         }
-    //     }
-    //     loadAllChats();
-    // }, [address]);
+    useEffect(() => {
+        async function loadAllChats() {
+            if (!address) return;
+            try {
+                const chats = await getUserChats(address);
+                setAllChats(chats);
+            } catch (error) {
+                console.error('Error loading chats:', error);
+            }
+        }
+        loadAllChats();
+    }, [address]);
+
+    // Helper functions for message type checking
+    const checkIsGeneralChat = (messageNormalized: string): boolean => {
+        return !(
+            // Not a price/search query
+            messageNormalized.includes('price') ||
+            messageNormalized.includes('how much') ||
+            messageNormalized.includes('btc') ||
+            messageNormalized.includes('bitcoin') ||
+            messageNormalized.includes('eth') ||
+            messageNormalized.includes('ethereum') ||
+            messageNormalized.includes('market') ||
+            messageNormalized.includes('trading') ||
+            messageNormalized.includes('volume') ||
+            messageNormalized.includes('today') ||
+            messageNormalized.includes('now') ||
+            messageNormalized.includes('current') ||
+            messageNormalized.includes('latest') ||
+            
+            // Not a token creation request
+            messageNormalized.includes('deploy token') ||
+            messageNormalized.includes('create token') ||
+            messageNormalized.includes('mint token') ||
+            messageNormalized.includes('launch token') ||
+            messageNormalized.includes('generate token') ||
+            messageNormalized.includes('make token') ||
+            messageNormalized.includes('issue token') ||
+            messageNormalized.includes('new token') ||
+            messageNormalized.includes('token creation') ||
+            messageNormalized.includes('token deployment')
+        );
+    };
+
+    const checkIsPriceOrSearchQuery = (messageNormalized: string): boolean => {
+        return (
+            messageNormalized.includes('price') ||
+            messageNormalized.includes('how much') ||
+            messageNormalized.includes('btc') ||
+            messageNormalized.includes('bitcoin') ||
+            messageNormalized.includes('eth') ||
+            messageNormalized.includes('ethereum') ||
+            messageNormalized.includes('market') ||
+            messageNormalized.includes('trading') ||
+            messageNormalized.includes('volume') ||
+            messageNormalized.includes('today') ||
+            messageNormalized.includes('now') ||
+            messageNormalized.includes('current') ||
+            messageNormalized.includes('latest')
+        );
+    };
 
     // Load chat history when component mounts
     useEffect(() => {
@@ -90,10 +140,106 @@ function OmniChat() {
             
             try {
                 const initialMessage = getInitialMessage(chatId);
-                console.log('Initial message loaded:', initialMessage);
+                // console.log('Initial message loaded:', initialMessage);
+                
+                // Check if chat exists first
+                let chat = await getChat(chatId);
+                // console.log('Retrieved chat:', chat);
+                
+                if (!chat) {
+                    // Create chat if it doesn't exist
+                    try {
+                        chat = await createChat(chatId, address);
+                    } catch (error) {
+                        console.error('Error creating chat:', error);
+                        // If creation fails, check one more time in case of race condition
+                        chat = await getChat(chatId);
+                        if (!chat) {
+                            throw new Error('Failed to create or retrieve chat');
+                        }
+                    }
+                }
                 
                 if (initialMessage && mounted) {
-                    // Create and show user message immediately
+                    // Set loading to false since we'll process the message
+                    setIsLoading(false);
+
+                    // Always try to get the latest chat state
+                    const latestChat = await getChat(chatId);
+                    
+                    // If chat exists and has messages, use those
+                    if (latestChat && latestChat.messages && latestChat.messages.length > 0) {
+                        // console.log('Using existing messages from chat:', latestChat.messages);
+                        setMessages(latestChat.messages);
+
+                        // Check if we only have user message and need to generate assistant response
+                        if (latestChat.messages.length === 1 && latestChat.messages[0].role === 'user') {
+                            // console.log('Only user message found, generating assistant response...');
+                            const userMessage = latestChat.messages[0];
+                            
+                            // Process the message to get assistant response
+                            const messageNormalized = userMessage.content.toLowerCase();
+                            let assistantResponse = '';
+
+                            if (checkIsGeneralChat(messageNormalized)) {
+                                const chatResult = await processChat(userMessage.content);
+                                assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+                            } else if (checkIsPriceOrSearchQuery(messageNormalized)) {
+                                const searchResult = await processSearch(userMessage.content);
+                                if (searchResult.error && searchResult.shouldTryChat) {
+                                    const chatResult = await processChat(userMessage.content);
+                                    assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+                                } else {
+                                    assistantResponse = searchResult.error ? `Error: ${searchResult.error}` : searchResult.searchResults;
+                                }
+                            } else {
+                                const tokenResult = await processTokenCreation(userMessage.content);
+                                if (tokenResult === false) {
+                                    const chatResult = await processChat(userMessage.content);
+                                    assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+                                } else if (tokenResult) {
+                                    // Handle token creation response...
+                                    if (tokenResult.error) {
+                                        assistantResponse = `Error: ${tokenResult.error}`;
+                                    } else if (tokenResult.needsMoreInfo) {
+                                        const missingFields = [];
+                                        if (tokenResult.missingFields.name) missingFields.push("token name");
+                                        if (tokenResult.missingFields.description) missingFields.push("token description");
+                                        if (tokenResult.missingFields.symbol) missingFields.push("token symbol");
+                                        
+                                        assistantResponse = `I see you want to create a token. Could you please provide the following information:\n${missingFields.join('\n')}\n\nFor example, you can say:\n"Create a token named TokenX with description This is a community token and symbol TKX on sonic chain"`;
+                                    }
+                                }
+                            }
+
+                            // Create and save assistant message
+                            const assistantMessage: ChatMessage = {
+                                id: uuidv4(),
+                                content: assistantResponse,
+                                role: 'assistant',
+                                timestamp: new Date()
+                            };
+
+                            // console.log('Creating assistant message for existing chat:', assistantMessage);
+
+                            // Add to UI first
+                            setMessages(prev => [...prev, assistantMessage]);
+
+                            // Save to database
+                            try {
+                                await addMessage(chatId, assistantMessage);
+                                // console.log('Assistant message saved successfully');
+                            } catch (error) {
+                                console.error('Error saving assistant message:', error);
+                            }
+                        }
+
+                        clearInitialMessage(chatId);
+                        return;
+                    }
+
+                    // If no messages found, create and process new message
+                    // console.log('No existing messages found, creating new message');
                     const userMessage: ChatMessage = {
                         id: uuidv4(),
                         content: initialMessage,
@@ -101,42 +247,14 @@ function OmniChat() {
                         timestamp: new Date()
                     };
                     
-                    // Set only user message immediately and set loading to false
+                    // Set only user message immediately
                     setMessages([userMessage]);
-                    setIsLoading(false);
                     
                     // Process the message
                     const messageNormalized = initialMessage.toLowerCase();
                     
                     // First check if it's a general chat message (no special keywords)
-                    const isGeneralChat = !(
-                        // Not a price/search query
-                        messageNormalized.includes('price') ||
-                        messageNormalized.includes('how much') ||
-                        messageNormalized.includes('btc') ||
-                        messageNormalized.includes('bitcoin') ||
-                        messageNormalized.includes('eth') ||
-                        messageNormalized.includes('ethereum') ||
-                        messageNormalized.includes('market') ||
-                        messageNormalized.includes('trading') ||
-                        messageNormalized.includes('volume') ||
-                        messageNormalized.includes('today') ||
-                        messageNormalized.includes('now') ||
-                        messageNormalized.includes('current') ||
-                        messageNormalized.includes('latest') ||
-                        
-                        // Not a token creation request
-                        messageNormalized.includes('deploy token') ||
-                        messageNormalized.includes('create token') ||
-                        messageNormalized.includes('mint token') ||
-                        messageNormalized.includes('launch token') ||
-                        messageNormalized.includes('generate token') ||
-                        messageNormalized.includes('make token') ||
-                        messageNormalized.includes('issue token') ||
-                        messageNormalized.includes('new token') ||
-                        messageNormalized.includes('token creation') ||
-                        messageNormalized.includes('token deployment')
-                    );
+                    const isGeneralChat = checkIsGeneralChat(messageNormalized);
 
                     let assistantResponse = '';
 
@@ -146,21 +264,7 @@ function OmniChat() {
                         assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
                     } else {
                         // Check for search/price query
-                        const isPriceOrSearchQuery = (
-                            messageNormalized.includes('price') ||
-                            messageNormalized.includes('how much') ||
-                            messageNormalized.includes('btc') ||
-                            messageNormalized.includes('bitcoin') ||
-                            messageNormalized.includes('eth') ||
-                            messageNormalized.includes('ethereum') ||
-                            messageNormalized.includes('market') ||
-                            messageNormalized.includes('trading') ||
-                            messageNormalized.includes('volume') ||
-                            messageNormalized.includes('today') ||
-                            messageNormalized.includes('now') ||
-                            messageNormalized.includes('current') ||
-                            messageNormalized.includes('latest')
-                        );
+                        const isPriceOrSearchQuery = checkIsPriceOrSearchQuery(messageNormalized);
 
                         if (isPriceOrSearchQuery) {
                             const searchResult = await processSearch(initialMessage);
@@ -203,7 +307,7 @@ Your token has been deployed successfully! 🎉`;
                         }
                     }
 
-                    // Create and add assistant message
+                    // Create and save assistant message
                     const assistantMessage: ChatMessage = {
                         id: uuidv4(),
                         content: assistantResponse,
@@ -211,14 +315,30 @@ Your token has been deployed successfully! 🎉`;
                         timestamp: new Date()
                     };
 
-                    // Add assistant message to existing messages
-                    if (mounted) {
-                        setMessages(prev => [...prev, assistantMessage]);
+                    // console.log('Creating assistant message for existing chat:', assistantMessage);
+
+                    // Add to UI first
+                    setMessages(prev => [...prev, assistantMessage]);
+
+                    // Save to database
+                    try {
+                        await addMessage(chatId, assistantMessage);
+                        // console.log('Assistant message saved successfully');
+                    } catch (error) {
+                        console.error('Error saving assistant message:', error);
                     }
-                    
-                    // Clear the initial message after processing
+
                     clearInitialMessage(chatId);
                 } else {
+                    // No initialMessage but we have a chatId, try to load existing chat
+                    if (chat && chat.messages && chat.messages.length > 0) {
+                        // console.log('Loading existing chat history:', chat.messages);
+                        setMessages(chat.messages);
+                        setIsLoading(false);
+                        return;
+                    }
+                    
+                    // No messages found
                     if (mounted) {
                         setMessages([]);
                         setIsLoading(false);
@@ -700,34 +820,7 @@ Your token has been deployed successfully! 🎉`;
             const messageNormalized = inputValue.toLowerCase();
             
             // First check if it's a general chat message (no special keywords)
-            const isGeneralChat = !(
-                // Not a price/search query
-                messageNormalized.includes('price') ||
-                messageNormalized.includes('how much') ||
-                messageNormalized.includes('btc') ||
-                messageNormalized.includes('bitcoin') ||
-                messageNormalized.includes('eth') ||
-                messageNormalized.includes('ethereum') ||
-                messageNormalized.includes('market') ||
-                messageNormalized.includes('trading') ||
-                messageNormalized.includes('volume') ||
-                messageNormalized.includes('today') ||
-                messageNormalized.includes('now') ||
-                messageNormalized.includes('current') ||
-                messageNormalized.includes('latest') ||
-                
-                // Not a token creation request
-                messageNormalized.includes('deploy token') ||
-                messageNormalized.includes('create token') ||
-                messageNormalized.includes('mint token') ||
-                messageNormalized.includes('launch token') ||
-                messageNormalized.includes('generate token') ||
-                messageNormalized.includes('make token') ||
-                messageNormalized.includes('issue token') ||
-                messageNormalized.includes('new token') ||
-                messageNormalized.includes('token creation') ||
-                messageNormalized.includes('token deployment')
-            );
+            const isGeneralChat = checkIsGeneralChat(messageNormalized);
 
             let assistantResponse = '';
 
@@ -737,26 +830,7 @@ Your token has been deployed successfully! 🎉`;
                 assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
             } else {
                 // Check for search/price query
-                const isPriceOrSearchQuery = (
-                    // Price related
-                    messageNormalized.includes('price') ||
-                    messageNormalized.includes('how much') ||
-                    messageNormalized.includes('btc') ||
-                    messageNormalized.includes('bitcoin') ||
-                    messageNormalized.includes('eth') ||
-                    messageNormalized.includes('ethereum') ||
-                    
-                    // Market related
-                    messageNormalized.includes('market') ||
-                    messageNormalized.includes('trading') ||
-                    messageNormalized.includes('volume') ||
-                    
-                    // Time related
-                    messageNormalized.includes('today') ||
-                    messageNormalized.includes('now') ||
-                    messageNormalized.includes('current') ||
-                    messageNormalized.includes('latest')
-                );
+                const isPriceOrSearchQuery = checkIsPriceOrSearchQuery(messageNormalized);
 
                 if (isPriceOrSearchQuery) {
                     // If it's a price/search query, try search
@@ -815,8 +889,53 @@ Your token has been deployed successfully! 🎉`;
                 timestamp: new Date()
             };
 
+            console.log('Creating assistant message:', assistantMessage);
+
             // Add assistant message to existing messages
-            setMessages(prev => [...prev, assistantMessage]);
+            setMessages(prev => {
+                console.log('Previous messages:', prev);
+                const newMessages = [...prev, assistantMessage];
+                console.log('New messages state:', newMessages);
+                return newMessages;
+            });
+
+            // Save chat and message to the database
+            try {
+                console.log('Saving chat and messages to database...');
+                // Create chat if it doesn't exist
+                await createChat(address, chatId);
+                
+                // Save user message first
+                console.log('Saving user message:', userMessage);
+                await addMessage(chatId, userMessage);
+
+                // Wait a moment to ensure user message is saved
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Then save assistant message
+                console.log('Saving assistant message:', assistantMessage);
+                await addMessage(chatId, assistantMessage);
+                
+                // Verify final state
+                const finalChat = await getChat(chatId);
+                console.log('Final chat state after both messages:', finalChat);
+                
+                // Update local state with server state if needed
+                if (finalChat && finalChat.messages) {
+                    setMessages(finalChat.messages);
+                }
+                
+                console.log('Messages saved successfully');
+            } catch (error) {
+                console.error('Error saving chat:', error);
+                // Show error in UI
+                setMessages(prev => [...prev, {
+                    id: uuidv4(),
+                    content: 'Error saving messages. Please try again.',
+                    role: 'assistant',
+                    timestamp: new Date()
+                }]);
+            }
         } catch (error) {
             console.error('Error sending message:', error);
             // Show error message

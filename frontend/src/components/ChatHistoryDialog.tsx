@@ -63,7 +63,7 @@ export function ChatHistoryDialog({ isOpen, onClose, chats, currentChatId }: Cha
                 }
             }}
         >
-            <div className="w-[60%] h-[90vh] bg-[#0B0E17] flex flex-col rounded-lg mt-5 border border-[#2D333B]/30">
+            <div className="w-[60%] h-[90vh] bg-[#0B0E17] flex flex-col rounded-lg mt-5 border border-[#2D333B]/30 z-50">
                 <div className="flex h-full">
                     {/* Left Panel - Chat List */}
                     <div className="w-1/3 border-r border-[#2D333B] flex flex-col">
