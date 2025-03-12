@@ -11,11 +11,19 @@ export const Route = createFileRoute("/omni")({
     component: Omni
 });
 
+function getTimeBasedGreeting() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 18) return "Good afternoon";
+    return "Good evening";
+}
+
 function Omni() {
     const navigate = useNavigate();
     const { address } = useAccount();
     const [inputValue, setInputValue] = useState("");
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [currentGreeting, setCurrentGreeting] = useState(getTimeBasedGreeting());
     // const [userChats, setUserChats] = useState<Chat[]>([]);
 
     // Auto-resize textarea
@@ -26,6 +34,15 @@ function Omni() {
             textarea.style.height = textarea.scrollHeight + 'px';
         }
     }, [inputValue]);
+
+    // Update greeting every minute
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentGreeting(getTimeBasedGreeting());
+        }, 60000); // Update every minute
+
+        return () => clearInterval(timer);
+    }, []);
 
     // Load user's chats
     // useEffect(() => {
@@ -73,7 +90,7 @@ function Omni() {
         <div className="flex flex-col items-center justify-center min-h-screen -mt-20 bg-[#0B0E17] text-white">
             {/* Header Text */}
             <div className="text-center mb-6 space-y-2">
-                <h1 className="text-[40px] font-normal text-white">Good evening, Louis.</h1>
+                <h1 className="text-[40px] font-normal text-white">{currentGreeting}, {address.slice(0, 6)}...</h1>
                 <p className="text-[28px] text-[#7D8590]">How can I help you today?</p>
             </div>
 
