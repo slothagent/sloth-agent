@@ -4,20 +4,22 @@ import { useState, useMemo, useEffect } from 'react'
 import { Token } from '../../models'
 import { formatNumber } from '../../utils/utils'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
 import { useEthPrice } from '../../hooks/useEthPrice'
 import { useSonicPrice } from '../../hooks/useSonicPrice'
 import { INITIAL_SUPPLY } from '../../lib/contants'
-
 const formatLaunchDate = (dateString?: string) => {
-  if (!dateString) return 'N/A'
-  try {
-    return formatDistance(new Date(dateString), new Date(), { addSuffix: true })
-  } catch (error) {
-    console.error('Invalid date:', dateString)
-    return 'N/A'
+    if (!dateString) return 'N/A'
+    try {
+      return formatDistance(new Date(dateString), new Date(), { addSuffix: true })
+    } catch (error) {
+      console.error('Invalid date:', dateString)
+      return 'N/A'
+    }
   }
-}
-const TokenCard = ({ token }: { token: Token }) => {
+  
+  const TokenCard = ({ token }: { token: Token }) => {
+    const router = useRouter();
     const fetchTransactions = async (tokenAddress: string) => {
       const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?tokenAddress=${tokenAddress}&timeRange=30d`);
       const result = await response.json();
@@ -66,7 +68,7 @@ const TokenCard = ({ token }: { token: Token }) => {
     }
   
     return (
-      <a href={`/token/${token.address}`}>
+      <div onClick={() => router.navigate({to: `/token/${token.address}`})} className='cursor-pointer'>
         <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors flex flex-col">
           <div className="flex items-start gap-4">
             <img
@@ -74,7 +76,7 @@ const TokenCard = ({ token }: { token: Token }) => {
               alt={token.name}
               width={48}
               height={48}
-              className="rounded-none"
+              className="rounded-none w-12 h-12 object-cover"
             />
             <div className="flex-1">
               <div className="flex flex-col">
@@ -128,7 +130,7 @@ const TokenCard = ({ token }: { token: Token }) => {
             </div>
           </div>
         </div>
-      </a>
+      </div>
     )
   }
   export default TokenCard;

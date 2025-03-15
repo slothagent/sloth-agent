@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, MessageSquare,Send, User } from 'lucide-react';
+import { ArrowLeft, MessageSquare,Send, User, RotateCcw, Copy, Upload, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAgents } from '../hooks/useAgents';
 import axios from 'axios';
 import { createFileRoute, Link, useParams} from '@tanstack/react-router';
 const DEFAULT_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200"%3E%3Crect width="400" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="16" fill="%236b7280"%3EAI Agent%3C/text%3E%3C/svg%3E';
-
+const typingMessages = [
+    "Composing a message...",
+    "Looking for information...",
+    "Almost done..."
+  ];
 
 export const Route = createFileRoute("/agent/$agentId")({
     component: AgentDetails
@@ -21,6 +25,7 @@ interface Message {
 }
 
 export default function AgentDetails() {
+    const [typingIndex, setTypingIndex] = useState(0);
     const [message, setMessage] = useState('');
     const [page] = useState(1);
     const [search] = useState('');
@@ -51,6 +56,14 @@ export default function AgentDetails() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    useEffect(() => {
+        if (isLoading) {
+          const interval = setInterval(() => {
+            setTypingIndex((prev) => (prev + 1) % typingMessages.length);
+          }, 1000);
+          return () => clearInterval(interval);
+        }
+      }, [isLoading]);
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
@@ -154,76 +167,76 @@ export default function AgentDetails() {
                         </div>
                     </div>
                 </div>
-            {showHeader && (
-                <div className='flex mt-4'>
-                {selectedAgent && (
-                        <div key={selectedAgent._id?.toString() || ''} 
-                            className="overflow-hidden hover:border-blue-600 transition-all duration-300"
-                        >
-                            <div className="flex justify-center items-center p-4 space-x-4 h-full">
-                                {/* Left - Image */}
-                                <img 
-                                    src={selectedAgent.imageUrl || DEFAULT_IMAGE}
-                                    alt={selectedAgent.name}
-                                    width={80}
-                                    height={80}
-                                    className="object-cover w-28 h-28"
-                                />
-                                
-                                {/* Right - Content */}
-                                <div className="flex-1 flex flex-col min-w-0">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="min-w-0">
-                                            <h3 className="text-3xl font-medium mb-1 text-white">{selectedAgent.name}</h3>
+                {showHeader && (
+                    <div className='flex mt-4'>
+                        {selectedAgent && (
+                            <div key={selectedAgent._id?.toString() || ''} 
+                                className="overflow-hidden hover:border-blue-600 transition-all duration-300"
+                            >
+                                <div className="flex justify-center items-center p-4 space-x-4 h-full">
+                                    {/* Left - Image */}
+                                    <img 
+                                        src={selectedAgent.imageUrl || DEFAULT_IMAGE}
+                                        alt={selectedAgent.name}
+                                        width={80}
+                                        height={80}
+                                        className="object-cover w-28 h-28"
+                                    />
+
+                                    {/* Right - Content */}
+                                    <div className="flex-1 flex flex-col min-w-0">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="min-w-0">
+                                                <h3 className="text-3xl font-medium mb-1 text-white">{selectedAgent.name}</h3>
+                                            </div>
                                         </div>
+
+                                        <p className="text-gray-400 text-sm line-clamp-2 mb-4 flex-1">
+                                            {selectedAgent.description}
+                                        </p>
                                     </div>
-                                    
-                                    <p className="text-gray-400 text-sm line-clamp-2 mb-4 flex-1">
-                                        {selectedAgent.description}
-                                    </p>
                                 </div>
                             </div>
+                        )}
+
+                    </div>
+                )}
+                <div>
+                    <div className="mb-4 mt-4 pb-4 border-b border-b-[#1F2937]">
+                        <div className="flex w-fit">
+                            <button
+                                onClick={() => setActiveTab('chat')}
+                                className={`px-2 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2
+                                    ${activeTab === 'chat'
+                                        ? 'text-white border-b-2 border-white'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                            >
+                            <MessageSquare className='w-4 h-4' />
+                                Chat
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('overview')}
+                                className={`px-2 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2
+                                    ${activeTab === 'overview'
+                                        ? 'text-white border-b-2 border-white'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                            >
+                                <User className="w-4 h-4" />
+                                Overview
+                            </button>
+                            {/* <button
+                                onClick={() => setActiveTab('settings')}
+                                className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
+                                    ${activeTab === 'settings'
+                                        ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                        : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                            >
+                                <User className="w-4 h-4" />
+                                quẻn rồi
+                            </button> */}
                         </div>
-                    )}
-                
-             </div>
-            )}
-            <div>
-                <div className="mb-4 mt-4 pb-4 border-b border-b-[#1F2937]">
-                    <div className="flex w-fit">
-                        <button
-                            onClick={() => setActiveTab('chat')}
-                            className={`px-2 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2
-                                ${activeTab === 'chat'
-                                    ? 'text-white border-b-2 border-white'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                        >
-                        <MessageSquare className='w-4 h-4' />
-                            Chat
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`px-2 py-2 text-sm font-medium transition-all duration-200 flex items-center gap-2
-                                ${activeTab === 'overview'
-                                    ? 'text-white border-b-2 border-white'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                        >
-                            <User className="w-4 h-4" />
-                            Overview
-                        </button>
-                        {/* <button
-                            onClick={() => setActiveTab('settings')}
-                            className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
-                                ${activeTab === 'settings'
-                                    ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
-                                    : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                        >
-                            <User className="w-4 h-4" />
-                            quẻn rồi
-                        </button> */}
                     </div>
                 </div>
-            </div>
             </div>
             <div className='flex-1 h-[60%] inline-block border border-[#1F2937] bg-[#0B0E17]'>
                 {activeTab === 'chat' && (
@@ -270,15 +283,21 @@ export default function AgentDetails() {
                             ) : (
                                 <p className="text-sm whitespace-pre-wrap">{msg.content as string}</p>
                             )}
-                            <span className="text-[10px] opacity-50 mt-1 block">
-                                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
+                            {msg.role === 'assistant' && (
+                              <span className="text-[10px] opacity-50 mt-2 flex gap-2">
+                                <RotateCcw className='w-4 h-4'/>
+                                <Copy className='w-4 h-4'/>
+                                <Upload className='w-4 h-4'/>
+                                <ThumbsUp className='w-4 h-4'/>
+                                <ThumbsDown className='w-4 h-4'/>
+                              </span>
+                            )}
                             </div>
                         </div>
                         );
                     })}
                   {isLoading && selectedAgent && (
-                      <div className="flex justify-start items-end">
+                      <div className="flex justify-start items-center">
                         <img 
                           src={selectedAgent.imageUrl || DEFAULT_IMAGE} 
                           alt={selectedAgent.name || "Bot"} 
@@ -286,11 +305,7 @@ export default function AgentDetails() {
                           onError={(e) => e.currentTarget.src = DEFAULT_IMAGE} 
                         />
                         <div className="bg-gray-800 p-3 rounded-2xl">
-                          <div className="flex space-x-2">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
-                          </div>
+                         <p className="text-sm text-gray-400 animate-pulse">{typingMessages[typingIndex]}</p>
                         </div>
                       </div>
                     )}

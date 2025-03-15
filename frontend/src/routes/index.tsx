@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <main className="min-h-screen mx-auto flex flex-col bg-[#0B0E17]">   
-      <div className="w-full">
+      <div className="w-full mx-auto px-4">
         <Hero />
         <div className="container mx-auto space-y-8 pb-10">
           <TokenMarket />

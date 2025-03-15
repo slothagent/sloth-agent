@@ -53,29 +53,32 @@ const TransactionList: React.FC = () => {
       </div>
 
       {/* Desktop View - Hidden on mobile */}
-      <div className="hidden md:block">
-        <Card className="bg-[#161B28] border-none rounded-none overflow-hidden">
-          <div className="grid grid-cols-12 gap-2 p-4 text-sm text-gray-400 border-b border-gray-800">
-            <div className="col-span-1">CHAIN</div>
-            <div className="col-span-2">TIME</div>
-            <div className="col-span-2">FROM</div>
-            <div className="col-span-2">TO</div>
-            <div className="col-span-1">ACTION</div>
-            <div className="col-span-1 text-right">VALUE</div>
-            <div className="col-span-1 text-right">TOKEN</div>
-            <div className="col-span-2 text-right">USD</div>
-          </div>
+      <div className='w-full  '>
+        <Card className="bg-[#161B28] border-none rounded-none w-full">
+          <div className='overflow-x-auto'>
+            <div className="grid grid-cols-12 gap-2 p-4 text-sm text-gray-400 border-b border-gray-800 min-w-[1536px]">
+              <div className="col-span-1">CHAIN</div>
+              <div className="col-span-1">TIME</div>
+              <div className="col-span-2">HASH</div>
+              <div className="col-span-2">FROM</div>
+              <div className="col-span-2">TO</div>
+              <div className="col-span-1">ACTION</div>
+              <div className="col-span-1 text-right">AMOUNT</div>
+              <div className="col-span-1 text-right">TOKEN</div>
+              <div className="col-span-1 text-right">USD</div>
+            </div>
 
-          <div className="divide-y divide-gray-800">
-            {isLoading ? (
-              <div className="p-4 text-center text-gray-400">Loading transactions...</div>
-            ) : transactionsData?.data?.length === 0 ? (
-              <div className="p-4 text-center text-gray-400">No transactions found</div>
-            ) : (
-              transactionsData?.data?.map((tx) => (
-                <TableTransaction key={tx.transactionHash} tx={tx} ethPrice={ethPrice} sonicPrice={sonicPrice} />
-              ))
-            )}
+            <div className="divide-y divide-gray-800 min-w-[1536px]">
+              {isLoading ? (
+                <div className="p-4 text-center text-gray-400">Loading transactions...</div>
+              ) : transactionsData?.data?.length === 0 ? (
+                <div className="p-4 text-center text-gray-400">No transactions found</div>
+              ) : (
+                transactionsData?.data?.map((tx) => (
+                  <TableTransaction key={tx.transactionHash} tx={tx} ethPrice={ethPrice} sonicPrice={sonicPrice} />
+                ))
+              )}
+            </div>
           </div>
         </Card>
       </div>

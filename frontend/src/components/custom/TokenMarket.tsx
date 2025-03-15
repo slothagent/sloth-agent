@@ -11,7 +11,6 @@ import { useEthPrice } from '../../hooks/useEthPrice'
 import { useSonicPrice } from '../../hooks/useSonicPrice'
 import { INITIAL_SUPPLY } from '../../lib/contants'
 import TokenCard from './TokenCard'
-
 const sortTokensByPriority = (tokens: Token[], query: string) => {
   return [...tokens].sort((a, b) => {
     const aName = a.name.toLowerCase()

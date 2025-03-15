@@ -1,3 +1,5 @@
+import { toast } from "react-hot-toast";
+
 const timeAgo = (date: string | Date) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
     
@@ -39,4 +41,10 @@ const formatAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-export { timeAgo, formatNumber, formatAddress };
+
+const copyToClipboard = (text: string) => {
+  navigator.clipboard.writeText(text);
+  toast.success('Copied to clipboard');
+};
+
+export { timeAgo, formatNumber, formatAddress, copyToClipboard };

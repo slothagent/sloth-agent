@@ -104,7 +104,7 @@ const TableToken = ({ token, ethPrice, sonicPrice }: TableTokenProps) => {
                     alt={token.name} 
                     width={32} 
                     height={32} 
-                    className="rounded-none"
+                    className="rounded-none w-8 h-8 object-cover"
                 />
                 <div className="flex flex-col min-w-0">
                 <span className="font-medium truncate text-white">{token.name}</span>
