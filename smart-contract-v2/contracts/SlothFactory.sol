@@ -3,6 +3,7 @@
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "contracts/SlothToken.sol";
@@ -158,7 +159,66 @@ contract SlothFactory is Ownable2Step, ReentrancyGuard {
     emit CurveCreated(index);
   }
 
-  function sell(address token, uint256 amount0In, uint256 amount1OutMin) external nonReentrant{
+  function sell(
+    address token,
+    uint256 amount0In,
+    uint256 amount1OutMin,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external nonReentrant {
+    Token storage t = tokens[token];
+    require(t.initialSupply != 0, "Sloth: TOKEN_DOES_NOT_EXIST");
+    require(!t.hasLaunched, "Sloth: INSUFFICIENT_LIQUIDITY");
+    require(deadline >= block.timestamp, "Sloth: EXPIRED");
+
+    // Try to use permit if supported
+    try IERC20Permit(token).permit(msg.sender, address(this), amount0In, deadline, v, r, s) {
+      // Permit successful
+    } catch {
+      // Token doesn't support permit or invalid signature, fallback to regular transfer
+    }
+
+    IERC20(token).safeTransferFrom(msg.sender, address(this), amount0In);
+
+    uint256[] memory arr = curves[t.curveIndex].distribution;
+    uint256 amount1Out;
+    uint256 amount0Used;
+    uint256 i = t.currentIndex;
+    uint256 currentValue = t.currentValue;
+    uint256 initialSupply = t.initialSupply;
+
+    while (amount0Used < amount0In) {
+      uint256 amountPerAVAX = initialSupply * COEF / (BASIS + (BIN_WIDTH * i));
+      uint256 amount0Remaining = amount0In - amount0Used;
+      uint256 amount0InBin = currentValue;
+      uint256 amount0InBinMax = arr[i] * initialSupply / BASIS;
+      if (amount0InBin + amount0Remaining <= amount0InBinMax) {
+        amount1Out += amount0Remaining * ETHER / amountPerAVAX;
+        currentValue += amount0Remaining;
+        break;
+      } else {
+        uint256 fillBin = amount0InBinMax - amount0InBin;
+        amount0Used += fillBin;
+        amount1Out += fillBin * ETHER / amountPerAVAX;
+        i--;
+        currentValue = 0;
+      }
+    }
+    require(amount1OutMin <= amount1Out, "Sloth: SLIPPAGE_LIMIT");
+    require(amount1Out >= MIN_OUT, "Sloth: INSUFFICIENT_ETH_OUT");
+    t.currentIndex = i;
+    t.currentValue = currentValue;
+    
+    uint256 fee = amount1Out * tradingFee / BASIS;
+    pendingFees += fee;
+    payable(msg.sender).sendValue(amount1Out - fee);
+    emit SlothSwap(token, msg.sender, amount0In, 0, 0, amount1Out);
+  }
+
+  // Keep existing sell function for backward compatibility
+  function sell(address token, uint256 amount0In, uint256 amount1OutMin) external nonReentrant {
     Token storage t = tokens[token];
     require(t.initialSupply != 0, "Sloth: TOKEN_DOES_NOT_EXIST");
     require(!t.hasLaunched, "Sloth: INSUFFICIENT_LIQUIDITY");

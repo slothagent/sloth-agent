@@ -2,15 +2,20 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SlothToken is ERC20, Ownable {
-    constructor(string memory _name, string memory _symbol, uint112 _totalSupply) ERC20(_name, _symbol) Ownable(msg.sender) {
+contract SlothToken is ERC20, ERC20Permit, Ownable {
+    constructor(string memory _name, string memory _symbol, uint112 _totalSupply) 
+        ERC20(_name, _symbol) 
+        ERC20Permit(_name)
+        Ownable(msg.sender) 
+    {
         _mint(msg.sender, _totalSupply);
     }
 
     // To prevent LP pricing manipulations
-    function _update(address from, address to, uint256 amount) internal virtual override {
+    function _update(address from, address to, uint256 amount) internal virtual override(ERC20) {
         super._update(from, to, amount);
         address sloth = owner();
         if (sloth != address(0)) {

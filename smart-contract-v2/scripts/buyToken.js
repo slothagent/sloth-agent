@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Contract addresses
 const SLOTH_FACTORY_ADDRESS = process.env.SLOTH_FACTORY_ADDRESS;
-const TOKEN_ADDRESS = "0xB187FF57253FeDf77Bf03Cd946E1f82C2d195154";
+const TOKEN_ADDRESS = "0x7697dc7cc0ba4ecde215c8fb912a7949074b9b0a";
 
 // ABI for SlothFactory
 const SLOTH_FACTORY_ABI = [

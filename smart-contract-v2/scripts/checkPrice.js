@@ -16,10 +16,6 @@ function calculateSonicPrice(binIndex) {
   return ETHER * BigInt(BASIS + (BIN_WIDTH * binIndex)) / BigInt(BASIS);
 }
 
-const ERC20_ABI = [
-  'function decimals() view returns (uint8)',
-  'function symbol() view returns (string)'
-];
 
 async function main() {
   // Connect to the network

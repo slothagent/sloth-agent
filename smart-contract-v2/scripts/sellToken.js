@@ -3,10 +3,11 @@ require('dotenv').config();
 
 // Contract addresses
 const SLOTH_FACTORY_ADDRESS = process.env.SLOTH_FACTORY_ADDRESS;
-const TOKEN_ADDRESS = "0xB187FF57253FeDf77Bf03Cd946E1f82C2d195154";
+const TOKEN_ADDRESS = "0x7697dc7cc0ba4ecde215c8fb912a7949074b9b0a";
 
 // ABI for SlothFactory and ERC20
 const SLOTH_FACTORY_ABI = [
+  "function sell(address token, uint256 amount0In, uint256 amount1OutMin, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
   "function sell(address token, uint256 amount0In, uint256 amount1OutMin) external",
   "function tokens(address) external view returns (address creator, address pair, uint8 curveIndex, uint256 currentIndex, uint256 currentValue, uint256 initialSupply, bool hasLaunched)"
 ];
@@ -15,7 +16,11 @@ const ERC20_ABI = [
   "function balanceOf(address account) external view returns (uint256)",
   "function approve(address spender, uint256 amount) external returns (bool)",
   "function allowance(address owner, address spender) external view returns (uint256)",
-  "function decimals() external view returns (uint8)"
+  "function decimals() external view returns (uint8)",
+  "function name() external view returns (string)",
+  "function nonces(address owner) external view returns (uint256)",
+  "function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external",
+  "function DOMAIN_SEPARATOR() external view returns (bytes32)"
 ];
 
 async function calculateMinimumEthOut(slothFactory, tokenAddress, tokenAmount) {
@@ -72,28 +77,90 @@ async function sellToken() {
     const minEthOut = expectedEth * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);
     console.log("Minimum ETH to receive:", ethers.formatEther(minEthOut));
     
-    // Check allowance
-    const allowance = await token.allowance(wallet.address, SLOTH_FACTORY_ADDRESS);
-    if (allowance < amountToSell) {
-      console.log("Approving tokens...");
-      const approveTx = await token.approve(SLOTH_FACTORY_ADDRESS, amountToSell);
-      await approveTx.wait();
-      console.log("Approval confirmed");
+    // Set deadline to 20 minutes from now
+    const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 minutes
+
+    // Try to use permit if supported
+    try {
+      // Debug: Check if token supports permit
+      try {
+        const domainSeparator = await token.DOMAIN_SEPARATOR();
+        console.log("Token supports permit - DOMAIN_SEPARATOR:", domainSeparator);
+      } catch (error) {
+        console.log("Token does not implement DOMAIN_SEPARATOR, permit is not supported");
+        throw error;
+      }
+
+      // Get the domain separator and nonce
+      const domain = {
+        name: await token.name(),
+        version: '1',
+        chainId: (await provider.getNetwork()).chainId,
+        verifyingContract: TOKEN_ADDRESS
+      };
+
+      const types = {
+        Permit: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' }
+        ]
+      };
+
+      const value = {
+        owner: wallet.address,
+        spender: SLOTH_FACTORY_ADDRESS,
+        value: amountToSell,
+        nonce: await token.nonces(wallet.address),
+        deadline
+      };
+
+      // Sign the permit
+      const signature = await wallet.signTypedData(domain, types, value);
+      const { v, r, s } = ethers.Signature.from(signature);
+
+      // Execute sell transaction with permit
+      console.log("Executing sell with permit...");
+      const tx = await slothFactory.sell(
+        TOKEN_ADDRESS,
+        amountToSell,
+        minEthOut,
+        deadline,
+        v,
+        r,
+        s
+      );
+      
+      console.log("Transaction sent:", tx.hash);
+      await tx.wait();
+      
+    } catch (error) {
+      console.log("Permit not supported or failed, falling back to legacy sell...");
+      
+      // Check allowance only for legacy sell
+      const allowance = await token.allowance(wallet.address, SLOTH_FACTORY_ADDRESS);
+      if (allowance < amountToSell) {
+        console.log("Approving tokens...");
+        const approveTx = await token.approve(SLOTH_FACTORY_ADDRESS, amountToSell);
+        await approveTx.wait();
+        console.log("Approval confirmed");
+      }
+
+      // Execute legacy sell transaction
+      console.log("Executing legacy sell...");
+      const tx = await slothFactory.sell(
+        TOKEN_ADDRESS,
+        amountToSell,
+        minEthOut
+      );
+      
+      console.log("Transaction sent:", tx.hash);
+      await tx.wait();
     }
     
-    // Execute sell transaction
-    console.log("Executing sell...");
-    const tx = await slothFactory.sell(
-      TOKEN_ADDRESS,
-      amountToSell,
-      minEthOut
-    );
-    
-    console.log("Transaction sent:", tx.hash);
-    
-    // Wait for transaction to be mined
-    const receipt = await tx.wait();
-    console.log("Transaction confirmed in block:", receipt.blockNumber);
+    console.log("Transaction confirmed");
     
     // Get new balance
     const newBalance = await token.balanceOf(wallet.address);
