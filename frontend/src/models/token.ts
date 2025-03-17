@@ -5,7 +5,6 @@ export interface Token {
   _id?: ObjectId;
   name: string;
   address: string;
-  curveAddress: string;
   owner: string;
   description?: string;
   ticker: string;

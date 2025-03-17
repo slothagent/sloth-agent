@@ -1,6 +1,6 @@
 
 
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '../utils/pinata';
 import { toast } from 'react-hot-toast';
@@ -8,17 +8,13 @@ import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
 import { factoryAbi } from '../abi/factoryAbi';
 import { Button } from '../components/ui/button';
-import { parseEther, parseUnits, decodeEventLog, formatUnits } from 'viem';
+import { parseEther, parseUnits, decodeEventLog } from 'viem';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Dialog } from '../components/ui/dialog';
 import { bondingCurveAbi } from '../abi/bondingCurveAbi';
-import { tokenAbi } from '../abi/tokenAbi';
-import { MaxUint256 } from 'ethers';
 import { useSwitchChain } from 'wagmi';
-import { useSonicPrice } from '../hooks/useSonicPrice';
-import { useEthPrice } from '../hooks/useEthPrice';
 import { configAncient8 } from '../config/wagmi';
 import { configSonicBlaze } from '../config/wagmi';
 
@@ -31,7 +27,6 @@ function CreateToken() {
     const [description, setDescription] = useState<string|null>(null);
     const [ticker, setTicker] = useState<string|null>(null);
     const [imageUrl, setImageUrl] = useState<string|null>(null);
-    const [totalSupply, setTotalSupply] = useState<string>('');
     const [twitterUrl, setTwitterUrl] = useState<string>('');
     const [telegramUrl, setTelegramUrl] = useState<string>('');
     const [websiteUrl, setWebsiteUrl] = useState<string>('');
@@ -40,7 +35,7 @@ function CreateToken() {
     const [imagePrompt, setImagePrompt] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
     const [txHash, setTxHash] = useState<string | null>(null);
-    const { writeContractAsync, isSuccess,data:txData,isPending } = useWriteContract()
+    const { writeContractAsync, isPending} = useWriteContract()
     const { address: OwnerAddress, isConnected,chain } = useAccount()
     const [amount, setAmount] = useState<string|null>(null);
     const [tokenAddress, setTokenAddress] = useState<string|null>(null);
@@ -49,36 +44,13 @@ function CreateToken() {
     const [isTwitterShareOpen, setIsTwitterShareOpen] = useState<boolean>(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
-    const { switchChain,chains } = useSwitchChain();
+    const { switchChain } = useSwitchChain();
 
-    const { data: sonicPriceData, isLoading: sonicPriceLoading } = useSonicPrice();
-    const { data: ethPriceData, isLoading: ethPriceLoading } = useEthPrice();
-  
-    // Get the ETH price for calculations, fallback to 2500 if not available
-    const ethPrice = useMemo(() => {
-      return ethPriceData?.price || 2500;
-    }, [ethPriceData]);
-    
-    const sonicPrice = useMemo(() => {
-      return sonicPriceData?.price || 0.7;
-    }, [sonicPriceData]);
-
-
-    const { data: balance, refetch: refetchBalance } = useBalance({
+    const { data: balance } = useBalance({
         address: OwnerAddress,
         config: chain?.id == 57054 ? configSonicBlaze : configAncient8
     });
-
     const router = useRouter();
-    
-    const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
-        address: tokenAddress as `0x${string}`,
-        abi: tokenAbi,
-        functionName: 'balanceOf',
-        args: [OwnerAddress as `0x${string}`],
-        config: chain?.id == 57054 ? configSonicBlaze : configAncient8
-    });
-
     const networks = [
         {
             icon: <img src="/assets/chains/a8.png" alt="Ancient8" className="w-4 h-4" />,
@@ -289,20 +261,7 @@ function CreateToken() {
                                 data: log.data,
                                 topics: log.topics,
                             });
-                            return decoded.eventName === 'TokenAndCurveCreated';
-                        } catch {
-                            return false;
-                        }
-                    });
-
-                    const eventLog2 = receipt.logs.find(log => {
-                        try {
-                            const decoded = decodeEventLog({
-                                abi: bondingCurveAbi,
-                                data: log.data,
-                                topics: log.topics,
-                            });
-                            return decoded.eventName === 'UpdateInfo';
+                            return decoded.eventName === 'TokenCreated';
                         } catch {
                             return false;
                         }
@@ -314,60 +273,11 @@ function CreateToken() {
                             data: eventLog.data,
                             topics: eventLog.topics,
                         });
-                        
-                        const { token, bondingCurve } = decoded.args as any;
-                        // Create token in database with the token address
-                        // console.log("token", token)
-                        // console.log("bondingCurve", bondingCurve)
+                        // console.log("decoded", decoded)
+                        const { token } = decoded.args as any;
+                        console.log("token", token)
                         setTokenAddress(token);
-                        // setCurrentTokenAddress(bondingCurve);
-                        await refetchBalanceOfToken();
-                        await createToken(token, bondingCurve);
-
-                        // If amount > 0, call handleBuy
-                        console.log(amount)
-                        if(eventLog2&&amount){
-                            const toastId = toast.loading('Buying token...');
-                            const decoded = decodeEventLog({
-                                abi: bondingCurveAbi,
-                                data: eventLog2.data,
-                                topics: eventLog2.topics,
-                            });
-                            const { newPrice, newSupply, newTotalMarketCap, newFundingRaised, amountTokenToReceive } = decoded.args as any;
-                            await refetchBalanceOfToken();
-                            
-                            // Save transaction to database
-                            await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    userAddress: OwnerAddress,
-                                    tokenAddress: token,
-                                    network: chain?.id == 57054 ? "Sonic" : "Ancient8",
-                                    price: parseFloat(formatUnits(newPrice || BigInt(0), 18))*(chain?.id == 57054 ? sonicPrice : ethPrice),
-                                    amountToken: parseFloat(formatUnits(amountTokenToReceive||BigInt(0), 18)),
-                                    amount: parseFloat(amount || "0"),
-                                    transactionType: 'BUY',
-                                    transactionHash: txHash as `0x${string}`,
-                                    totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0"),
-                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
-                                }),
-                            });
-                            await writeContractAsync({
-                                address: token as `0x${string}`,
-                                abi: tokenAbi,
-                                functionName: 'approve',
-                                args: [bondingCurve as `0x${string}`, MaxUint256]
-                            });
-                            setAmount(null);
-                            toast.dismiss(toastId);
-                            toast.success('Token bought successfully!');
-                            // Show Twitter share dialog after token creation
-                            setIsTwitterShareOpen(true);
-                        }
+                        await createToken(token);
                     } 
 
                     
@@ -429,15 +339,13 @@ function CreateToken() {
                 return;
             }
             
-            const price = chain?.id == 57054 ? parseEther('1')+parseEther(amount||"0") : parseEther('0.001')+parseEther(amount||"0");
-
             try {
                 const tx = await writeContractAsync({
                     address: chain?.id == 57054 ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                     abi: factoryAbi,
-                    functionName: 'createTokenAndCurve',
-                    value: price,
-                    args: [tokenName, ticker, parseEther(amount||"0")]
+                    functionName: 'createToken',
+                    value: parseEther("2"),
+                    args: [tokenName, ticker, BigInt(parseEther("1000000000")), 2]
                 });
                 
                 setTxHash(tx); // Save transaction hash
@@ -460,7 +368,7 @@ function CreateToken() {
     };
 
 
-    const createToken = async (address: string, curveAddress: string) => {
+    const createToken = async (address: string) => {
         const loadingToast = toast.loading('Creating token...');
         
         try {
@@ -472,13 +380,12 @@ function CreateToken() {
                 description: description || '',
                 ticker: ticker,
                 imageUrl: imageUrl || '',
-                totalSupply: parseUnits('2',23).toString(),
+                totalSupply: parseEther("1000000000").toString(),
                 twitterUrl: twitterUrl,
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
-                curveAddress: curveAddress,
                 network: chain?.id == 57054 ? "Sonic" : "Ancient8",
-                categories: selectedCategories || []
+                categories: selectedCategories || [],
             };
 
             // console.log('Sending payload:', payload); // Debug log
@@ -565,7 +472,6 @@ function CreateToken() {
             return updatedCategories;
           });
     };
-    const displayedCategory = selectedCategory || previousCategory;
     const displayedDescription = selectedCategory
     ? categories.Categories.find((item) => item.label === selectedCategory)?.description
     : null;

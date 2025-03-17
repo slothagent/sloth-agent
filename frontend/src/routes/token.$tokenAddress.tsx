@@ -14,10 +14,9 @@ import { useMemo, useState, useEffect } from 'react';
 import { Input } from '../components/ui/input';
 import { useReadContract, useWriteContract, useAccount,useBalance, useWaitForTransactionReceipt } from 'wagmi';
 import { toast } from 'react-hot-toast';
-import { parseEther, formatUnits, MaxUint256 } from "ethers";
-import { bondingCurveAbi } from '../abi/bondingCurveAbi';
+import { parseEther, formatUnits, MaxUint256, ethers } from "ethers";
 import Launching from '../components/custom/Launching';
-import { decodeEventLog, formatEther } from 'viem';
+import { decodeEventLog } from 'viem';
 import { tokenAbi } from '../abi/tokenAbi';
 import { useTokenByAddress, useTransactionsData } from '../hooks/useWebSocketData';
 import { copyToClipboard, formatNumber } from '../utils/utils';
@@ -25,10 +24,12 @@ import { useEthPrice } from '../hooks/useEthPrice';
 import { useSonicPrice } from  '../hooks/useSonicPrice';
 import { configAncient8,configSonicBlaze } from '../config/wagmi';
 import { useSwitchChain } from 'wagmi';
-import { createFileRoute, Link, redirect } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import axios from 'axios';
 import { INITIAL_SUPPLY } from '../lib/contants';
-
+import { useCalculateTokens } from '../hooks/useCalculateTokens';
+import { factoryAbi } from '../abi/factoryAbi';
+import { useSignTypedData } from 'wagmi';
 
 export const Route = createFileRoute("/token/$tokenAddress")({
     component: TokenDetails,
@@ -54,8 +55,14 @@ function TokenDetails() {
     const { data: sonicPriceData  } = useSonicPrice();
     const { data: ethPriceData } = useEthPrice();
     const [amountToReceive, setAmountToReceive] = useState<number>(0);
+    const { calculateExpectedTokens, calculateMinimumEthOut } = useCalculateTokens();
+    const [minTokensOut, setMinTokensOut] = useState<number>(0);
+    const [minEthOut, setMinEthOut] = useState<number>(0);
+    const [amountToSell, setAmountToSell] = useState<number>(0);
+    const { signTypedData } = useSignTypedData();
+    const [isApproving, setIsApproving] = useState<boolean>(false);
+    const [type, setType] = useState<string>('buy');
 
-    // Get the ETH price for calculations, fallback to 2500 if not available
     const ethPrice = useMemo(() => {
       return ethPriceData?.price || 2500;
     }, [ethPriceData]);
@@ -109,12 +116,22 @@ function TokenDetails() {
         };
     }, [tokenDatas, tokenResult]);
 
+    const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
+
+
+    const { data: tokenInfo } = useReadContract({
+        address: addressSlothFactory,
+        abi: factoryAbi,
+        functionName: 'tokens',
+        args: [tokenData?.address as `0x${string}`]
+    });
+    // console.log("tokenData", tokenData);
+    // console.log("tokenInfo", tokenInfo);
 
     const { data: balance } = useBalance({
         address: address,
         config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
-
 
     const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
         address: tokenAddress as `0x${string}`,
@@ -124,12 +141,108 @@ function TokenDetails() {
         config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
 
+    const {data: nonces} = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'nonces',
+        args: [address as `0x${string}`],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
+    });
+
+    // Check token allowance
+    const { data: tokenAllowance, refetch: refetchAllowance } = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'allowance',
+        args: [address as `0x${string}`, addressSlothFactory],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8,
+    });
+
+    const { data: name } = useReadContract({
+        address: tokenAddress as `0x${string}`,
+        abi: tokenAbi,
+        functionName: 'name',
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8,
+    });
+
+    useEffect(() => {
+        if(tokenInfo&&amount){
+            const calculateTokens = async () => {
+                if(type === 'buy'){
+                    const expectedTokens = await calculateExpectedTokens(tokenInfo, amount||"0");
+                    console.log("expectedTokens", ethers.formatEther(expectedTokens));
+                    // Add 15% slippage tolerance
+                    const slippageTolerance = 0.15;
+                    const minTokensOut = expectedTokens * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);
+                    // console.log("Minimum tokens to receive:", ethers.formatEther(minTokensOut));
+                    setMinTokensOut(Number(minTokensOut));
+                    setAmountToReceive(Number(ethers.formatEther(expectedTokens)));
+                }else{
+                    if(balanceOfToken && balanceOfToken > BigInt(0)){
+                        const amountToSell = (balanceOfToken * ethers.getBigInt(Number(amount||"0"))) / ethers.getBigInt(100);
+                        // console.log(`Amount to sell (${amount||"0"}%):`, ethers.formatEther(amountToSell));
+                        setAmountToSell(Number(amountToSell));
+                        const expectedEth = await calculateMinimumEthOut(tokenInfo, amountToSell.toString());
+                        
+                        // Add 15% slippage tolerance
+                        const slippageTolerance = 0.15;
+                        const minEthOut = expectedEth * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);
+                        // console.log("Minimum ETH to receive:", ethers.formatEther(minEthOut));
+                        setMinEthOut(Number(minEthOut));
+                        setAmountToReceive(Number(ethers.formatEther(expectedEth)));
+                    }
+                }
+            }
+            calculateTokens();
+        }
+    }, [tokenInfo,amount,balanceOfToken]);
+
+    // console.log("amountToReceive", amountToReceive);
+
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
         config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
     
     // console.log('Receipt:', receipt);
+
+    // Handle token approval
+    const handleApproveToken = async () => {
+        if (!address) return toast.error('Please connect your wallet');
+        if (tokenData?.network == "Sonic") {
+            switchChain({
+                chainId: 57054
+            });
+        } else {
+            switchChain({
+                chainId: 28122024
+            });
+        }
+
+        const loadingToast = toast.loading('Approving token...');
+        setIsApproving(true);
+
+        try {
+            const tx = await writeContractAsync({
+                address: tokenAddress as `0x${string}`,
+                abi: tokenAbi,
+                functionName: 'approve',
+                args: [addressSlothFactory, MaxUint256]
+            });
+
+            setTxHash(tx as `0x${string}`);
+            setTransactionType('APPROVE');
+            toast.success("Please wait for the approval to be confirmed", { id: loadingToast });
+        } catch (error: any) {
+            console.error('Approval error:', error);
+            if (error.code === 4001 || error.message?.includes('User rejected')) {
+                toast.error('Transaction rejected by user', { id: loadingToast });
+            } else {
+                toast.error(`Failed to approve: ${error.message || 'Unknown error'}`, { id: loadingToast });
+            }
+            setIsApproving(false);
+        }
+    };
 
     // Handle transaction receipt
     useEffect(() => {
@@ -142,30 +255,22 @@ function TokenDetails() {
                     const eventLog = receipt.logs.find(log => {
                         try {
                             const decoded = decodeEventLog({
-                                abi: bondingCurveAbi,
+                                abi: factoryAbi,
                                 data: log.data,
                                 topics: log.topics,
                             });
                             // console.log('Decoded:', decoded);
-                            return decoded.eventName === 'UpdateInfo';
+                            return decoded.eventName === 'SlothSwap';
                         } catch {
                             return false;
                         }
                     });
 
-                    if (eventLog) {
-                        const decoded = decodeEventLog({
-                            abi: bondingCurveAbi,
-                            data: eventLog.data,
-                            topics: eventLog.topics,
-                        });
-                        await refetchBalanceOfToken();
-                        const { newPrice, newSupply, newTotalMarketCap, newFundingRaised } = decoded.args as any;
-                        // console.log('newPrice', newPrice);
-                        // console.log('newSupply', newSupply);
-                        // console.log('newTotalMarketCap', newTotalMarketCap);
-                        // console.log('newFundingRaised', newFundingRaised);
-
+                    if (transactionType === 'APPROVE') {
+                        await refetchAllowance();
+                        setIsApproving(false);
+                        toast.success('Token approved successfully!', { id: loadingToast });
+                    } else if (eventLog) {
                         if(transactionType === 'BUY'){
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
@@ -176,26 +281,16 @@ function TokenDetails() {
                                     network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                                     userAddress: address,
                                     tokenAddress: tokenData?.address,
-                                    price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     amountToken: amountToReceive,
                                     amount: parseFloat(amount||"0"),
                                     transactionType: 'BUY',
-                                    transactionHash: txHash as `0x${string}`,
-                                    totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0"),
-                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
+                                    transactionHash: txHash as `0x${string}`
                                 }),
-                            });
-                            await writeContractAsync({
-                                address: tokenData?.address as `0x${string}`,
-                                abi: tokenAbi,
-                                functionName: 'approve',
-                                args: [tokenData?.curveAddress as `0x${string}`, MaxUint256]
                             });
                             setAmount(null);
                             await refetchBalanceOfToken();
                             toast.success('Buy successful!', { id: loadingToast });
-                        }else{
+                        }else if(transactionType === 'SELL'){
                             // Save price history after successful transaction
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
@@ -205,27 +300,26 @@ function TokenDetails() {
                                 body: JSON.stringify({
                                     network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                                     tokenAddress: tokenData?.address,
-                                    price: parseFloat(formatUnits(newPrice||BigInt(0), 18)),
                                     userAddress: address,
                                     amountToken: parseFloat(amount||"0"),
                                     amount: amountToReceive,
                                     transactionType: 'SELL',
-                                    transactionHash: txHash as `0x${string}`,
-                                    totalSupply: parseFloat(newSupply||"0"),
-                                    marketCap: parseFloat(newTotalMarketCap||"0"),
-                                    fundingRaised: parseFloat(formatUnits(newFundingRaised||BigInt(0), 18))
+                                    transactionHash: txHash as `0x${string}`
                                 }),
                             });
                             await refetchBalanceOfToken();
                             toast.success('Sell successful!', { id: loadingToast });
                             setAmount(null);
                         }
-                        
-
+                    } else {
+                        toast.success('Transaction successful!', { id: loadingToast });
                     }
                 } catch (error) {
                     console.error('Error processing transaction receipt:', error);
                     toast.error('Error processing transaction receipt');
+                    if (transactionType === 'APPROVE') {
+                        setIsApproving(false);
+                    }
                 }
             }
         };
@@ -241,29 +335,6 @@ function TokenDetails() {
         }
     }, [isConfirmationError]);
 
-    const {data: totalSupply} = useReadContract({
-        address: tokenAddress as `0x${string}`,
-        abi: tokenAbi,
-        functionName: 'balanceOf',
-        args: [tokenData?.curveAddress as `0x${string}`],
-        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
-    });
-
-    const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'calculateTokensForEth',
-        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")],
-        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
-    });
-
-    const { data: ethToReceive } = useReadContract({
-        address: tokenData?.curveAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'calculateEthForTokens',
-        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")],
-        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
-    });
 
     const { transactions: transactionsData } = useTransactionsData(tokenData?.address as string);
 
@@ -290,13 +361,6 @@ function TokenDetails() {
         setTimeRange(value);
     };
 
-    // Add this helper function near the top of the component
-    const calculatePercentageAmount = (balance: bigint, percentage: number) => {
-        const balanceNum = parseFloat(formatUnits(balance || BigInt(0), 18));
-        return (balanceNum * percentage / 100).toString();
-    };
- 
-
     const handleBuy = async () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
@@ -309,22 +373,23 @@ function TokenDetails() {
                 chainId: 28122024
             });
         }
-
-        if (BigInt(tokensToReceive||0) <= 0) return toast.error('Insufficient tokens to receive');
+        // console.log("amountToReceive", amountToReceive);
+        if (amountToReceive <= 0) return toast.error('Insufficient tokens to receive');
         if (balance && balance.value < parseEther(amount||"0")){
             return toast.error('Insufficient balance');
         }
-        setAmountToReceive(Number(tokensToReceive||"0")/10**18);
+        setAmountToReceive(Number(amountToReceive||"0"));
 
         const loadingToast = toast.loading('Buying...');
+
+        const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
         try {
-            await refetchTokensToReceive();
             const tx = await writeContractAsync({
-                address: tokenData?.curveAddress as `0x${string}`,
-                abi: bondingCurveAbi,
+                address: addressSlothFactory,
+                abi: factoryAbi,
                 functionName: 'buy',
                 value: parseEther(amount||"0"),
-                args: [BigInt(tokensToReceive||0), address as `0x${string}`]
+                args: [tokenData?.address as `0x${string}`, BigInt(minTokensOut||0)]
             });
             setTransactionType('BUY');
             setTxHash(tx as `0x${string}`);
@@ -355,15 +420,82 @@ function TokenDetails() {
                 chainId: 28122024
             });
         }
+
+        // Check if token allowance is sufficient
+        if (tokenAllowance !== undefined && BigInt(amountToSell) > tokenAllowance) {
+            toast.error('Insufficient token allowance. Please approve first.');
+            await handleApproveToken();
+            return;
+        }
+
+        // console.log("tokenAllowance", tokenAllowance);
         const loadingToast = toast.loading('Selling...');
+        const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
+        
         try {
-            await refetchTokensToReceive();
-            setAmountToReceive(Number(ethToReceive?.toString()||"0")/10**18);
+            // Set deadline to 20 minutes from now
+            const deadline = Math.floor(Date.now() / 1000) + 1200; // 20 minutes
+
+            const domain = {
+                name: name,
+                version: '1',
+                chainId: chain?.id,
+                verifyingContract: tokenData?.address
+            };
+
+            const types = {
+                Permit: [
+                  { name: 'owner', type: 'address' },
+                  { name: 'spender', type: 'address' },
+                  { name: 'value', type: 'uint256' },
+                  { name: 'nonce', type: 'uint256' },
+                  { name: 'deadline', type: 'uint256' }
+                ]
+            };
+        
+            const value = {
+                owner: address,
+                spender: addressSlothFactory,
+                value: amountToSell,
+                nonce: nonces,
+                deadline
+            };
+
+            // console.log("value", value);
+
+            const signature = await signTypedData({
+                domain,
+                types,
+                primaryType: 'Permit',
+                message: value
+            });
+
+            // @ts-ignore
+            const { r, s, v } = ethers.Signature.from(signature);
+
+            // const tx = await slothFactory.sell(
+            //     TOKEN_ADDRESS,
+            //     amountToSell,
+            //     minEthOut,
+            //     deadline,
+            //     v,
+            //     r,
+            //     s
+            // );
+
             const tx = await writeContractAsync({
-                address: tokenData?.curveAddress as `0x${string}`,
-                abi: bondingCurveAbi,
+                address: addressSlothFactory as `0x${string}`,
+                abi: factoryAbi,
                 functionName: 'sell',
-                args: [parseEther(amount||"0"), ethToReceive||BigInt(0)]
+                args: [
+                    tokenData?.address as `0x${string}`, 
+                    BigInt(amountToSell), 
+                    BigInt(minEthOut), 
+                    BigInt(deadline),
+                    v,
+                    r as `0x${string}`,
+                    s as `0x${string}`
+                ]
             });
             setTransactionType('SELL');
             setTxHash(tx as `0x${string}`);
@@ -376,9 +508,15 @@ function TokenDetails() {
             } else if (error.code === -32603) {
                 toast.error('Internal JSON-RPC error. Please check your token balance.', { id: loadingToast });
             } else {
-                toast.error('Failed to sell', { id: loadingToast });
+                toast.error(`Failed to sell: ${error.message || 'Unknown error'}`, { id: loadingToast });
             }
         }
+    }
+
+    const handleTypeChange = (type: string) => {
+        setType(type);
+        setAmount('0')
+        setAmountToReceive(0)
     }
 
     return (
@@ -556,8 +694,8 @@ function TokenDetails() {
                                         </div>
                                         <div className="flex text-sm items-center gap-1 mt-1.5 text-gray-400 hover:text-white">
                                             {tokenData?.address ? (
-                                                <a href={`${tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/token/" : "https://scanv2-testnet.ancient8.gg/token/"}${tokenData.curveAddress}`} className='hover:underline' target="_blank">
-                                                    {tokenData.curveAddress.slice(0, 4)}...{tokenData.curveAddress.slice(-4)}
+                                                <a href={`${tokenData?.network == "Sonic" ? "https://testnet.sonicscan.org/token/" : "https://scanv2-testnet.ancient8.gg/token/"}${tokenData.address}`} className='hover:underline' target="_blank">
+                                                    {tokenData?.address.slice(0, 4)}...{tokenData?.address.slice(-4)}
                                                 </a>
                                             ) : (
                                                 <span>Address not available</span>
@@ -673,7 +811,7 @@ function TokenDetails() {
                                 <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
                                         <div>
-                                            <p className="text-2xl sm:text-4xl font-medium text-white">{(parseFloat(transactionHistory[0]?.price.toString()||"0")*(tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)} $</p>
+                                            {/* <p className="text-2xl sm:text-4xl font-medium text-white">{(parseFloat(transactionHistory[0]?.price.toString()||"0")*(tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)} $</p> */}
                                             {/* <span className="text-sm flex gap-1 items-center text-red-400">
                                                 -20.15% <span>(7D)</span>
                                             </span> */}
@@ -697,12 +835,14 @@ function TokenDetails() {
                                                 <TabsList className="grid w-full grid-cols-3 bg-[#0B0E17]">
                                                     <TabsTrigger 
                                                         value="buy"
+                                                        onClick={() => handleTypeChange('buy')}
                                                         className="text-gray-400 data-[state=active]:text-white"
                                                     >
                                                         Buy
                                                     </TabsTrigger>
                                                     <TabsTrigger 
                                                         value="sell"
+                                                        onClick={() => handleTypeChange('sell')}
                                                         className="text-gray-400 data-[state=active]:text-white"
                                                     >
                                                         Sell
@@ -764,7 +904,7 @@ function TokenDetails() {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {formatNumber(Number(tokensToReceive?.toString()||"0")/10**18)} {tokenData?.ticker}</span>
+                                                    <span>You will receive: {formatNumber(amountToReceive)} {tokenData?.ticker}</span>
                                                 </div>
                                                 <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
                                                     Buy
@@ -787,25 +927,25 @@ function TokenDetails() {
                                                     </div>
                                                     <div className="grid grid-cols-4 gap-2">
                                                         <button 
-                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 10))}
+                                                            onClick={() => setAmount('10')}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             10%
                                                         </button>
                                                         <button 
-                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 30))}
+                                                            onClick={() => setAmount('30')}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             30%
                                                         </button>
                                                         <button 
-                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 50))}
+                                                            onClick={() => setAmount('50')}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             50%
                                                         </button>
                                                         <button 
-                                                            onClick={() => setAmount(calculatePercentageAmount(balanceOfToken || BigInt(0), 100))}
+                                                            onClick={() => setAmount('100')}
                                                             className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
                                                         >
                                                             100%
@@ -813,11 +953,24 @@ function TokenDetails() {
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {(Number(ethToReceive?.toString()||"0")/10**18).toFixed(6)} {chain?.id == 57054 ? `S` : "ETH"}</span>
+                                                    <span>You will receive: {formatNumber(amountToReceive)} {chain?.id == 57054 ? `S` : "ETH"}</span>
                                                 </div>
-                                                <Button onClick={handleSell} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
-                                                    Sell
-                                                </Button>
+                                                {amount && amountToSell > 0 && tokenAllowance !== undefined && BigInt(amountToSell) > tokenAllowance && !isApproving ? (
+                                                    <Button 
+                                                        onClick={handleApproveToken} 
+                                                        className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-md font-medium transition-colors"
+                                                    >
+                                                        Approve {tokenData?.ticker}
+                                                    </Button>
+                                                ) : (
+                                                    <Button 
+                                                        onClick={handleSell} 
+                                                        disabled={isApproving}
+                                                        className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        {isApproving ? 'Approving...' : 'Sell'}
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TabsContent>
                                         <TabsContent value="auto">
@@ -847,7 +1000,17 @@ function TokenDetails() {
                         </div>
                     </TabsContent>
                     <TabsContent value="launching" className="mt-4">
-                        <Launching network={tokenData?.network||''} sonicPrice={sonicPrice} ethPrice={ethPrice} tokenAddress={tokenData?.address||''} bondingCurveAddress={tokenData?.curveAddress||''} transactions={transactionHistory as any|| []} totalMarketCap={totalMarketCapToken} totalSupply={parseFloat(totalSupply?.toString()||"0")} symbol={tokenData?.ticker||''} />
+                        <Launching 
+                            network={tokenData?.network||''} 
+                            sonicPrice={sonicPrice} 
+                            ethPrice={ethPrice} 
+                            tokenAddress={tokenData?.address||''} 
+                            bondingCurveAddress={tokenData?.curveAddress||''} 
+                            transactions={transactionHistory as any|| []} 
+                            totalMarketCap={totalMarketCapToken} 
+                            totalSupply={0} 
+                            symbol={tokenData?.ticker||''} 
+                        />
                     </TabsContent>
                 </Tabs>
                 </div>
