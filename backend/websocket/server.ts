@@ -452,14 +452,8 @@ const server = serve({
               break;
               
             case 'solanaTokens':
-              if (!accountAddress) {
-                ws.send(JSON.stringify({ 
-                  type: 'error', 
-                  message: 'accountAddress is required for solanaTokens' 
-                }));
-                return;
-              }
-            
+
+              const accountAddress = 'TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM'
               console.log('Creating SolanaAccountWatcher for address:', accountAddress);
             
               // Create new SolanaAccountWatcher instance
