@@ -1,6 +1,26 @@
 import { useState, useEffect } from 'react';
-import { addDataListener, subscribeToDataType, subscribeToTransactions, subscribeToTokenByAddress, subscribeToAllTransactions } from './websocketClient';
+import { addDataListener, subscribeToDataType, subscribeToTransactions, subscribeToTokenByAddress, subscribeToAllTransactions, subscribeToSolanaTokens } from './websocketClient';
 import { Agent, Token, Transaction } from './models';
+
+// Define interface for Solana token creation data
+// Updated interface for Solana token data
+interface SolanaTokenData {
+  signature: string;
+  account?: string;
+  mint?: string;
+  source?: string;
+  metadata?: {
+    name: string;
+    symbol: string;
+    description: string;
+    image: string;
+    createdOn: string;
+    twitter?: string;
+    website?: string;
+  };
+  timestamp: string;
+  type?: 'creation' | 'metadata';
+}
 
 // Hook for tokens data
 export function useTokensData() {
@@ -295,4 +315,46 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
   }, [timeRange, limit]);
 
   return { transactions, loading };
-} 
+}
+
+// Hook for Solana token creation events
+export function useSolanaTokens(accountAddress: string) {
+  const [tokens, setTokens] = useState<SolanaTokenData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!accountAddress) return;
+    
+    setLoading(true);
+    
+    // Add listener for Solana token creation events
+    const removeListener = addDataListener('solanaTokens', (data: any) => {
+      if (data && data.type === 'update' && data.data) {
+        console.log('Received token data:', data.data);
+        
+        setTokens(prev => {
+          // Nếu token đã tồn tại, cập nhật nó
+          const existingTokenIndex = prev.findIndex(t => t.mint === data.data.mint);
+          if (existingTokenIndex !== -1) {
+            const updatedTokens = [...prev];
+            updatedTokens[existingTokenIndex] = {
+              ...prev[existingTokenIndex],
+              ...data.data
+            };
+            return updatedTokens;
+          }
+          // Nếu là token mới, thêm vào đầu danh sách
+          return [data.data, ...prev];
+        });
+        setLoading(false);
+      }
+    });
+    
+    // Subscribe to Solana token creation events
+    subscribeToSolanaTokens(accountAddress);
+    
+    return removeListener;
+  }, [accountAddress]);
+
+  return { tokens, loading };
+}

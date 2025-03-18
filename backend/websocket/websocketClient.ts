@@ -5,6 +5,7 @@ const listeners: Record<string, Set<(data: any) => void>> = {
   transactions: new Set(),
   totalVolume: new Set(),
   tokenByAddress: new Set(),
+  solanaTokens: new Set(),
 };
 
 // Initialize WebSocket connection
@@ -142,6 +143,20 @@ export function subscribeToAllTransactions(timeRange: string = '30d', limit: num
     dataType: 'allTransactions',
     timeRange,
     limit
+  }));
+}
+
+// Subscribe to Solana token creation events
+export function subscribeToSolanaTokens(accountAddress: string) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    initWebSocket();
+    return;
+  }
+  
+  socket.send(JSON.stringify({
+    type: 'subscribe',
+    dataType: 'solanaTokens',
+    accountAddress
   }));
 }
 

@@ -1,0 +1,16 @@
+    this.rpcUrls = [
+      process.env.SOLANA_RPC_URL || 'https://convincing-ultra-scion.solana-mainnet.quiknode.pro/b763e225ec3e3708115b223ca270c55e0129b34a/',
+      'https://api.mainnet-beta.solana.com',
+      'https://solana-api.projectserum.com',
+      'https://mainnet.helius-rpc.com/?api-key=5fd03be1-0b73-418b-baca-16a8304a3199',
+      'https://solana-mainnet.api.syndica.io/api-key/3BoYR8BN62XmrneuCtWBwS5nps2qrnRB9qZJ2cxwPdii2tyPFN1ubTRnLstvXj9nzUwAFhmRsUoNJCALjHRAdfHFPvJTWLDK2Ad'
+    ];
+
+    // Initialize WebSocket URLs array
+    this.wsUrls = [
+      process.env.SOLANA_WS_URL || 'wss://convincing-ultra-scion.solana-mainnet.quiknode.pro/b763e225ec3e3708115b223ca270c55e0129b34a/',
+      'wss://api.mainnet-beta.solana.com',
+      'wss://solana-api.projectserum.com',
+      'wss://mainnet.helius-rpc.com/?api-key=5fd03be1-0b73-418b-baca-16a8304a3199',
+      'wss://solana-mainnet.api.syndica.io/api-key/3BoYR8BN62XmrneuCtWBwS5nps2qrnRB9qZJ2cxwPdii2tyPFN1ubTRnLstvXj9nzUwAFhmRsUoNJCALjHRAdfHFPvJTWLDK2Ad'
+    ];

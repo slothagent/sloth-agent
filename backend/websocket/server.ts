@@ -3,6 +3,7 @@ import { MongoClient, ChangeStream } from 'mongodb';
 import clientPromise from './mongodb';
 import * as fs from 'fs';
 import * as path from 'path';
+import { SolanaAccountWatcher } from './solanaAccountWatcher';
 
 // Load all models from the models directory
 const modelsPath = path.join(import.meta.dir, 'models');
@@ -18,11 +19,12 @@ modelFiles.forEach(file => {
 
 // Create a map to store active change streams for each WebSocket
 const wsChangeStreams = new WeakMap<ServerWebSocket, ChangeStream[]>();
+const solanaWatchers = new WeakMap<ServerWebSocket, SolanaAccountWatcher>();
 
 // Define message types for better type safety
 interface SubscribeMessage {
   type: 'subscribe';
-  dataType: 'tokens' | 'agents' | 'transactions' | 'totalVolume' | 'tokenByAddress' | 'allTransactions';
+  dataType: 'tokens' | 'agents' | 'transactions' | 'totalVolume' | 'tokenByAddress' | 'allTransactions' | 'solanaTokens';
   tokenAddress?: string;
   timeRange?: string;
   collection?: string;
@@ -30,6 +32,7 @@ interface SubscribeMessage {
   sort?: Record<string, any>;
   limit?: number;
   address?: string;
+  accountAddress?: string;
 }
 
 type ClientMessage = SubscribeMessage;
@@ -57,7 +60,7 @@ const server = serve({
         // Send available data types to client
         ws.send(JSON.stringify({ 
           type: 'availableDataTypes', 
-          data: ['tokens', 'agents', 'transactions', 'totalVolume'] 
+          data: ['tokens', 'agents', 'transactions', 'totalVolume', 'solanaTokens'] 
         }));
         
         // Store change streams for this connection
@@ -79,7 +82,7 @@ const server = serve({
         const parsedMessage = JSON.parse(message.toString()) as ClientMessage;
         
         if (parsedMessage.type === 'subscribe') {
-          const { dataType, tokenAddress, timeRange, collection, filter = {}, sort = {}, limit = 100, address } = parsedMessage;
+          const { dataType, tokenAddress, timeRange, collection, filter = {}, sort = {}, limit = 100, address, accountAddress } = parsedMessage;
           
           // Handle different data types
           switch (dataType) {
@@ -448,6 +451,49 @@ const server = serve({
               wsChangeStreams.set(ws, allTransactionsStreams);
               break;
               
+            case 'solanaTokens':
+              if (!accountAddress) {
+                ws.send(JSON.stringify({ 
+                  type: 'error', 
+                  message: 'accountAddress is required for solanaTokens' 
+                }));
+                return;
+              }
+            
+              console.log('Creating SolanaAccountWatcher for address:', accountAddress);
+            
+              // Create new SolanaAccountWatcher instance
+              const watcher = new SolanaAccountWatcher(accountAddress);
+              
+              // Store watcher instance
+              solanaWatchers.set(ws, watcher);
+            
+              // Handle token metadata events
+              watcher.on('tokenMetadata', (tokenData: any) => {
+                console.log('Token with metadata:', tokenData);
+                ws.send(JSON.stringify({
+                  type: 'update',
+                  dataType: 'solanaTokens',
+                  data: tokenData
+                }));
+              });
+            
+              // Handle errors
+              watcher.on('error', (error: any) => {
+                console.error('Watcher error:', error);
+                ws.send(JSON.stringify({
+                  type: 'error',
+                  dataType: 'solanaTokens',
+                  message: error.message
+                }));
+              });
+            
+              // Start watching
+              console.log('Starting watcher...');
+              await watcher.start();
+              console.log('Watcher started successfully');
+              break;
+              
             default:
               // If dataType is not recognized, try to use collection parameter
               if (collection) {
@@ -509,6 +555,13 @@ const server = serve({
       const streams = wsChangeStreams.get(ws) || [];
       streams.forEach(stream => stream.close());
       wsChangeStreams.delete(ws);
+
+      // Stop Solana watcher if exists
+      const watcher = solanaWatchers.get(ws);
+      if (watcher) {
+        watcher.stop();
+        solanaWatchers.delete(ws);
+      }
     },
   }
 });
