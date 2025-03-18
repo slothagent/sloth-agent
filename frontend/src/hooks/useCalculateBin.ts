@@ -148,12 +148,63 @@ export const useCalculateBin = () => {
     }
   };
 
+  // Calculate market cap based on bin price formula
+  const calculateMarketCap = (
+    initialSupply: bigint | number, 
+    basePrice: number, 
+    totalBins: number = 19, 
+    binWidthPercent: number = 20
+  ) => {
+    // Convert initialSupply to number if it's bigint
+    const totalSupply = typeof initialSupply === 'bigint' ? Number(initialSupply) : initialSupply;
+    
+    // Calculate the price for each bin
+    const binPrices = [];
+    for (let i = 0; i < totalBins; i++) {
+      const price = basePrice * (100 + (i * binWidthPercent)) / 100;
+      binPrices.push(price);
+    }
+    
+    // Calculate the last non-zero bin price
+    const lastNonZeroPrice = basePrice * (1 + ((totalBins - 1) * binWidthPercent) / 100);
+    
+    // Calculate the market cap at the last bin (for Metropolis migration)
+    const requiredMarketCap = totalSupply * lastNonZeroPrice;
+    
+    // For formatting purposes, also calculate the fully diluted valuation
+    const fdv = totalSupply * binPrices[0]; // Initial price valuation
+    
+    return {
+      binPrices,
+      lastNonZeroPrice,
+      requiredMarketCap,
+      fdv,
+      formattedData: {
+        binPrices: binPrices.map(price => price.toFixed(6)),
+        lastNonZeroPrice: lastNonZeroPrice.toFixed(6),
+        requiredMarketCap: requiredMarketCap.toLocaleString('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }),
+        fdv: fdv.toLocaleString('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        })
+      }
+    };
+  };
+
   return {
     calculateTokensPerSonic,
     calculateSonicPrice,
     calculatePercentageInBin,
     calculateSonicNeeded,
     calculateAllBinsDistribution,
-    getBinDetails
+    getBinDetails,
+    calculateMarketCap
   };
 };

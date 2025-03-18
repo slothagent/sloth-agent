@@ -30,6 +30,7 @@ import { useCalculateTokens } from '../hooks/useCalculateTokens';
 import { factoryAbi } from '../abi/factoryAbi';
 import { useSignTypedData } from 'wagmi';
 import BondingCurveChart from '../components/chart/BondingCurveChart';
+import { useCalculateBin } from '../hooks/useCalculateBin';
 
 export const Route = createFileRoute("/token/$tokenAddress")({
     component: TokenDetails,
@@ -62,6 +63,9 @@ function TokenDetails() {
     const { signTypedData } = useSignTypedData();
     const [isApproving, setIsApproving] = useState<boolean>(false);
     const [type, setType] = useState<string>('buy');
+    const [priceToken, setPriceToken] = useState<number>(0);
+    const { getBinDetails } = useCalculateBin();
+    
 
     const ethPrice = useMemo(() => {
       return ethPriceData?.price || 2500;
@@ -118,6 +122,20 @@ function TokenDetails() {
 
     const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
 
+    useEffect(() => {
+        const fetchTokenDetails = async () => {
+            try {
+                // Get token details 
+                const details = await getBinDetails(tokenAddress);
+                // console.log("details", details);
+                setPriceToken(Number(ethers.formatEther(details.sonicPrice)));
+                // console.log("priceToken", Number(ethers.formatEther(details.sonicPrice)));
+            } catch (error) {
+                console.error(error);
+            };
+        }     
+        fetchTokenDetails();
+    }, [tokenAddress]);
 
     const { data: tokenInfo } = useReadContract({
         address: addressSlothFactory,
@@ -284,6 +302,7 @@ function TokenDetails() {
                                     tokenAddress: tokenData?.address,
                                     amountToken: amountToReceive,
                                     amount: parseFloat(amount||"0"),
+                                    price: priceToken,
                                     transactionType: 'BUY',
                                     transactionHash: txHash as `0x${string}`
                                 }),
@@ -304,6 +323,7 @@ function TokenDetails() {
                                     userAddress: address,
                                     amountToken: Number(amountToSell)/10**18,
                                     amount: amountToReceive,
+                                    price: priceToken,
                                     transactionType: 'SELL',
                                     transactionHash: txHash as `0x${string}`
                                 }),

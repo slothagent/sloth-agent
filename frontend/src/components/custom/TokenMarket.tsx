@@ -9,7 +9,12 @@ import { formatNumber } from '../../utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useEthPrice } from '../../hooks/useEthPrice'
 import { useSonicPrice } from '../../hooks/useSonicPrice'
-import { INITIAL_SUPPLY } from '../../lib/contants'
+import { tokenAbi } from '../../abi/tokenAbi'
+import { configSonicBlaze } from '../../config/wagmi'
+import { configAncient8 } from '../../config/wagmi'
+import { useCalculateBin } from '../../hooks/useCalculateBin'
+import { useReadContract } from 'wagmi'
+import { ethers } from 'ethers'
 
 const formatLaunchDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
@@ -31,6 +36,14 @@ const TokenCard = ({ token }: { token: Token }) => {
 
   const { data: sonicPriceData } = useSonicPrice();
   const { data: ethPriceData } = useEthPrice();
+  const { calculateMarketCap } = useCalculateBin();
+
+  const { data: totalSupply } = useReadContract({
+    address: token?.address as `0x${string}`,
+    abi: tokenAbi,
+    functionName: 'totalSupply',
+    config: token?.network == "Sonic" ? configSonicBlaze : configAncient8
+  });
 
   // Get the ETH price for calculations, fallback to 2500 if not available
   const ethPrice = useMemo(() => {
@@ -51,17 +64,47 @@ const TokenCard = ({ token }: { token: Token }) => {
     return transactionsData
   }, [transactionsData]);
 
-  const totalMarketCapToken = useMemo(() => {
+  const totalCirculatingSupply = useMemo(() => {
     if (!transactions) return 0;
-
-    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8')
-    const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
-    const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
-    const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
-    const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
-    const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
-    return ancient8MarketCap || sonicMarketCap;
+    return transactions.reduce((acc: number, tx: any) => {
+      // Add for buy transactions, subtract for sell transactions
+      if (tx.transactionType.toLowerCase() === 'buy') {
+        return acc + Number(tx.amountToken);
+      } else if (tx.transactionType.toLowerCase() === 'sell') {
+        return acc - Number(tx.amountToken);
+      }
+      return acc; // For other transaction types, don't change the accumulator
+    }, 0);
   }, [transactions]);
+
+  console.log(totalCirculatingSupply)
+
+  const totalMarketCapToken = useMemo(() => {
+    if (!transactions || transactions.length === 0) return 0;
+
+    // Determine which network to use for base price
+    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8');
+    const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
+    
+    let basePrice = 0;
+    
+    // Use the latest price from transactions as the base price
+    if (ancient8Transactions.length > 0) {
+      const lastTransaction = ancient8Transactions[0];
+      basePrice = lastTransaction?.price * ethPrice; // Convert to USD
+    } else if (sonicTransactions.length > 0) {
+      const lastTransaction = sonicTransactions[0];
+      basePrice = lastTransaction?.price * sonicPrice; // Convert to USD
+    }
+    
+    if (basePrice === 0) return 0;
+    console.log("basePrice", basePrice);
+    console.log("totalSupply", ethers.formatEther(totalSupply || BigInt(0)));
+    // Calculate market cap at the last bin (for Metropolis migration)
+    const { requiredMarketCap } = calculateMarketCap(Number(ethers.formatEther(totalSupply || BigInt(0))), basePrice);
+    console.log("requiredMarketCap", requiredMarketCap);
+    return requiredMarketCap;
+  }, [transactions, ethPrice, sonicPrice, calculateMarketCap]);
 
   const truncateDescription = (description: string) => {
     if (description.length > 50) {
@@ -109,7 +152,7 @@ const TokenCard = ({ token }: { token: Token }) => {
           <div className="mt-4">
             <div className="flex justify-between">
               <div className="flex flex-col space-y-1">
-                <span className="text-blue-500 text-xs">TOTAL MARKET CAP</span>
+                <span className="text-blue-500 text-xs">MARKET CAP</span>
                 <span className="text-white text-xs">$ {formatNumber(totalMarketCapToken)}</span>
               </div>
               <div className="flex flex-col space-y-1">
@@ -119,7 +162,7 @@ const TokenCard = ({ token }: { token: Token }) => {
             </div>
           </div>
           
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <div className="w-full bg-gray-700 rounded-full h-1">
               <div 
                 className="h-1 rounded-full bg-blue-500"
@@ -130,7 +173,7 @@ const TokenCard = ({ token }: { token: Token }) => {
               />
             </div>
             <span className="text-blue-500 text-sm mt-1 block">{((Number(Number(transactions[transactions.length - 1]?.fundingRaised))/22700)*100).toFixed(2)}%</span>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
