@@ -147,7 +147,7 @@ export function subscribeToAllTransactions(timeRange: string = '30d', limit: num
 }
 
 // Subscribe to Solana token creation events
-export function subscribeToSolanaTokens(accountAddress: string) {
+export function subscribeToSolanaTokens() {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     initWebSocket();
     return;
@@ -155,8 +155,7 @@ export function subscribeToSolanaTokens(accountAddress: string) {
   
   socket.send(JSON.stringify({
     type: 'subscribe',
-    dataType: 'solanaTokens',
-    accountAddress
+    dataType: 'solanaTokens'
   }));
 }
 

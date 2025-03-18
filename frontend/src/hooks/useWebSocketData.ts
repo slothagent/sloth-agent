@@ -318,13 +318,11 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
 }
 
 // Hook for Solana token creation events
-export function useSolanaTokens(accountAddress: string) {
+export function useSolanaTokens() {
   const [tokens, setTokens] = useState<SolanaTokenData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!accountAddress) return;
-    
     setLoading(true);
     
     // Add listener for Solana token creation events
@@ -351,10 +349,10 @@ export function useSolanaTokens(accountAddress: string) {
     });
     
     // Subscribe to Solana token creation events
-    subscribeToSolanaTokens(accountAddress);
+    subscribeToSolanaTokens();
     
     return removeListener;
-  }, [accountAddress]);
+  }, []);
 
   return { tokens, loading };
 }

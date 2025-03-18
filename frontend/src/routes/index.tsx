@@ -11,8 +11,8 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { tokens, loading } = useSolanaTokens('TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM');
-  // console.log(tokens);
+  const { tokens, loading } = useSolanaTokens();
+  console.log(tokens[0],loading);
   return (
     <main className="min-h-screen mx-auto flex flex-col bg-[#0B0E17]">   
       <div className="w-full">
