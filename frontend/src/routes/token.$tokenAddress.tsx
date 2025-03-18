@@ -30,6 +30,7 @@ import { INITIAL_SUPPLY } from '../lib/contants';
 import { useCalculateTokens } from '../hooks/useCalculateTokens';
 import { factoryAbi } from '../abi/factoryAbi';
 import { useSignTypedData } from 'wagmi';
+import BondingCurveChart from '../components/chart/BondingCurveChart';
 
 export const Route = createFileRoute("/token/$tokenAddress")({
     component: TokenDetails,
@@ -808,27 +809,22 @@ function TokenDetails() {
                     <TabsContent value="trade" className="mt-4">
                         <div className="flex flex-col gap-4">
                             <div className="grid grid-cols-3 gap-4">
-                                <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[550px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
-                                    <div className="h-[80px] sm:h-[100px] flex justify-between p-4 border-b border-[#1F2937]">
-                                        <div>
-                                            {/* <p className="text-2xl sm:text-4xl font-medium text-white">{(parseFloat(transactionHistory[0]?.price.toString()||"0")*(tokenData?.network == "Sonic" ? sonicPrice : ethPrice)).toFixed(8)} $</p> */}
-                                            {/* <span className="text-sm flex gap-1 items-center text-red-400">
-                                                -20.15% <span>(7D)</span>
-                                            </span> */}
-                                        </div>
-                                    </div>
+                                <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[450px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="col-span-1  flex-1 p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
-                                            <TokenPriceChart 
+                                            {/* <TokenPriceChart 
                                                 transactionHistory={transactionHistory as any} 
                                                 valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
                                                 priceUSD={tokenData?.network == "Sonic" ? sonicPrice : ethPrice}
+                                            /> */}
+                                            <BondingCurveChart
+                                                tokenAddress={tokenData?.address||''}
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[550px] bg-[#161B28]">
+                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[450px] bg-[#161B28]">
                                     <Tabs defaultValue="buy" className="flex flex-col gap-4">
                                         <div className="flex items-center justify-between">
                                             <div className="w-[200px]">
