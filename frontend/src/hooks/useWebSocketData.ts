@@ -1,6 +1,26 @@
 import { useState, useEffect } from 'react';
-import { addDataListener, subscribeToDataType, subscribeToTransactions, subscribeToTokenByAddress, subscribeToAllTransactions } from '../lib/websocketClient';
+import { addDataListener, subscribeToDataType, subscribeToTransactions, subscribeToTokenByAddress, subscribeToAllTransactions, subscribeToSolanaTokens } from '../lib/websocketClient';
 import { Agent, Token, Transaction } from '../models';
+
+// Define interface for Solana token creation data
+// Updated interface for Solana token data
+interface SolanaTokenData {
+  signature: string;
+  account?: string;
+  mint?: string;
+  source?: string;
+  metadata?: {
+    name: string;
+    symbol: string;
+    description: string;
+    image: string;
+    createdOn: string;
+    twitter?: string;
+    website?: string;
+  };
+  timestamp: string;
+  type?: 'creation' | 'metadata';
+}
 
 // Hook for tokens data
 export function useTokensData() {
@@ -149,31 +169,58 @@ export function useTransactionsData(tokenAddress: string, timeRange: string = '3
     
     // Add listener for transactions data
     const removeListener = addDataListener('transactions', (data: any) => {
-      // console.log('data',data);
-      // Only process data for the specific token address we're interested in
+      // Chỉ xử lý dữ liệu cho địa chỉ token cụ thể mà chúng ta quan tâm
       if (Array.isArray(data)) {
         setTransactions(data);
         setLoading(false);
-      } else if (data.change && data.change.operationType) {
-        // Handle updates based on the change operation type
+      } else if (data.change && data.change.operationType && data.tokenAddress === tokenAddress) {
+        // Xử lý cập nhật dựa trên loại thao tác
         if (data.change.operationType === 'insert' && data.change.fullDocument) {
-          setTransactions((prev: Transaction[]) => [data.change.fullDocument, ...prev]);
+          // Kiểm tra xem transaction mới có liên quan đến token của chúng ta không
+          const newTx = data.change.fullDocument;
+          const isRelevant = newTx.from === tokenAddress || 
+                            newTx.to === tokenAddress || 
+                            newTx.tokenAddress === tokenAddress;
+          
+          if (isRelevant) {
+            setTransactions((prev: Transaction[]) => [newTx, ...prev]);
+          }
         } else if (data.change.operationType === 'update' && data.change.documentKey && data.change.updateDescription) {
-          setTransactions((prev: Transaction[]) => prev.map((tx: Transaction) => 
-            tx._id === data.change.documentKey._id 
-              ? { ...tx, ...data.change.updateDescription.updatedFields }
-              : tx
-          ));
+          console.log('Received transaction update:', data.change);
+          
+          // Cập nhật transaction nếu nó đã tồn tại trong danh sách của chúng ta
+          setTransactions((prev: Transaction[]) => {
+            const txIndex = prev.findIndex((tx: Transaction) => tx._id === data.change.documentKey._id);
+            
+            if (txIndex >= 0) {
+              const updatedTx = { 
+                ...prev[txIndex], 
+                ...data.change.updateDescription.updatedFields 
+              };
+              
+              const newTransactions = [...prev];
+              newTransactions[txIndex] = updatedTx;
+              return newTransactions;
+            }
+            
+            // Nếu không tìm thấy transaction, có thể nó mới được thêm vào và liên quan đến token của chúng ta
+            // Trong trường hợp này, chúng ta nên yêu cầu dữ liệu mới
+            subscribeToTransactions(tokenAddress, timeRange);
+            return prev;
+          });
         } else if (data.change.operationType === 'delete' && data.change.documentKey) {
-          setTransactions((prev: Transaction[]) => prev.filter((tx: Transaction) => tx._id !== data.change.documentKey._id));
+          // Xóa transaction khỏi danh sách nếu nó tồn tại
+          setTransactions((prev: Transaction[]) => 
+            prev.filter((tx: Transaction) => tx._id !== data.change.documentKey._id)
+          );
         } else {
-          // For other operations, it's simpler to just request fresh data
+          // Đối với các thao tác khác, đơn giản là yêu cầu dữ liệu mới
           subscribeToTransactions(tokenAddress, timeRange);
         }
       }
     });
     
-    // Subscribe to transactions data for this token
+    // Đăng ký nhận dữ liệu transactions cho token này
     subscribeToTransactions(tokenAddress, timeRange);
     
     return removeListener;
@@ -205,8 +252,9 @@ export function useTotalVolumeData(timeRange?: string) {
   }, [timeRange]);
 
   return { totalVolume, loading };
-} 
+}
 
+// Hook for all transactions data
 export function useAllTransactionsData(timeRange: string = '30d', limit: number = 100) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -218,7 +266,6 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
     const removeListener = addDataListener('allTransactions', (data: any) => {
       // Xử lý dữ liệu transactions
       if (Array.isArray(data)) {
-        // console.log('data',data);
         setTransactions(data);
         setLoading(false);
       } else if (data.change && data.change.operationType) {
@@ -268,4 +315,46 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
   }, [timeRange, limit]);
 
   return { transactions, loading };
-} 
+}
+
+// Hook for Solana token creation events
+export function useSolanaTokens(accountAddress: string) {
+  const [tokens, setTokens] = useState<SolanaTokenData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!accountAddress) return;
+    
+    setLoading(true);
+    
+    // Add listener for Solana token creation events
+    const removeListener = addDataListener('solanaTokens', (data: any) => {
+      if (data && data.type === 'update' && data.data) {
+        // console.log('Received token data:', data.data);
+        
+        setTokens(prev => {
+          // Nếu token đã tồn tại, cập nhật nó
+          const existingTokenIndex = prev.findIndex(t => t.mint === data.data.mint);
+          if (existingTokenIndex !== -1) {
+            const updatedTokens = [...prev];
+            updatedTokens[existingTokenIndex] = {
+              ...prev[existingTokenIndex],
+              ...data.data
+            };
+            return updatedTokens;
+          }
+          // Nếu là token mới, thêm vào đầu danh sách
+          return [data.data, ...prev];
+        });
+        setLoading(false);
+      }
+    });
+    
+    // Subscribe to Solana token creation events
+    subscribeToSolanaTokens(accountAddress);
+    
+    return removeListener;
+  }, [accountAddress]);
+
+  return { tokens, loading };
+}

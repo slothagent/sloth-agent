@@ -77,7 +77,7 @@ const TokenCard = ({ token }: { token: Token }) => {
     }, 0);
   }, [transactions]);
 
-  console.log(totalCirculatingSupply)
+  // console.log(totalCirculatingSupply)
 
   const totalMarketCapToken = useMemo(() => {
     if (!transactions || transactions.length === 0) return 0;
@@ -98,11 +98,11 @@ const TokenCard = ({ token }: { token: Token }) => {
     }
     
     if (basePrice === 0) return 0;
-    console.log("basePrice", basePrice);
-    console.log("totalSupply", ethers.formatEther(totalSupply || BigInt(0)));
+    // console.log("basePrice", basePrice);
+    // console.log("totalSupply", ethers.formatEther(totalSupply || BigInt(0)));
     // Calculate market cap at the last bin (for Metropolis migration)
     const { requiredMarketCap } = calculateMarketCap(Number(ethers.formatEther(totalSupply || BigInt(0))), basePrice);
-    console.log("requiredMarketCap", requiredMarketCap);
+    // console.log("requiredMarketCap", requiredMarketCap);
     return requiredMarketCap;
   }, [transactions, ethPrice, sonicPrice, calculateMarketCap]);
 

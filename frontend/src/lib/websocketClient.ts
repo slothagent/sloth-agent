@@ -5,6 +5,7 @@ const listeners: Record<string, Set<(data: any) => void>> = {
   transactions: new Set(),
   totalVolume: new Set(),
   tokenByAddress: new Set(),
+  solanaTokens: new Set(),
 };
 
 // Initialize WebSocket connection
@@ -14,7 +15,7 @@ export function initWebSocket() {
   }
 
   // Use the correct WebSocket URL based on your deployment
-  const wsUrl = process.env.PUBLIC_WS_URL || 'ws://localhost:3001';
+  const wsUrl = process.env.PUBLIC_WS_URL || 'ws://localhost:333';
   socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
@@ -142,6 +143,20 @@ export function subscribeToAllTransactions(timeRange: string = '30d', limit: num
     dataType: 'allTransactions',
     timeRange,
     limit
+  }));
+}
+
+// Subscribe to Solana token creation events
+export function subscribeToSolanaTokens(accountAddress: string) {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    initWebSocket();
+    return;
+  }
+  
+  socket.send(JSON.stringify({
+    type: 'subscribe',
+    dataType: 'solanaTokens',
+    accountAddress
   }));
 }
 

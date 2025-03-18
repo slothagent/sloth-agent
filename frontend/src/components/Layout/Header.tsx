@@ -4,13 +4,15 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import React, { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import SearchDialog from "../custom/SearchDialog";
+
 
 const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { isConnected } = useAccount();
+  const navigate = useNavigate();
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -31,7 +33,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="h-16 flex items-center justify-between gap-4">
           {/* Logo - Responsive */}
-          <Link to="/" className="flex items-center gap-2 min-w-fit">
+          <div onClick={()=>navigate({to:'/'})} className="flex items-center gap-2 min-w-fit">
             <div className="w-8 h-8 sm:w-10 sm:h-10 relative">
               <img
                 src="/assets/logo/sloth.png"
@@ -40,7 +42,7 @@ const Header: React.FC = () => {
               />
             </div>
             <span className="text-white font-bold text-lg sm:text-2xl">SLOTH AGENT</span>
-          </Link>
+          </div>
           
           <div className="hidden md:block flex-1 max-w-3xl">
             <div className="relative">
