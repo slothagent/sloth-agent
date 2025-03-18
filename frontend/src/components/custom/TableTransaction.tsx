@@ -1,20 +1,14 @@
-import { formatAddress } from "../../utils/utils";
-import { formatDistance } from "date-fns";
+import { formatAddress, timeAgo } from "../../utils/utils";
 import { Transaction } from "../../models/transactions";
 import { formatNumber } from "../../utils/utils";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 
-const formatTimeDistance = (date: Date) => {
-    const distance = formatDistance(date, new Date(), { addSuffix: true });
-    return distance.replace('about ', '');
-};
-
 interface TableTransactionProps {
     tx: Transaction;
-    ethPrice: number;
-    sonicPrice: number;
+    ethPrice?: number;
+    sonicPrice?: number;
 }
 
 const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => {
@@ -29,13 +23,11 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
         queryFn: () => fetchTokenByAddress(tx?.from)
     })
 
-    // console.log(token)
-
     const price = useMemo(() => {
         if (tx.network === 'Ancient8') {
-            return (Number(tx.price)) * tx.amountToken * ethPrice;
+            return (Number(tx.price)) * tx.amountToken * (ethPrice || 0);
         } else {
-            return Number(tx.price) * tx.amountToken * sonicPrice;
+            return Number(tx.price) * tx.amountToken * (sonicPrice || 0);
         }
     }, [tx, ethPrice, sonicPrice]);
 
@@ -59,7 +51,7 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
                 />
             </div>
             <div className="col-span-1.5 text-[#2196F3] flex items-center">
-                {formatTimeDistance(new Date(tx.timestamp))}
+                {timeAgo(tx.timestamp)}
             </div>
             <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/tx/" : "https://scanv2-testnet.ancient8.gg/tx/"}${tx.transactionHash}`} className="col-span-2 text-gray-400 hover:text-white hover:underline flex items-center">
                 {formatAddress(tx.transactionHash)}

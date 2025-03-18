@@ -19,8 +19,7 @@ interface UseTokensOptions {
 
 export const useTokens = (options: UseTokensOptions = {}) => {
   const { page = 1, pageSize = 10, search = '' } = options;
-  const queryClient = useQueryClient();
-  
+
   return useQuery<TokenResponse>({
     queryKey: ['tokens', page, pageSize, search],
     queryFn: async () => {

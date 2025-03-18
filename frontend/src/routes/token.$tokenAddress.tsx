@@ -6,7 +6,6 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import TokenPriceChart from '../components/chart/PriceTokenChart';
 import Social from '../components/custom/Social';
 import { Button } from "../components/ui/button";
 import { useQuery } from '@tanstack/react-query';   
@@ -72,7 +71,7 @@ function TokenDetails() {
       return sonicPriceData?.price || 0.5;
     }, [sonicPriceData]);
 
-
+    
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         // Only allow numbers and decimal points
@@ -191,6 +190,7 @@ function TokenDetails() {
                         // console.log("Minimum ETH to receive:", ethers.formatEther(minEthOut));
                         setMinEthOut(Number(minEthOut));
                         setAmountToReceive(Number(ethers.formatEther(expectedEth)));
+                        setAmount(formatNumber(Number(ethers.formatEther(amountToSell))));
                     }
                 }
             }
@@ -302,7 +302,7 @@ function TokenDetails() {
                                     network: chain?.id == 57054 ? "Sonic" : "Ancient8",
                                     tokenAddress: tokenData?.address,
                                     userAddress: address,
-                                    amountToken: parseFloat(amount||"0"),
+                                    amountToken: Number(amountToSell)/10**18,
                                     amount: amountToReceive,
                                     transactionType: 'SELL',
                                     transactionHash: txHash as `0x${string}`
@@ -363,8 +363,8 @@ function TokenDetails() {
     };
 
     const handleBuy = async () => {
-        if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
+        if (!amount) return toast.error('Please enter an amount');
         if (tokenData?.network == "Sonic") {
             switchChain({
                 chainId: 57054
@@ -791,12 +791,6 @@ function TokenDetails() {
                                     <div className="flex items-center gap-1">Social</div>
                                 </TabsTrigger>
                                 <TabsTrigger 
-                                    value="message"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
-                                >
-                                    <div className="flex items-center gap-1 ">Message</div>
-                                </TabsTrigger>
-                                <TabsTrigger 
                                     value="launching"
                                     className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
                                 >
@@ -866,7 +860,7 @@ function TokenDetails() {
                                                             placeholder="0.0"
                                                             step="0.01"
                                                             min="0"
-                                                            value={amount||''}
+                                                            value={parseFloat(amount||"0")||''}
                                                             onChange={handleAmountChange}
                                                             className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
                                                         />
@@ -988,20 +982,12 @@ function TokenDetails() {
                     <TabsContent value="social" className="mt-4">
                         <Social tokenData={tokenData} />
                     </TabsContent>
-                    <TabsContent value="message" className="mt-4">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <span className="text-sm text-gray-400">Coming Soon</span>
-                            </div>
-                        </div>
-                    </TabsContent>
                     <TabsContent value="launching" className="mt-4">
                         <Launching 
                             network={tokenData?.network||''} 
                             sonicPrice={sonicPrice} 
                             ethPrice={ethPrice} 
                             tokenAddress={tokenData?.address||''} 
-                            bondingCurveAddress={tokenData?.curveAddress||''} 
                             transactions={transactionHistory as any|| []} 
                             totalMarketCap={totalMarketCapToken} 
                             totalSupply={0} 
