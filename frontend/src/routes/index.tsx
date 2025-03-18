@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import Hero from "../components/custom/Hero";
-import TrendingTokens from "../components/custom/TrendingTokens";
 import TransactionList from "../components/custom/TransactionList";
 import TokenMarket from "../components/custom/TokenMarket";
 import { useSolanaTokens } from "../hooks/useWebSocketData";
