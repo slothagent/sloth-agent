@@ -799,6 +799,12 @@ function TokenDetails() {
                                     <div className="flex items-center gap-1">Trade</div>
                                 </TabsTrigger>      
                                 <TabsTrigger 
+                                    value="transactions"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                >
+                                    <div className="flex items-center gap-1 ">Transactions</div>
+                                </TabsTrigger>
+                                <TabsTrigger 
                                     value="analytics"
                                     className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
                                 >
@@ -809,12 +815,6 @@ function TokenDetails() {
                                     className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
                                 >
                                     <div className="flex items-center gap-1">Social</div>
-                                </TabsTrigger>
-                                <TabsTrigger 
-                                    value="launching"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
-                                >
-                                    <div className="flex items-center gap-1 ">Launching</div>
                                 </TabsTrigger>
                             </TabsList>
                         </div>
@@ -992,17 +992,7 @@ function TokenDetails() {
                         </div>
                         
                     </TabsContent>
-                    <TabsContent value="analytics" className="mt-4">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <span className="text-sm text-gray-400">Coming Soon</span>
-                            </div>
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="social" className="mt-4">
-                        <Social tokenData={tokenData} />
-                    </TabsContent>
-                    <TabsContent value="launching" className="mt-4">
+                    <TabsContent value="transactions" className="mt-4">
                         <Launching 
                             network={tokenData?.network||''} 
                             sonicPrice={sonicPrice} 
@@ -1014,6 +1004,17 @@ function TokenDetails() {
                             symbol={tokenData?.ticker||''} 
                         />
                     </TabsContent>
+                    <TabsContent value="analytics" className="mt-4">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-sm text-gray-400">Coming Soon</span>
+                            </div>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="social" className="mt-4">
+                        <Social tokenData={tokenData} />
+                    </TabsContent>
+                    
                 </Tabs>
                 </div>
             </div>

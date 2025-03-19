@@ -55,17 +55,17 @@ const Header: React.FC = () => {
               />
             </div>
           </div>
-          {isConnected && (
+          {/* {isConnected && (
             <Link to="/agent" className="hidden md:block">
               <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
                 <span className="text-white text-sm">My Agent</span>
               </div>
             </Link>
-          )}
+          )} */}
           {isConnected && (
             <Link to="/omni" className="hidden md:block">
               <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
-                <span className="text-white text-sm">Omni</span>
+                <span className="text-white text-sm">Omni Agent</span>
               </div>
             </Link>
           )}
