@@ -140,11 +140,11 @@ const Hero: React.FC = () => {
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-gray-400">Market Cap</span>
-                    <span className="text-white">${formatNumber(totalMarketCapToken)}</span>
+                    <span className="text-white">${totalMarketCapToken ? formatNumber(totalMarketCapToken) : '-'}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-400">24h Volume</span>
-                    <span className="text-white">${formatNumber(totalVolumeToken)}</span>
+                    <span className="text-white">${totalVolumeToken ? formatNumber(totalVolumeToken) : '-'}</span>
                   </div>
                 </div>
               </CardContent>
@@ -175,15 +175,15 @@ const Hero: React.FC = () => {
             </div>
             
             <div className='flex gap-4'>
-              <button 
+              {/* <button 
                 onClick={() => router.navigate({to: '/agent/create'})}
                 className="flex items-center gap-2 px-6 py-2 text-sm bg-blue-500  border border-[#1F2937] text-wrap hover:bg-blue-600 text-white hover:text-white cursor-pointer"
               >
                 Create New Agent
-              </button>
+              </button> */}
               <button
                   onClick={()=>router.navigate({to: '/token/create'})}
-                  className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-[#161B28] border border-[#1F2937] text-gray-400 hover:bg-[#1C2333] hover:text-white cursor-pointer`}
+                  className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-blue-500 border border-[#1F2937] text-white hover:bg-blue-400 hover:text-white cursor-pointer`}
               >
                   Create New Token
               </button>

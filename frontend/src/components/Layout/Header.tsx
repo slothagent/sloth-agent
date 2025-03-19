@@ -33,7 +33,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="h-16 flex items-center justify-between gap-4">
           {/* Logo - Responsive */}
-          <div onClick={()=>navigate({to:'/'})} className="flex items-center gap-2 min-w-fit">
+          <div onClick={()=>navigate({to:'/'})} className="flex items-center gap-2 min-w-fit cursor-pointer">
             <div className="w-8 h-8 sm:w-10 sm:h-10 relative">
               <img
                 src="/assets/logo/sloth.png"

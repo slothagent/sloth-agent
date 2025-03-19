@@ -309,7 +309,7 @@ export default function TokenMarket() {
           </Button>
         </div>
       </div>
-      <div className="flex items-center gap-4 mt-4 mb-2 rounded-lg">
+      {/* <div className="flex items-center gap-4 mt-4 mb-2 rounded-lg">
         <div className="relative flex-1">
           <Search size={16} className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
           <input
@@ -320,7 +320,7 @@ export default function TokenMarket() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-      </div>
+      </div> */}
       <div className='py-4 border-b border-gray-800'>
         <div className='flex items-center justify-between gap-2'>
           <div className='flex flex-wrap gap-2'>
