@@ -7,7 +7,7 @@ async function bootstrap() {
   
   // Configure CORS
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://www.slothai.xyz', 'https://slothai.xyz', 'http://localhost:5173','https://staging.slothai.xyz'],
+    origin: ['http://localhost:3000', 'https://www.slothai.xyz', 'https://slothai.xyz', 'http://localhost:5173'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-Requested-With', 'Accept'],
     credentials: true,

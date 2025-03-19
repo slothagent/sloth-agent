@@ -9,7 +9,7 @@ export class TokenController {
   async createToken(@Body() body: any) {
     try {
       // Validate required fields
-      const requiredFields = ['name', 'address', 'owner', 'ticker', 'totalSupply', 'curveAddress'];
+      const requiredFields = ['name', 'address', 'owner', 'ticker', 'totalSupply'];
       for (const field of requiredFields) {
         if (!body[field]) {
           throw new HttpException(`Missing required field: ${field}`, HttpStatus.BAD_REQUEST);
@@ -22,8 +22,7 @@ export class TokenController {
         address: body.address,
         owner: body.owner,
         ticker: body.ticker,
-        totalSupply: "800000000",
-        curveAddress: body.curveAddress,
+        totalSupply: body.totalSupply,
         network: body.network,
         // Optional fields
         description: body.description || undefined,
@@ -62,6 +61,54 @@ export class TokenController {
       }
       
       throw new HttpException('An unexpected error occurred', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('search')
+  async searchTokens(@Query('q') searchTerm: string) {
+    try {
+      if (!searchTerm) {
+        return {
+          success: true,
+          data: [],
+          metadata: {
+            currentPage: 1,
+            pageSize: 10,
+            totalPages: 0,
+            totalCount: 0
+          }
+        };
+      }
+
+      const collection = await this.tokenService.getCollection();
+      const tokens = await collection.find({
+        $or: [
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { ticker: { $regex: searchTerm, $options: 'i' } }
+        ]
+      }).sort({ createdAt: -1 }).toArray();
+
+      return {
+        success: true,
+        data: tokens,
+        metadata: {
+          currentPage: 1,
+          pageSize: tokens.length,
+          totalPages: 1,
+          totalCount: tokens.length
+        }
+      };
+    } catch (error) {
+      console.error('Error searching tokens:', error);
+      
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      throw new HttpException(
+        error instanceof Error ? error.message : 'Failed to search tokens',
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 

@@ -8,9 +8,9 @@ export class TransactionController {
   @Post()
   async createTransaction(@Body() body: any) {
     try {
-      const { tokenAddress, userAddress, price, amountToken, amount,transactionType, transactionHash, totalSupply, marketCap, network, fundingRaised } = body;
+      const { tokenAddress, userAddress, amountToken, amount,transactionType, transactionHash,network,price } = body;
 
-      if (!tokenAddress || !userAddress || !price || !amountToken || !transactionType || !transactionHash) {
+      if (!tokenAddress || !userAddress || !amountToken || !transactionType || !transactionHash) {
         throw new HttpException("Missing required fields", HttpStatus.BAD_REQUEST);
       }
 
@@ -19,20 +19,41 @@ export class TransactionController {
         to: userAddress,
         amountToken,
         amount,
-        price,
         transactionType,
         transactionHash,
         timestamp: new Date(),
-        totalValue: price *  amountToken,
-        supply: totalSupply,
-        marketCap: marketCap,
-        network: network,
-        fundingRaised: fundingRaised
+        network,
+        price
       });
 
       return { success: true, data: result };
     } catch (error) {
       console.error("Error creating transaction:", error);
+      
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      throw new HttpException("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Get('search')
+  async searchTransactions(@Query('q') searchTerm: string) {
+    try {
+      if (!searchTerm) {
+        return { success: true, data: [], metadata: { totalCount: 0, currentPage: 1, pageSize: 10, totalPages: 0 } };
+      }
+
+      const searchResults = await this.transactionService.searchTransactions({
+        query: searchTerm,
+        page: 1,
+        limit: 10
+      });
+
+      return { success: true, ...searchResults };
+    } catch (error) {
+      console.error("Error searching transactions:", error);
       
       if (error instanceof HttpException) {
         throw error;
@@ -49,7 +70,10 @@ export class TransactionController {
     @Query('latest') latest: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '10',
-    @Query('totalVolume') totalVolume: string
+    @Query('totalVolume') totalVolume: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('transactionHash') transactionHash?: string
   ) {
     try {
       const pageNum = parseInt(page);
@@ -60,6 +84,18 @@ export class TransactionController {
         return { success: true, data: allTransactions };
       }
       
+      // Check if search parameters are provided
+      if (from || to || transactionHash) {
+        const searchResults = await this.transactionService.searchTransactions({
+          from,
+          to,
+          transactionHash,
+          page: pageNum,
+          limit: limitNum
+        });
+        return { success: true, ...searchResults };
+      }
+
       // If no specific filters are provided, return paginated transactions
       if (!tokenAddress && !timeRange && !latest) {
         const paginatedResult = await this.transactionService.getPaginatedTransactions(pageNum, limitNum);

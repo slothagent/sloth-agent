@@ -8,6 +8,8 @@ import { PriceModule } from './price/price.module';
 import { ImageModule } from './image/image.module';
 import { TokenModule } from './token/token.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { ChatModule } from './chat/chat.module';
+import { OmniModule } from './omni/omni.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { TransactionModule } from './transaction/transaction.module';
     ImageModule,
     TokenModule,
     TransactionModule,
+    ChatModule,
+    OmniModule,
   ],
 })
 export class AppModule {}

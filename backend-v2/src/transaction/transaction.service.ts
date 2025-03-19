@@ -12,11 +12,7 @@ export interface Transaction {
   timestamp: Date;
   transactionType: 'BUY' | 'SELL';
   transactionHash: string;
-  totalValue: number;
-  supply: number;
-  marketCap: number;
   network: string;
-  fundingRaised: number;
 }
 
 @Injectable()
@@ -190,6 +186,56 @@ export class TransactionService {
       };
     } catch (error) {
       console.error('Error calculating total volume:', error);
+      throw error;
+    }
+  }
+
+  async searchTransactions(params: {
+    from?: string;
+    to?: string;
+    transactionHash?: string;
+    query?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ data: Transaction[]; metadata: any }> {
+    try {
+      const collection = this.mongodbService.getCollection('transactions');
+      const { from, to, transactionHash, query, page = 1, limit = 10 } = params;
+      const skip = (page - 1) * limit;
+
+      // Build query based on provided parameters
+      const searchQuery: any = {};
+      if (from) searchQuery.from = from;
+      if (to) searchQuery.to = to;
+      if (transactionHash) searchQuery.transactionHash = transactionHash;
+      if (query) {
+        searchQuery.$or = [
+          { from: { $regex: query, $options: 'i' } },
+          { to: { $regex: query, $options: 'i' } },
+          { transactionHash: { $regex: query, $options: 'i' } }
+        ];
+      }
+
+      const [transactions, total] = await Promise.all([
+        collection.find<Transaction>(searchQuery)
+          .sort({ timestamp: -1 })
+          .skip(skip)
+          .limit(limit)
+          .toArray(),
+        collection.countDocuments(searchQuery)
+      ]);
+
+      return {
+        data: transactions,
+        metadata: {
+          currentPage: page,
+          pageSize: limit,
+          totalPages: Math.ceil(total / limit),
+          totalCount: total
+        }
+      };
+    } catch (error) {
+      console.error('Error searching transactions:', error);
       throw error;
     }
   }
