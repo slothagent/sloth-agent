@@ -244,7 +244,7 @@ const TrendingCards = () => {
                   </div>
                   <div className="flex items-center gap-6">
                     <img src={coin.sparkline} alt="sparkline" className="h-8 w-24" />
-                    <div className="flex flex-col items-end md:w-20">
+                    <div className="flex flex-col items-end">
                       <span className="text-white">${coin.price.toFixed(2)}</span>
                     </div>
                   </div>
