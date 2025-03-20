@@ -299,7 +299,7 @@ export default function TokenMarket() {
         <p className='text-white text-2xl font-bold'>
           All Tokens
         </p>
-        <div className="flex items-center gap-2 mt-2">
+        {/* <div className="flex items-center gap-2 mt-2">
           <Button 
             variant="outline" 
             className="text-gray-400 hover:bg-[#1C2333] hover:text-white text-sm bg-transparent rounded-none cursor-pointer"
@@ -307,7 +307,7 @@ export default function TokenMarket() {
           >
             View More
           </Button>
-        </div>
+        </div> */}
       </div>
       {/* <div className="flex items-center gap-4 mt-4 mb-2 rounded-lg">
         <div className="relative flex-1">
