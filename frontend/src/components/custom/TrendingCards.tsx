@@ -170,9 +170,6 @@ const TrendingCards = () => {
                     <img src={coin.sparkline} alt="sparkline" className="h-8 w-24" />
                     <div className="flex flex-col items-end">
                       <span className="text-white">${coin.price.toFixed(2)}</span>
-                      <span className={`text-sm ${coin.price_change_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {coin.price_change_24h >= 0 ? '↑' : '↓'} {Math.abs(coin.price_change_24h).toFixed(2)}%
-                      </span>
                     </div>
                   </div>
                 </div>
