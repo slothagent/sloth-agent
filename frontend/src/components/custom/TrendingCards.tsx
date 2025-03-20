@@ -1,0 +1,231 @@
+import { Card, CardContent } from "../ui/card";
+import { useQuery } from "@tanstack/react-query";
+
+interface TrendingItem {
+  id: string;
+  name: string;
+  symbol: string;
+  thumb: string;
+  price: number;
+  price_change_24h: number;
+  sparkline?: string;
+  pair?: string;
+  market_cap_rank: number;
+  url?: string;
+}
+
+interface DexScreenerProfile {
+  url: string;
+  chainId: string;
+  tokenAddress: string;
+  icon: string;
+  description: string;
+}
+
+interface CoinGeckoTrendingResponse {
+  coins: Array<{
+    item: {
+      id: string;
+      name: string;
+      symbol: string;
+      thumb: string;
+      market_cap_rank: number;
+      data: {
+        price: number;
+        price_change_percentage_24h: {
+          usd: number;
+        };
+        sparkline: string;
+      };
+    };
+  }>;
+}
+
+const fetchTrendingCoins = async (): Promise<TrendingItem[]> => {
+  const response = await fetch('https://api.coingecko.com/api/v3/search/trending');
+  if (!response.ok) {
+    throw new Error('Failed to fetch trending coins');
+  }
+  const data: CoinGeckoTrendingResponse = await response.json();
+  
+  return data.coins
+    .filter(coin => coin.item.market_cap_rank >= 1)
+    .sort((a, b) => a.item.market_cap_rank - b.item.market_cap_rank)
+    .map(coin => ({
+      id: coin.item.id,
+      name: coin.item.name,
+      symbol: coin.item.symbol.toUpperCase(),
+      thumb: coin.item.thumb,
+      price: coin.item.data.price,
+      price_change_24h: coin.item.data.price_change_percentage_24h.usd,
+      sparkline: coin.item.data.sparkline,
+      market_cap_rank: coin.item.market_cap_rank
+    }));
+};
+
+const fetchTrendingDex = async (): Promise<TrendingItem[]> => {
+  // Fetch token profiles
+  const profilesResponse = await fetch('https://api.dexscreener.com/token-profiles/latest/v1');
+  if (!profilesResponse.ok) {
+    throw new Error('Failed to fetch token profiles');
+  }
+  const profiles: DexScreenerProfile[] = await profilesResponse.json();
+
+  // Process only the first 5 profiles
+  const topProfiles = profiles.slice(0, 5);
+  // Fetch pair data for each token
+  const trendingItems = await Promise.all(
+    topProfiles.map(async (profile, index) => {
+      try {
+        const pairResponse = await fetch(`https://api.dexscreener.com/token-pairs/v1/${profile.chainId}/${profile.tokenAddress}`);
+        if (!pairResponse.ok) {
+          console.error(`Failed to fetch pair data for ${profile.tokenAddress}`);
+          return null;
+        }
+        
+        const pairData = await pairResponse.json();
+        const pair = pairData[0];
+
+        const item: TrendingItem = {
+          id: profile.tokenAddress,
+          name: pair.baseToken.name,
+          symbol: pair.baseToken.symbol,
+          thumb: profile.icon || pair.info.imageUrl,
+          price: parseFloat(pair.priceUsd || '0'),
+          price_change_24h: pair.priceChange?.h24 || 0,
+          pair: pair.quoteToken.symbol,
+          market_cap_rank: index + 1,
+          url: profile.url
+        };
+        return item;
+      } catch (error) {
+        console.error(`Error processing token ${profile.tokenAddress}:`, error);
+        return null;
+      }
+    })
+  );
+
+  // Filter out null values and ensure type safety
+  return trendingItems.filter((item): item is TrendingItem => item !== null);
+};
+
+const TrendingCards = () => {
+  const { 
+    data: trendingCoins, 
+    isLoading: isLoadingCoins,
+    isError: isErrorCoins,
+    error: errorCoins
+  } = useQuery<TrendingItem[], Error>({
+    queryKey: ['trendingCoins'],
+    queryFn: fetchTrendingCoins,
+    refetchInterval: 10000,
+    staleTime: 20000,
+    gcTime: 1800000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  const {
+    data: trendingDex,
+    isLoading: isLoadingDex,
+    isError: isErrorDex,
+    error: errorDex
+  } = useQuery<TrendingItem[], Error>({
+    queryKey: ['trendingDex'],
+    queryFn: fetchTrendingDex,
+    refetchInterval: 10000,
+    staleTime: 20000,
+    gcTime: 1800000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+  console.log(trendingDex);
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Trending Coins Card */}
+      <Card className="bg-[#161B28] border border-[#1F2937] rounded-lg h-auto min-h-[200px]">
+        <CardContent className="p-4">
+          <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+            Trending Coins
+          </h2>
+          {isLoadingCoins ? (
+            <div className="text-white text-center">Loading...</div>
+          ) : isErrorCoins ? (
+            <div className="text-red-500 text-center">
+              Error: {errorCoins instanceof Error ? errorCoins.message : 'Failed to fetch data'}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {trendingCoins?.slice(0, 5).map((coin, index) => (
+                <div key={coin.id} className="flex items-center justify-between cursor-pointer group" onClick={() => window.open(`https://coinmarketcap.com/currencies/${coin.id}`, '_blank')}>
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 text-sm">{index+1}</span>
+                    <img src={coin.thumb} alt={coin.name} className="w-7 h-7 rounded-full" />
+                    <div className="flex flex-col">
+                      <span className="text-white group-hover:underline">{coin.name}</span>
+                      <span className="text-gray-400 text-sm group-hover:underline">{coin.symbol}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <img src={coin.sparkline} alt="sparkline" className="h-8 w-24" />
+                    <div className="flex flex-col items-end">
+                      <span className="text-white">${coin.price.toFixed(2)}</span>
+                      <span className={`text-sm ${coin.price_change_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {coin.price_change_24h >= 0 ? '↑' : '↓'} {Math.abs(coin.price_change_24h).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Trending on DexScan Card */}
+      <Card className="bg-[#161B28] border border-[#1F2937] rounded-lg h-auto min-h-[200px]">
+        <CardContent className="p-4">
+          <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+            Trending on DexScan
+          </h2>
+          {isLoadingDex ? (
+            <div className="text-white text-center">Loading...</div>
+          ) : isErrorDex ? (
+            <div className="text-red-500 text-center">
+              Error: {errorDex instanceof Error ? errorDex.message : 'Failed to fetch data'}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {trendingDex?.map((item) => (
+                <div 
+                    key={item.id} 
+                    className="flex items-center justify-between cursor-pointer group" 
+                    onClick={() => window.open(item.url, '_blank')}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 text-sm">{item.market_cap_rank}</span>
+                    <img src={item.thumb} alt={item.name} className="w-6 h-6 rounded-full" />
+                    <div className="flex flex-col">
+                      <span className="text-white group-hover:underline">{item.name}</span>
+                      <span className="text-gray-400 text-sm group-hover:underline">{item.symbol}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-end">
+                      <span className="text-white">${item.price.toFixed(8)}</span>
+                      <span className={`text-sm ${item.price_change_24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {item.price_change_24h >= 0 ? '↑' : '↓'} {Math.abs(item.price_change_24h).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default TrendingCards; 

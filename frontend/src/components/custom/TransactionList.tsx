@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Transaction } from '../../models';
@@ -7,9 +7,10 @@ import TableTransaction from './TableTransaction';
 import { useSonicPrice } from '../../hooks/useSonicPrice';
 import { useEthPrice } from '../../hooks/useEthPrice';
 import axios from 'axios';
+import { useAllTransactionsData } from '../../hooks/useWebSocketData';
 
 const fetchTransactions = async (page: number): Promise<{ data: Transaction[], total: number }> => {
-  const response = await  axios.get(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?page=${page}&limit=10`);
+  const response = await axios.get(`${import.meta.env.PUBLIC_API_NEW}/api/transaction?page=${page}&limit=10`);
   const result = await response.data;
   return {
     data: result.data,
@@ -19,11 +20,13 @@ const fetchTransactions = async (page: number): Promise<{ data: Transaction[], t
 
 const TransactionList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [displayedTransactions, setDisplayedTransactions] = useState<Transaction[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  
+  const { transactions: transactionsData30d } = useAllTransactionsData('30d');
   const { data: sonicPriceData } = useSonicPrice();
   const { data: ethPriceData } = useEthPrice();
 
-  // Get the ETH price for calculations, fallback to 2500 if not available
   const ethPrice = useMemo(() => {
     return ethPriceData?.price || 2500;
   }, [ethPriceData]);
@@ -32,18 +35,31 @@ const TransactionList: React.FC = () => {
     return sonicPriceData?.price || 0.7;
   }, [sonicPriceData]);
 
-  const { data: transactionsData, isLoading } = useQuery({
+  // Only fetch from API when needed (initial load or page change)
+  const { data: apiTransactionsData, isLoading } = useQuery({
     queryKey: ['transactions', currentPage],
     queryFn: () => fetchTransactions(currentPage),
-    refetchInterval: 10000
+    enabled: !transactionsData30d?.length // Only fetch if we don't have WebSocket data
   });
 
-  console.log("transactionsData", transactionsData);
+  // Combine and manage transactions from both sources
+  useEffect(() => {
+    if (transactionsData30d?.length) {
+      // Use WebSocket data when available
+      const startIdx = (currentPage - 1) * 10;
+      const endIdx = startIdx + 10;
+      setDisplayedTransactions(transactionsData30d.slice(startIdx, endIdx));
+      setTotalItems(transactionsData30d.length);
+    } else if (apiTransactionsData) {
+      // Fallback to API data
+      setDisplayedTransactions(apiTransactionsData.data);
+      setTotalItems(apiTransactionsData.total);
+    }
+  }, [currentPage, transactionsData30d, apiTransactionsData]);
 
   const totalPages = useMemo(() => {
-    if (!transactionsData?.total) return 1;
-    return Math.ceil(transactionsData.total / 10);
-  }, [transactionsData?.total]);
+    return Math.ceil(totalItems / 10);
+  }, [totalItems]);
 
   return (
     <div className="w-full">
@@ -75,10 +91,10 @@ const TransactionList: React.FC = () => {
           <div className="divide-y divide-gray-800">
             {isLoading ? (
               <div className="p-4 text-center text-gray-400">Loading transactions...</div>
-            ) : transactionsData?.data?.length === 0 ? (
+            ) : displayedTransactions?.length === 0 ? (
               <div className="p-4 text-center text-gray-400">No transactions found</div>
             ) : (
-              transactionsData?.data?.map((tx) => (
+              displayedTransactions?.map((tx) => (
                 <TableTransaction key={tx.transactionHash} tx={tx} ethPrice={ethPrice} sonicPrice={sonicPrice} />
               ))
             )}
