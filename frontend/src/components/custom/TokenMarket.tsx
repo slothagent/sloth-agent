@@ -297,7 +297,7 @@ export default function TokenMarket() {
     <div className="flex flex-col pt-6">
       <div className='flex items-center justify-between'>
         <p className='text-white text-2xl font-bold'>
-          Token Market
+          All Tokens
         </p>
         <div className="flex items-center gap-2 mt-2">
           <Button 
@@ -347,7 +347,7 @@ export default function TokenMarket() {
         </div>
       </div>
       <div className='gap-4 py-4 overflow-x-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-        {filteredTokens.map((token: Token, index: number) => (
+        {filteredTokens.slice(0, 4).map((token: Token, index: number) => (
           <TokenCard key={index} token={token} />
         ))}
         {filteredTokens.length === 0 && searchQuery && (

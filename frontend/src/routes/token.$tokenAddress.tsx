@@ -188,7 +188,7 @@ function TokenDetails() {
             const calculateTokens = async () => {
                 if(type === 'buy'){
                     const expectedTokens = await calculateExpectedTokens(tokenInfo, amount||"0");
-                    console.log("expectedTokens", ethers.formatEther(expectedTokens));
+                    // console.log("expectedTokens", ethers.formatEther(expectedTokens));
                     // Add 15% slippage tolerance
                     const slippageTolerance = 0.15;
                     const minTokensOut = expectedTokens * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);

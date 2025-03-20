@@ -8,7 +8,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
 import { factoryAbi } from '../abi/factoryAbi';
 import { Button } from '../components/ui/button';
-import { parseEther, parseUnits, decodeEventLog } from 'viem';
+import { parseEther, decodeEventLog } from 'viem';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -17,6 +17,11 @@ import { bondingCurveAbi } from '../abi/bondingCurveAbi';
 import { useSwitchChain } from 'wagmi';
 import { configAncient8 } from '../config/wagmi';
 import { configSonicBlaze } from '../config/wagmi';
+import { formatNumber } from '../utils/format';
+import { tokenInfo } from '../lib/contants';
+import { useCalculateTokens } from '../hooks/useCalculateTokens';
+import { ethers } from 'ethers';
+
 
 export const Route = createFileRoute("/token/create")({
     component: CreateToken
@@ -44,7 +49,12 @@ function CreateToken() {
     const [isTwitterShareOpen, setIsTwitterShareOpen] = useState<boolean>(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
+    const [minTokensOut, setMinTokensOut] = useState<number>(0);
+    const [amountToReceive, setAmountToReceive] = useState<number>(0);
+    const [transactionType, setTransactionType] = useState<string|null>(null);
     const { switchChain } = useSwitchChain();
+    const { calculateExpectedTokens } = useCalculateTokens();
+
 
     const { data: balance } = useBalance({
         address: OwnerAddress,
@@ -248,6 +258,22 @@ function CreateToken() {
     
     // console.log('Receipt:', receipt);
 
+    useEffect(() => {
+        if(tokenInfo&&amount){
+            const calculateTokens = async () => {
+                const expectedTokens = await calculateExpectedTokens(tokenInfo, amount||"0");
+                // console.log("expectedTokens", ethers.formatEther(expectedTokens));
+                // Add 15% slippage tolerance
+                const slippageTolerance = 0.15;
+                const minTokensOut = expectedTokens * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);
+                // console.log("Minimum tokens to receive:", ethers.formatEther(minTokensOut));
+                setMinTokensOut(Number(minTokensOut));
+                setAmountToReceive(Number(ethers.formatEther(expectedTokens)));
+            }
+            calculateTokens();
+        }
+    }, [tokenInfo,amount]);
+
     // Handle transaction receipt
     useEffect(() => {
         const processReceipt = async () => {
@@ -267,7 +293,21 @@ function CreateToken() {
                         }
                     });
 
-                    if (eventLog) {
+                    const eventLog2 = receipt.logs.find(log => {
+                        try {
+                            const decoded = decodeEventLog({
+                                abi: factoryAbi,
+                                data: log.data,
+                                topics: log.topics,
+                            });
+                            // console.log('Decoded:', decoded);
+                            return decoded.eventName === 'SlothSwap';
+                        } catch {
+                            return false;
+                        }
+                    });
+
+                    if (eventLog && transactionType == 'CREATE') {
                         const decoded = decodeEventLog({
                             abi: factoryAbi,
                             data: eventLog.data,
@@ -278,7 +318,33 @@ function CreateToken() {
                         console.log("token", token)
                         setTokenAddress(token);
                         await createToken(token);
+                        if(amount){
+                            await handleBuyToken(token);
+                        }
                     } 
+                    if (eventLog2 && transactionType == 'BUY') {
+                        const loadingToast = toast.loading('Transaction processing...');
+                        await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                network: chain?.id == 57054 ? "Sonic" : "Ancient8",
+                                userAddress: OwnerAddress,
+                                tokenAddress,
+                                amountToken: amountToReceive,
+                                amount: parseFloat(amount||"0"),
+                                price: 1,
+                                transactionType: 'BUY',
+                                transactionHash: txHash as `0x${string}`
+                            }),
+                        });
+                        setAmount(null);
+                        setIsTwitterShareOpen(true);
+                        toast.success('Buy successful!', { id: loadingToast });
+                    }
+                    
 
                     
                 } catch (error) {
@@ -298,13 +364,6 @@ function CreateToken() {
             toast.error('Transaction confirmation failed');
         }
     }, [isConfirmationError]);
-
-    const { data: tokensToReceive, refetch: refetchTokensToReceive } = useReadContract({
-        address: tokenAddress as `0x${string}`,
-        abi: bondingCurveAbi,
-        functionName: 'calculateTokensForEth',
-        args: [parseEther(amount && /^\d*\.?\d*$/.test(amount) ? amount : "0")]
-    });
 
     const handleSubmit = async () => {
         if (!isConnected) {
@@ -329,6 +388,29 @@ function CreateToken() {
         setIsBuyOpen(true);
     }
 
+    const handleBuyToken = async (tokenAddress: string) => {
+        if (!amount) return;
+        
+        const loadingToast = toast.loading('Buying token...');
+        
+        try {
+            setTransactionType('BUY');
+            const tx = await writeContractAsync({
+                address: chain?.id == 57054 ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
+                abi: factoryAbi,
+                functionName: 'buy',
+                value: parseEther(amount),
+                args: [tokenAddress as `0x${string}` , BigInt(minTokensOut||0)]
+            });
+    
+            setTxHash(tx);
+            toast.success("Transaction submitted! Waiting for confirmation...", { id: loadingToast });
+        } catch (error: any) {
+            console.error('Buy error:', error);
+            toast.error('Failed to buy token', { id: loadingToast });
+        }
+    };
+
 
     const handleCreateToken = async () => {
         const loadingToast = toast.loading('Creating token...');
@@ -340,6 +422,7 @@ function CreateToken() {
             }
             
             try {
+                setTransactionType('CREATE');
                 const tx = await writeContractAsync({
                     address: chain?.id == 57054 ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                     abi: factoryAbi,
@@ -369,7 +452,7 @@ function CreateToken() {
 
 
     const createToken = async (address: string) => {
-        const loadingToast = toast.loading('Creating token...');
+        const loadingToast = toast.loading('Processing transaction...');
         
         try {
             // Prepare the payload with default values for null fields
@@ -898,7 +981,7 @@ function CreateToken() {
                                             <div className="flex items-center justify-between text-sm text-gray-400">
                                                 <span>Total Supply:</span>
                                                 <span className="font-medium text-white">
-                                                    800.000.000 {ticker || 'SYMBOL'}
+                                                    1.000.000.000 {ticker || 'SYMBOL'}
                                                 </span>
                                             </div>
                                             {/* <Button
@@ -928,11 +1011,9 @@ function CreateToken() {
                                                             placeholder="0.0"
                                                             className="w-full bg-[#161B28] border-[#1F2937] text-white placeholder:text-gray-500"
                                                         />
-                                                        {tokensToReceive && (
-                                                            <p className="text-sm text-gray-400">
-                                                                You will receive: {Number(tokensToReceive)/10**18} {ticker || 'tokens'}
-                                                            </p>
-                                                        )}
+                                                        <p className="text-sm text-gray-400">
+                                                            You will receive: {formatNumber(amountToReceive)} {ticker || 'tokens'}
+                                                        </p>
                                                     </div>
                                                     <Button
                                                         onClick={handleCreateToken}

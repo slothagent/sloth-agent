@@ -13,13 +13,12 @@ const fetchTransactions = async (page: number): Promise<{ data: Transaction[], t
   const result = await response.data;
   return {
     data: result.data,
-    total: result.total
+    total: result.metadata.totalCount
   };
 };
 
 const TransactionList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalTransactions] = useState(0);
 
   const { data: sonicPriceData } = useSonicPrice();
   const { data: ethPriceData } = useEthPrice();
@@ -39,6 +38,12 @@ const TransactionList: React.FC = () => {
     refetchInterval: 10000
   });
 
+  console.log("transactionsData", transactionsData);
+
+  const totalPages = useMemo(() => {
+    if (!transactionsData?.total) return 1;
+    return Math.ceil(transactionsData.total / 10);
+  }, [transactionsData?.total]);
 
   return (
     <div className="w-full">
@@ -48,7 +53,7 @@ const TransactionList: React.FC = () => {
 
       <div className="flex items-center justify-between text-xs sm:text-sm text-gray-400 mb-2 px-2">
         <div>
-          TRANSFERS <span className="mx-2">{currentPage} / {Math.ceil(totalTransactions+1 / 10)}</span>
+          TRANSFERS <span className="mx-2">{currentPage} / {totalPages}</span>
         </div>
       </div>
 
@@ -92,13 +97,13 @@ const TransactionList: React.FC = () => {
           Previous
         </Button>
         <span className="text-gray-400 text-xs sm:text-sm">
-          Page {currentPage} of {Math.ceil(totalTransactions / 10)+1}
+          Page {currentPage} of {totalPages}
         </span>
         <Button
           variant="outline"
           className="text-gray-400 hover:bg-[#1C2333] hover:text-white text-sm bg-transparent rounded-none cursor-pointer"
           onClick={() => setCurrentPage(p => p + 1)}
-          disabled={currentPage >= Math.ceil(totalTransactions / 10) || isLoading}
+          disabled={currentPage >= totalPages || isLoading}
         >
           Next
         </Button>
