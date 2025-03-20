@@ -6,6 +6,17 @@ import { Card, CardContent } from "../ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { formatNumber } from "../../utils/utils";
 
+// Add chain logos mapping
+const chainLogos: { [key: string]: string } = {
+  eth: "/assets/chains/ethereum.png",
+  bsc: "/assets/chains/bsc.png",
+  solana: "/assets/chains/solana.png",
+  polygon: "/assets/chains/polygon.png",
+  arb: "/assets/chains/arbitrum.png",
+  ton: "/assets/chains/ton.png",
+  base: "/assets/chains/base.svg",
+};
+
 interface TrendingItem {
   id: string;
   name: string;
@@ -17,6 +28,7 @@ interface TrendingItem {
   pair?: string;
   market_cap_rank: number;
   url?: string;
+  chainId?: string;
 }
 
 interface DexScreenerProfile {
@@ -100,7 +112,8 @@ const fetchTrendingDex = async (): Promise<TrendingItem[]> => {
           price_change_24h: pair.priceChange?.h24 || 0,
           pair: pair.quoteToken.symbol,
           market_cap_rank: index + 1,
-          url: profile.url
+          url: profile.url,
+          chainId: profile.chainId
         };
         return item;
       } catch (error) {
@@ -158,6 +171,8 @@ const TrendingCards = () => {
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+//   console.log(trendingDex);
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Recent Tokens Card */}
@@ -181,7 +196,12 @@ const TrendingCards = () => {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-gray-400 text-sm">{index+1}</span>
-                        <img src={token.imageUrl} alt={token.name} className="w-8 h-8 rounded-full" />
+                        <div className="w-8 h-8 rounded-full overflow-hidden relative">
+                          <img src={token.imageUrl} alt={token.name} className="w-full h-full object-cover z-0" />
+                          <div className="absolute -bottom-3 -right-2 z-10">
+                            <img src={chainLogos.bsc} alt="chain" className="w-4 h-4" />
+                          </div>
+                        </div>
                         <div className="flex flex-col">
                           <span className="text-white group-hover:underline transition-colors">{token.name}</span>
                           <span className="text-gray-400 text-sm group-hover:underline transition-colors">{token.ticker}</span>
@@ -222,9 +242,9 @@ const TrendingCards = () => {
                       <span className="text-gray-400 text-sm group-hover:underline">{coin.symbol}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-6">
                     <img src={coin.sparkline} alt="sparkline" className="h-8 w-24" />
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end md:w-20">
                       <span className="text-white">${coin.price.toFixed(2)}</span>
                     </div>
                   </div>
@@ -251,13 +271,28 @@ const TrendingCards = () => {
             <div className="space-y-4">
               {trendingDex?.map((item) => (
                 <div 
-                    key={item.id} 
-                    className="flex items-center justify-between cursor-pointer group" 
-                    onClick={() => window.open(item.url, '_blank')}
+                  key={item.id} 
+                  className="flex items-center justify-between cursor-pointer group" 
+                  onClick={() => window.open(item.url, '_blank')}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-gray-400 text-sm">{item.market_cap_rank}</span>
-                    <img src={item.thumb} alt={item.name} className="w-6 h-6 rounded-full" />
+                    <div className="relative w-8 h-8">
+                      <div className="w-8 h-8 rounded-full overflow-hidden">
+                        <img 
+                          src={item.thumb} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#161B28] flex items-center justify-center p-0.5">
+                        <img 
+                          src={chainLogos[item.chainId?.toLowerCase() || 'bsc']} 
+                          alt="chain" 
+                          className="w-full h-full"
+                        />
+                      </div>
+                    </div>
                     <div className="flex flex-col">
                       <span className="text-white group-hover:underline">{item.name}</span>
                       <span className="text-gray-400 text-sm group-hover:underline">{item.symbol}</span>
