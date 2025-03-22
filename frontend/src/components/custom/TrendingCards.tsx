@@ -16,6 +16,8 @@ const chainLogos: { [key: string]: string } = {
   arb: "/assets/chains/arbitrum.png",
   ton: "/assets/chains/ton.png",
   base: "/assets/chains/base.svg",
+  sonic: "https://sonicscan.org/assets/sonic/images/svg/logos/chain-dim.svg?v=25.3.2.1",
+  ancient8: "/assets/chains/a8.png",
 };
 
 interface TrendingItem {
@@ -198,10 +200,20 @@ const TrendingCards = () => {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-gray-400 text-sm">{index+1}</span>
-                        <div className="w-8 h-8 rounded-full overflow-hidden relative">
-                          <img src={token.imageUrl} alt={token.name} className="w-full h-full object-cover z-0" />
-                          <div className="absolute -bottom-3 -right-2 z-10">
-                            <img src={chainLogos.bsc} alt="chain" className="w-4 h-4" />
+                        <div className="relative w-8 h-8">
+                          <div className="w-8 h-8 rounded-full overflow-hidden">
+                            <img 
+                              src={token.imageUrl} 
+                              alt={token.name} 
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#161B28] flex items-center justify-center p-0.5">
+                            <img 
+                              src={chainLogos[token.network?.toLowerCase() || 'sonic']} 
+                              alt="chain" 
+                              className="w-full h-full"
+                            />
                           </div>
                         </div>
                         <div className="flex flex-col">

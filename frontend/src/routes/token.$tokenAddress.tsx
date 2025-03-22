@@ -11,7 +11,7 @@ import { Button } from "../components/ui/button";
 import { useQuery } from '@tanstack/react-query';   
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '../components/ui/input';
-import { useReadContract, useWriteContract, useAccount,useBalance, useWaitForTransactionReceipt } from 'wagmi';
+import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits, MaxUint256, ethers } from "ethers";
 import Launching from '../components/custom/Launching';
