@@ -1,24 +1,30 @@
 import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { ArrowUp, Mic, History } from "lucide-react";
+import { ArrowUp, History } from "lucide-react";
 import { ChatMessage, Chat, createChat, getChat, addMessage, getUserChats } from "../lib/chat";
-import { useAccount, useBalance, useSwitchChain, useWriteContract } from "wagmi";
+import { useAccount, useSwitchChain, useWriteContract } from "wagmi";
 import { v4 as uuidv4 } from 'uuid';
 import { getInitialMessage, clearInitialMessage } from "../lib/messageStore";
 import { ChatHistoryDialog } from "../components/ChatHistoryDialog";
 import { ProcessLogs } from "../components/ProcessLogs";
 import { uploadImageToPinata } from "../utils/pinata";
-import { parseEther } from "ethers";
+import { ethers, parseEther } from "ethers";
 import { factoryAbi } from "../abi/factoryAbi";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { toast } from "react-hot-toast";
+import { a8TokenAbi } from "../abi/a8TokenAbi";
+import { ancient8Sepolia } from "wagmi/chains";
+import { waitForTransactionReceipt } from 'viem/actions';
+import { createPublicClient, http } from 'viem';
+
 
 export const Route = createFileRoute("/omni/$chatId")({
     component: OmniChat,
 });
 
 function OmniChat() {
-    const { address, chain } = useAccount();
+    const { address } = useAccount();
     const navigate = useNavigate();
     const { chatId } = useParams({ from: "/omni/$chatId" });
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -83,6 +89,26 @@ function OmniChat() {
 
     // Helper functions for message type checking
     const checkIsGeneralChat = (messageNormalized: string): boolean => {
+        const tokenKeywords = [
+            'deploy token',
+            'create token',
+            'mint token',
+            'launch token',
+            'generate token',
+            'make token',
+            'issue token',
+            'new token',
+            'token creation',
+            'token deployment',
+            'create a token',
+        ];
+
+        const isTokenCreation = tokenKeywords.some(keyword => messageNormalized.includes(keyword));
+        
+        if (isTokenCreation) {
+            return false; // Not a general chat if it's a token creation request
+        }
+
         return !(
             // Not a price/search query
             messageNormalized.includes('price') ||
@@ -97,19 +123,7 @@ function OmniChat() {
             messageNormalized.includes('today') ||
             messageNormalized.includes('now') ||
             messageNormalized.includes('current') ||
-            messageNormalized.includes('latest') ||
-            
-            // Not a token creation request
-            messageNormalized.includes('deploy token') ||
-            messageNormalized.includes('create token') ||
-            messageNormalized.includes('mint token') ||
-            messageNormalized.includes('launch token') ||
-            messageNormalized.includes('generate token') ||
-            messageNormalized.includes('make token') ||
-            messageNormalized.includes('issue token') ||
-            messageNormalized.includes('new token') ||
-            messageNormalized.includes('token creation') ||
-            messageNormalized.includes('token deployment')
+            messageNormalized.includes('latest')
         );
     };
 
@@ -268,11 +282,15 @@ function OmniChat() {
 
                         if (isPriceOrSearchQuery) {
                             const searchResult = await processSearch(initialMessage);
-                            if (searchResult.error && searchResult.shouldTryChat) {
-                                const chatResult = await processChat(initialMessage);
-                                assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+                            if (searchResult.error) {
+                                if (searchResult.shouldTryChat) {
+                                    const chatResult = await processChat(initialMessage);
+                                    assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+                                } else {
+                                    assistantResponse = searchResult.searchResults || 'No results found';
+                                }
                             } else {
-                                assistantResponse = searchResult.error ? `Error: ${searchResult.error}` : searchResult.searchResults;
+                                assistantResponse = searchResult.searchResults || 'No results found';
                             }
                         } else {
                             const tokenResult = await processTokenCreation(initialMessage);
@@ -420,68 +438,12 @@ Your token has been deployed successfully! 🎉`;
         }
     };
 
-    const processSearch = async (message: string) => {
-        // Check if it's a real-time query
-        const realTimeKeywords = [
-            // Cryptocurrency specific
-            'btc', 'bitcoin', 'eth', 'ethereum', 'price of', 'how much is',
-            'what is the price', 'what\'s the price', 'whats the price',
-            'coin price', 'token price', 'crypto price', 'cryptocurrency price',
-            
-            // Time-related keywords
-            'real time', 'realtime', 'real-time', 'live', 'current', 'now', 'latest',
-            'today', 'tonight', 'this morning', 'this afternoon', 'this evening',
-            'right now', 'at the moment', 'currently', 'present', 'instant',
-            
-            // Price and market related
-            'price', 'market price', 'trading at', 'exchange rate', 'current price',
-            'market cap', 'volume', 'trading volume', 'market value',
-            
-            // Update related
-            'update', 'latest update', 'recent', 'newest', 'fresh',
-            'just in', 'breaking', 'trending', 'happening',
-            
-            // Status related
-            'status', 'condition', 'state', 'situation',
-            
-            // Chart and analysis related
-            'chart', 'graph', 'trend', 'movement', 'analysis',
-            'performance', 'statistics', 'metrics', 'indicators',
-            
-            // Time periods
-            'last hour', 'past hour', 'hourly',
-            'today', 'daily', '24h', '24 hour',
-            'this week', 'weekly', '7d', '7 day',
-            
-            // Market specific
-            'bull', 'bear', 'bullish', 'bearish',
-            'resistance', 'support', 'volatile', 'volatility',
-            
-            // News related
-            'news', 'latest news', 'recent news', 'announcement',
-            'update', 'development', 'progress'
-        ];
-
-        const messageNormalized = message.toLowerCase();
-        
-        // Check for cryptocurrency price queries specifically
-        const isPriceQuery = (
-            (messageNormalized.includes('price') || messageNormalized.includes('how much')) &&
-            (messageNormalized.includes('btc') || messageNormalized.includes('bitcoin') ||
-             messageNormalized.includes('eth') || messageNormalized.includes('ethereum') ||
-             messageNormalized.includes('coin') || messageNormalized.includes('token'))
-        );
-
-        // If it's a price query or contains any real-time keywords
-        const isRealTimeQuery = isPriceQuery || realTimeKeywords.some(keyword => messageNormalized.includes(keyword));
-
-        if (!isRealTimeQuery) {
-            return {
-                error: 'Not a real-time query',
-                shouldTryChat: true
-            };
-        }
-
+    const processSearch = async (message: string): Promise<{
+        success?: boolean;
+        error?: string;
+        searchResults: string;
+        shouldTryChat?: boolean;
+    }> => {
         // Reset search steps at the start
         setSearchSteps(steps => steps.map(step => ({ ...step, status: 'pending' })));
         
@@ -489,7 +451,7 @@ Your token has been deployed successfully! 🎉`;
         setSearchSteps(steps => steps.map((step, index) => 
             index === 0 ? { ...step, status: 'current' } : step
         ));
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         try {
             // Step 2: Analyzing search query
@@ -497,7 +459,7 @@ Your token has been deployed successfully! 🎉`;
                 index === 0 ? { ...step, status: 'completed' } :
                 index === 1 ? { ...step, status: 'current' } : step
             ));
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Step 3: Fetching search results
             setSearchSteps(steps => steps.map((step, index) => 
@@ -524,10 +486,26 @@ Your token has been deployed successfully! 🎉`;
                 index === 2 ? { ...step, status: 'completed' } :
                 index === 3 ? { ...step, status: 'current' } : step
             ));
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             if (!data.success) {
                 throw new Error(data.error || 'Failed to process search results');
+            }
+
+            // Extract only price information
+            const results = data.results.output_text;
+            let price = '';
+            
+            if (results.toLowerCase().includes('bitcoin') || results.toLowerCase().includes('btc')) {
+                const priceMatch = results.match(/\$[\d,]+(?:\.\d{2})?/);
+                if (priceMatch) {
+                    price = priceMatch[0];
+                }
+            } else if (results.toLowerCase().includes('ethereum') || results.toLowerCase().includes('eth')) {
+                const priceMatch = results.match(/\$[\d,]+(?:\.\d{2})?/);
+                if (priceMatch) {
+                    price = priceMatch[0];
+                }
             }
 
             // Step 5: Formatting response
@@ -535,21 +513,33 @@ Your token has been deployed successfully! 🎉`;
                 index === 3 ? { ...step, status: 'completed' } :
                 index === 4 ? { ...step, status: 'current' } : step
             ));
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Complete all steps
             setSearchSteps(steps => steps.map(step => ({ ...step, status: 'completed' })));
 
+            // Return only the price if found, otherwise return a simple message
+            if (price) {
+                const coin = message.toLowerCase().includes('btc') || message.toLowerCase().includes('bitcoin') ? 'Bitcoin' : 'Ethereum';
+                return {
+                    success: true,
+                    searchResults: `Current ${coin} price: ${price}`
+                };
+            }
+
             return {
                 success: true,
-                searchResults: data.results.output_text
+                searchResults: 'Price information not found.',
+                shouldTryChat: true
             };
 
         } catch (error) {
             console.error('Error processing search:', error);
             setSearchSteps(steps => steps.map(step => ({ ...step, status: 'pending' })));
             return {
-                error: 'Failed to process search request. Please try again.'
+                error: 'Failed to fetch price information.',
+                searchResults: 'Error fetching price information.',
+                shouldTryChat: true
             };
         }
     };
@@ -575,7 +565,8 @@ Your token has been deployed successfully! 🎉`;
             'issue token',
             'new token',
             'token creation',
-            'token deployment'
+            'token deployment',
+            'create a token',
         ];
         
         const messageNormalized = message.toLowerCase();
@@ -695,6 +686,7 @@ Your token has been deployed successfully! 🎉`;
             }
 
             // Call API to create token
+            // const prompt = `Create a funny, anime-style logo for a token named "${name}" (${symbol}) and description "${description}". The design should be playful and meme-inspired, incorporating elements like exaggerated facial expressions, chibi characters, or internet meme aesthetics. It should still maintain a modern and minimalist look, making it suitable for a crypto token. Ensure the logo is clear, memorable, and scalable across different sizes.`;
             const prompt = `Create a funny, anime-style logo for a token named "${name}" (${symbol}) and description "${description}". The design should be playful and meme-inspired, incorporating elements like exaggerated facial expressions, chibi characters, or internet meme aesthetics. It should still maintain a modern and minimalist look, making it suitable for a crypto token. Ensure the logo is clear, memorable, and scalable across different sizes.`;
                 
             const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/generate-image`, {
@@ -765,14 +757,39 @@ Your token has been deployed successfully! 🎉`;
                 })
             }
 
-            const price = chainName.toLowerCase() == 'sonic' || chainName.toLowerCase() == 'soniclabs' ? parseEther('1') : parseEther('0.001');
+            const price = chainName.toLowerCase() == 'sonic' || chainName.toLowerCase() == 'soniclabs' ? parseEther('1') : parseEther('0');
+
+            if (chainName.toLowerCase() == 'ancient8') {
+                try {
+                    const client = createPublicClient({
+                        chain: ancient8Sepolia,
+                        transport: http()
+                    });
+                    
+                    const approveTx = await writeContractAsync({
+                        address: process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}`,
+                        abi: a8TokenAbi,
+                        functionName: 'approve',
+                        args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, BigInt(ethers.formatEther(10))]
+                    });
+                    
+                    toast.loading('Approving A8 tokens...');
+                    await waitForTransactionReceipt(client, { hash: approveTx });
+                    toast.success('A8 tokens approved successfully');
+                } catch (error: any) {
+                    console.error('A8 token approval error:', error);
+                    toast.error('Failed to approve A8 tokens');
+                    return;
+                }
+            }
 
             const tx = await writeContractAsync({
                 address: chainName.toLowerCase() == 'sonic' || chainName.toLowerCase() == 'soniclabs' ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                 abi: factoryAbi,
-                functionName: 'createTokenAndCurve',
+                functionName: 'createToken',
                 value: price,
-                args: [name, symbol, parseEther("0")]
+                args: [name, symbol, parseEther("1000000000"),2],
+                chainId: chainName.toLowerCase() == 'sonic' || chainName.toLowerCase() == 'soniclabs' ? 57054 : 28122024
             });
 
             // Complete all steps
@@ -819,57 +836,48 @@ Your token has been deployed successfully! 🎉`;
             // Check message type and process accordingly
             const messageNormalized = inputValue.toLowerCase();
             
-            // First check if it's a general chat message (no special keywords)
-            const isGeneralChat = checkIsGeneralChat(messageNormalized);
-
+            // First check if it's a token creation request
+            const tokenKeywords = [
+                'deploy token',
+                'create token',
+                'mint token',
+                'launch token',
+                'generate token',
+                'make token',
+                'issue token',
+                'new token',
+                'token creation',
+                'token deployment',
+                'create a token',
+            ];
+            
+            const isTokenCreation = tokenKeywords.some(keyword => messageNormalized.includes(keyword));
+            
             let assistantResponse = '';
 
-            if (isGeneralChat) {
-                // Process general chat messages directly
-                const chatResult = await processChat(inputValue);
-                assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
-            } else {
-                // Check for search/price query
-                const isPriceOrSearchQuery = checkIsPriceOrSearchQuery(messageNormalized);
-
-                if (isPriceOrSearchQuery) {
-                    // If it's a price/search query, try search
-                    const searchResult = await processSearch(inputValue);
-                    setIsPriceOrSearchQuery(true);
-                    
-                    if (searchResult.error && searchResult.shouldTryChat) {
-                        // Only try chat if search fails and it's not a real-time query
-                        const chatResult = await processChat(inputValue);
-                        setIsPriceOrSearchQuery(false);
-                        assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+            if (isTokenCreation) {
+                // Try token creation first
+                const tokenResult = await processTokenCreation(inputValue);
+                if (tokenResult === false) {
+                    // If not a valid token creation request, fallback to chat
+                    const chatResult = await processChat(inputValue);
+                    assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+                } else if (tokenResult) {
+                    if (tokenResult.error) {
+                        assistantResponse = `Error: ${tokenResult.error}`;
+                    } else if (tokenResult.needsMoreInfo) {
+                        const missingFields = [];
+                        if (tokenResult.missingFields.name) missingFields.push("token name");
+                        if (tokenResult.missingFields.description) missingFields.push("token description");
+                        if (tokenResult.missingFields.symbol) missingFields.push("token symbol");
+                        
+                        assistantResponse = `I see you want to create a token. Could you please provide the following information:\n${missingFields.join('\n')}\n\nFor example, you can say:\n"Create a token named TokenX with description This is a community token and symbol TKX on sonic chain"`;
                     } else {
-                        assistantResponse = searchResult.error ? `Error: ${searchResult.error}` : searchResult.searchResults;
-                    }
-                } else {
-                    setIsPriceOrSearchQuery(false);
-                    // If not a search query, try token creation
-                    const tokenResult = await processTokenCreation(inputValue);
-                    
-                    if (tokenResult === false) {
-                        // If not a token creation request, try chat
-                        const chatResult = await processChat(inputValue);
-                        assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
-                    } else if (tokenResult) {
-                        if (tokenResult.error) {
-                            assistantResponse = `Error: ${tokenResult.error}`;
-                        } else if (tokenResult.needsMoreInfo) {
-                            const missingFields = [];
-                            if (tokenResult.missingFields.name) missingFields.push("token name");
-                            if (tokenResult.missingFields.description) missingFields.push("token description");
-                            if (tokenResult.missingFields.symbol) missingFields.push("token symbol");
-                            
-                            assistantResponse = `I see you want to create a token. Could you please provide the following information:\n${missingFields.join('\n')}\n\nFor example, you can say:\n"Create a token named TokenX with description This is a community token and symbol TKX on sonic chain"`;
-                        } else {
-                            assistantResponse = `Successfully created token!\n\n${
-                                tokenResult?.imageUrl ? 
-                                `<img src="${tokenResult?.imageUrl}" alt="${tokenResult?.name}" class="w-32 h-32 rounded-lg mb-4" />\n` : 
-                                ''
-                            }Token Details:\n
+                        assistantResponse = `Successfully created token!\n\n${
+                            tokenResult?.imageUrl ? 
+                            `<img src="${tokenResult?.imageUrl}" alt="${tokenResult?.name}" class="w-32 h-32 rounded-lg mb-4" />\n` : 
+                            ''
+                        }Token Details:\n
 • Name: ${tokenResult.name}
 • Symbol: ${tokenResult.symbol}
 • Description: ${tokenResult.description}
@@ -877,9 +885,29 @@ Your token has been deployed successfully! 🎉`;
 • Transaction: <a href="${tokenResult.chain === 'sonic' ? 'https://testnet.sonicscan.org/tx/' : 'https://scanv2-testnet.ancient8.gg/tx/'}${tokenResult?.hash}" target="_blank" class="text-blue-500 hover:underline">${tokenResult?.hash?.slice(0, 6)}...${tokenResult?.hash?.slice(-4)}</a>
 
 Your token has been deployed successfully! 🎉`;
-                        }
                     }
                 }
+            } else if (checkIsPriceOrSearchQuery(messageNormalized)) {
+                // If it's a price/search query, try search
+                const searchResult = await processSearch(inputValue);
+                setIsPriceOrSearchQuery(true);
+                
+                if (searchResult.error) {
+                    if (searchResult.shouldTryChat) {
+                        // Only try chat if search fails and it's not a real-time query
+                        const chatResult = await processChat(inputValue);
+                        setIsPriceOrSearchQuery(false);
+                        assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
+                    } else {
+                        assistantResponse = searchResult.searchResults;
+                    }
+                } else {
+                    assistantResponse = searchResult.searchResults;
+                }
+            } else {
+                // If not a token creation or search query, process as general chat
+                const chatResult = await processChat(inputValue);
+                assistantResponse = chatResult.error ? `Error: ${chatResult.error}` : chatResult.chatResponse;
             }
 
             const assistantMessage: ChatMessage = {

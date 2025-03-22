@@ -445,7 +445,8 @@ function CreateToken() {
                         
                         toast.loading('Approving A8 tokens...', { id: loadingToast });
                         
-                        await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
+                        const res = await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
+                        console.log("res", res)
                         toast.success('A8 tokens approved successfully', { id: loadingToast });
                     } catch (error: any) {
                         console.error('A8 token approval error:', error);
@@ -1105,8 +1106,8 @@ function CreateToken() {
                                                 </DialogHeader>
                                                 <div className="space-y-4 mt-10">
                                                     <div className='space-y-2 flex flex-col'>
-                                                        <label className="text-lg font-medium">Enter {selectedNetwork == "Sonic" ? "SONIC" : "ETH"} amount (optional)</label>
-                                                        <span className="text-sm text-gray-400">Balance: {balance?.value ? Number(balance.value)/10**18 : 0} {selectedNetwork == "Sonic" ? "S" : "ETH"}</span>
+                                                        <label className="text-lg font-medium">Enter {selectedNetwork == "Sonic" ? "SONIC" : "A8"} amount (optional)</label>
+                                                        <span className="text-sm text-gray-400">Balance: {selectedNetwork == "Sonic" ? Number(balance?.value)/10**18 : (Number(a8Balance)/10**18).toFixed(2)} {selectedNetwork == "Sonic" ? "S" : "A8"}</span>
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Input
