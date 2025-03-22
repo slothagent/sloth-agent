@@ -3,7 +3,7 @@ import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '../utils/pinata';
 import { toast } from 'react-hot-toast';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
-import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
+import { useAccount, useReadContract, useWriteContract, useBalance } from 'wagmi';
 import { factoryAbi } from '../abi/factoryAbi';
 import { a8TokenAbi } from '../abi/a8TokenAbi';
 import { Button } from '../components/ui/button';
@@ -15,13 +15,14 @@ import { Dialog } from '../components/ui/dialog';
 import { useSwitchChain } from 'wagmi';
 import { configAncient8 } from '../config/wagmi';
 import { configSonicBlaze } from '../config/wagmi';
-import { formatNumber } from '../utils/format';
+import { formatNumber } from '../utils/utils';
 import { tokenInfo } from '../lib/contants';
 import { useCalculateTokens } from '../hooks/useCalculateTokens';
 import { ethers } from 'ethers';
 import { waitForTransactionReceipt } from 'viem/actions';
 import { createPublicClient, http } from 'viem';
 import { ancient8Sepolia } from 'wagmi/chains';
+import { sonicBlazeTestnet } from '../config/wagmi';
 
 export const Route = createFileRoute("/token/create")({
     component: CreateToken
@@ -39,9 +40,8 @@ function CreateToken() {
     const [activeTab, setActiveTab] = useState<'upload'|'generate'>('upload');
     const [imagePrompt, setImagePrompt] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
-    const [txHash, setTxHash] = useState<string | null>(null);
     const { writeContractAsync, isPending} = useWriteContract()
-    const { address: OwnerAddress, isConnected,chain } = useAccount()
+    const { address: OwnerAddress, isConnected } = useAccount()
     const [amount, setAmount] = useState<string|null>(null);
     const [tokenAddress, setTokenAddress] = useState<string|null>(null);
     const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -51,7 +51,6 @@ function CreateToken() {
     const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
     const [minTokensOut, setMinTokensOut] = useState<number>(0);
     const [amountToReceive, setAmountToReceive] = useState<number>(0);
-    const [transactionType, setTransactionType] = useState<string|null>(null);
     const { switchChain } = useSwitchChain();
     const { calculateExpectedTokens } = useCalculateTokens();
 
@@ -81,9 +80,15 @@ function CreateToken() {
 
     const { data: balance } = useBalance({
         address: OwnerAddress,
-        config: chain?.id == 57054 ? configSonicBlaze : configAncient8
+        config: selectedNetwork == "Sonic" ? configSonicBlaze : configAncient8
     });
     const router = useRouter();
+
+    const client = createPublicClient({
+        chain: selectedNetwork == "Sonic" ? sonicBlazeTestnet : ancient8Sepolia,
+        transport: http()
+    });
+
     const networks = [
         {
             icon: <img src="/assets/chains/a8.png" alt="Ancient8" className="w-4 h-4" />,
@@ -274,14 +279,6 @@ function CreateToken() {
         }
     };
 
-    // Watch for transaction confirmation
-    const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
-        hash: txHash as `0x${string}`,
-        config: selectedNetwork === "Ancient8" ? configAncient8 : configSonicBlaze
-    });
-    
-    // console.log('Receipt:', receipt);
-
     useEffect(() => {
         if(tokenInfo&&amount){
             const calculateTokens = async () => {
@@ -297,97 +294,6 @@ function CreateToken() {
             calculateTokens();
         }
     }, [tokenInfo,amount]);
-
-    // Handle transaction receipt
-    useEffect(() => {
-        const processReceipt = async () => {
-            if (receipt) {
-                try {
-                    // Find the token address from the logs
-                    const eventLog = receipt.logs.find(log => {
-                        try {
-                            const decoded = decodeEventLog({
-                                abi: factoryAbi,
-                                data: log.data,
-                                topics: log.topics,
-                            });
-                            return decoded.eventName === 'TokenCreated';
-                        } catch {
-                            return false;
-                        }
-                    });
-
-                    const eventLog2 = receipt.logs.find(log => {
-                        try {
-                            const decoded = decodeEventLog({
-                                abi: factoryAbi,
-                                data: log.data,
-                                topics: log.topics,
-                            });
-                            // console.log('Decoded:', decoded);
-                            return decoded.eventName === 'SlothSwap';
-                        } catch {
-                            return false;
-                        }
-                    });
-
-                    if (eventLog && transactionType == 'CREATE') {
-                        const decoded = decodeEventLog({
-                            abi: factoryAbi,
-                            data: eventLog.data,
-                            topics: eventLog.topics,
-                        });
-                        // console.log("decoded", decoded)
-                        const { token } = decoded.args as any;
-                        console.log("token", token)
-                        setTokenAddress(token);
-                        await createToken(token);
-                        if(amount){
-                            await handleBuyToken(token);
-                        }
-                    } 
-                    if (eventLog2 && transactionType == 'BUY') {
-                        const loadingToast = toast.loading('Transaction processing...');
-                        await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                network: selectedNetwork,
-                                userAddress: OwnerAddress,
-                                tokenAddress,
-                                amountToken: amountToReceive,
-                                amount: parseFloat(amount||"0"),
-                                price: 1,
-                                transactionType: 'BUY',
-                                transactionHash: txHash as `0x${string}`
-                            }),
-                        });
-                        setAmount(null);
-                        setIsTwitterShareOpen(true);
-                        toast.success('Buy successful!', { id: loadingToast });
-                    }
-                    
-
-                    
-                } catch (error) {
-                    console.error('Error processing transaction receipt:', error);
-                    toast.error('Error processing transaction receipt');
-                }
-            } 
-        };
-
-        processReceipt();
-    }, [receipt]);
-
-    // Handle confirmation error
-    useEffect(() => {
-        if (isConfirmationError) {
-            console.error('Transaction confirmation failed');
-            toast.error('Transaction confirmation failed');
-        }
-    }, [isConfirmationError]);
 
     const handleSubmit = async () => {
         if (!isConnected) {
@@ -445,8 +351,7 @@ function CreateToken() {
                         
                         toast.loading('Approving A8 tokens...', { id: loadingToast });
                         
-                        const res = await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
-                        console.log("res", res)
+                        await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
                         toast.success('A8 tokens approved successfully', { id: loadingToast });
                     } catch (error: any) {
                         console.error('A8 token approval error:', error);
@@ -456,7 +361,6 @@ function CreateToken() {
                 }
             }
 
-            setTransactionType('BUY');
             const tx = await writeContractAsync({
                 address: selectedNetwork === "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                 abi: factoryAbi,
@@ -464,9 +368,26 @@ function CreateToken() {
                 value: selectedNetwork === "Sonic" ? parseEther(amount) : parseEther("0"), // Only send ETH value for Sonic network
                 args: [tokenAddress as `0x${string}`, BigInt(minTokensOut||0)]
             });
-
-            setTxHash(tx);
-            toast.success("Transaction submitted! Waiting for confirmation...", { id: loadingToast });
+            await waitForTransactionReceipt(client, { hash: tx as `0x${string}` });
+            await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    network: selectedNetwork,
+                    userAddress: OwnerAddress,
+                    tokenAddress,
+                    amountToken: amountToReceive,
+                    amount: parseFloat(amount||"0"),
+                    price: 1,
+                    transactionType: 'BUY',
+                    transactionHash: tx as `0x${string}`
+                }),
+            });
+            setAmount(null);
+            setIsTwitterShareOpen(true);
+            toast.success('Buy successful!', { id: loadingToast });
         } catch (error: any) {
             console.error('Buy error:', error);
             toast.error('Failed to buy token', { id: loadingToast });
@@ -528,7 +449,10 @@ function CreateToken() {
             }
             
             try {
-                setTransactionType('CREATE');
+                const client = createPublicClient({
+                    chain: selectedNetwork == "Sonic" ? sonicBlazeTestnet : ancient8Sepolia,
+                    transport: http()
+                });
                 const tx = await writeContractAsync({
                     address: selectedNetwork == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                     abi: factoryAbi,
@@ -537,9 +461,22 @@ function CreateToken() {
                     args: [tokenName, ticker, BigInt(parseEther("1000000000")), 2]
                 });
                 
-                setTxHash(tx); // Save transaction hash
-                toast.success('Transaction submitted! Waiting for confirmation...', { id: loadingToast });
-                
+                const res = await waitForTransactionReceipt(client, { hash: tx as `0x${string}` });
+                // console.log("res", res)
+                const decoded = decodeEventLog({
+                    abi: factoryAbi,
+                    data: selectedNetwork == "Sonic" ? res.logs[3].data : res.logs[4].data,
+                    topics: selectedNetwork == "Sonic" ? res.logs[3].topics : res.logs[4].topics,
+                });
+                // console.log("decoded", decoded)
+                const { token } = decoded.args as any;
+                setTokenAddress(token);
+                // console.log("token", token)
+                await createToken(token);
+                toast.success('Token created successfully!', { id: loadingToast });
+                if(amount){
+                    await handleBuyToken(token);
+                }
             } catch (error: any) {
                 console.error('Token creation error:', error);
                 if (error.code === 4001 || error.message?.includes('User rejected')) {
@@ -558,8 +495,6 @@ function CreateToken() {
 
 
     const createToken = async (address: string) => {
-        const loadingToast = toast.loading('Processing transaction...');
-        
         try {
             // Prepare the payload with default values for null fields
             const payload = {
@@ -592,9 +527,6 @@ function CreateToken() {
                 toast.error(errorMessage);
                 return;
             }
-
-            toast.success('Token created successfully!', { id: loadingToast });
-            
             if(!amount){
                 // Show Twitter share dialog after token creation
                 setIsTwitterShareOpen(true);
@@ -602,7 +534,7 @@ function CreateToken() {
             
         } catch (error) {
             console.error('Error creating token:', error);
-            toast.error('An unexpected error occurred while creating the token', { id: loadingToast });
+            toast.error('An unexpected error occurred while creating the token');
         }
     }
 
