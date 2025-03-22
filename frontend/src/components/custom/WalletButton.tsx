@@ -1,6 +1,9 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from '@tanstack/react-router';
+import { a8TokenAbi } from '../../abi/a8TokenAbi';
+import { configAncient8 } from '../../config/wagmi';
+import { useReadContract } from 'wagmi';
 
 const WalletButton: React.FC = () => {
   const [isRegistering, setIsRegistering] = useState(false);
@@ -56,7 +59,6 @@ const WalletButton: React.FC = () => {
         return;
       }
       
-      // User doesn't exist, proceed with registration
       setIsRegistering(true);
       setError(null);
       
@@ -73,7 +75,7 @@ const WalletButton: React.FC = () => {
         throw new Error(errorData.error || 'Failed to register user');
       }
       
-      const data = await response.json();
+      await response.json();
       // console.log('User registered successfully:', data.message);
     } catch (err) {
       console.error('Error registering user:', err);
@@ -110,6 +112,14 @@ const WalletButton: React.FC = () => {
           }
         }, [connected, account?.address, registerUser]);
         
+        const { data: a8Balance } = useReadContract({
+          address: chain?.id == 28122024 ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
+          abi: a8TokenAbi,
+          functionName: 'balanceOf',
+          args: [account?.address as `0x${string}`],
+          config: configAncient8
+        });
+
         return (
           <div
             {...(!ready && {
@@ -156,17 +166,17 @@ const WalletButton: React.FC = () => {
                   </button>
 
                   <div className="relative group">
-                    <button
-                      onClick={openAccountModal}
+                    <div
                       className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-4 flex items-center gap-3 border border-[#1F2937] text-sm rounded-md cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="flex flex-row gap-2 items-start">
+                        <div className="flex flex-row gap-2 items-center">
                           <span className="text-white font-medium">{account.displayName}</span>
-                          <span className='text-gray-400'>{Number(account.balanceFormatted).toFixed(2)} S</span>
+                          <span className='text-gray-400'>{chain?.id == 57054 ? Number(account.balanceFormatted).toFixed(2) : (Number(a8Balance)/10**18).toFixed(2)}</span>
+                          <img src={chain?.id == 57054 ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} alt="chain" className='w-[20px] h-[20px]' />
                         </div>
                       </div>
-                    </button>
+                    </div>
 
                     <div className="absolute right-0 mt-2 w-48 bg-[#161B28] border border-[#1F2937] rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
                       <div className='flex flex-col gap-2 px-4 py-2'>
