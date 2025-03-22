@@ -38,7 +38,28 @@ function RootComponent() {
         <Header />
         <Outlet />
         <TanStackRouterDevtools position="bottom-right" />
-        <Toaster position="top-center" />
+        <Toaster toastOptions={{
+          success: {
+            style: {
+              backgroundColor: "#1f2937",
+              color: "#fff",
+            },
+          },
+          error: {
+            style: {
+              backgroundColor: "#1f2937",
+              color: "#fff",
+            },
+          },
+          loading: {
+            style: {
+              backgroundColor: "#1f2937",
+              color: "#fff",
+            },
+          },
+          
+          
+        }} position="top-center" />
       </Providers>
     </>
   );

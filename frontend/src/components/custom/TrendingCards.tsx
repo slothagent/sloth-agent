@@ -9,7 +9,8 @@ import { formatNumber } from "../../utils/utils";
 // Add chain logos mapping
 const chainLogos: { [key: string]: string } = {
   eth: "/assets/chains/ethereum.png",
-  bsc: "/assets/chains/bsc.png",
+  bsc: "/assets/chains/bnb.png",
+  movement: "/assets/chains/movement.png",
   solana: "/assets/chains/solana.png",
   polygon: "/assets/chains/polygon.png",
   arb: "/assets/chains/arbitrum.png",
@@ -244,7 +245,7 @@ const TrendingCards = () => {
                   </div>
                   <div className="flex items-center gap-6">
                     <img src={coin.sparkline} alt="sparkline" className="h-8 w-24" />
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end w-20">
                       <span className="text-white">${coin.price.toFixed(2)}</span>
                     </div>
                   </div>

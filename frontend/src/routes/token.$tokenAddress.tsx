@@ -23,7 +23,7 @@ import { useEthPrice } from '../hooks/useEthPrice';
 import { useSonicPrice } from  '../hooks/useSonicPrice';
 import { configAncient8,configSonicBlaze } from '../config/wagmi';
 import { useSwitchChain } from 'wagmi';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute,useNavigate } from '@tanstack/react-router';
 import axios from 'axios';
 import { INITIAL_SUPPLY } from '../lib/contants';
 import { useCalculateTokens } from '../hooks/useCalculateTokens';
@@ -65,7 +65,8 @@ function TokenDetails() {
     const [type, setType] = useState<string>('buy');
     const [priceToken, setPriceToken] = useState<number>(0);
     const { getBinDetails } = useCalculateBin();
-    
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const navigate = useNavigate();
 
     const ethPrice = useMemo(() => {
       return ethPriceData?.price || 2500;
@@ -309,6 +310,7 @@ function TokenDetails() {
                             });
                             setAmount(null);
                             await refetchBalanceOfToken();
+                            setIsLoading(false);
                             toast.success('Buy successful!', { id: loadingToast });
                         }else if(transactionType === 'SELL'){
                             // Save price history after successful transaction
@@ -329,17 +331,21 @@ function TokenDetails() {
                                 }),
                             });
                             await refetchBalanceOfToken();
+                            setIsLoading(false);
                             toast.success('Sell successful!', { id: loadingToast });
                             setAmount(null);
                         }
                     } else {
+                        setIsLoading(false);
                         toast.success('Transaction successful!', { id: loadingToast });
                     }
                 } catch (error) {
+                    setIsLoading(false);
                     console.error('Error processing transaction receipt:', error);
                     toast.error('Error processing transaction receipt');
                     if (transactionType === 'APPROVE') {
                         setIsApproving(false);
+                        setIsLoading(false);
                     }
                 }
             }
@@ -385,6 +391,7 @@ function TokenDetails() {
     const handleBuy = async () => {
         if (!address) return toast.error('Please connect your wallet');
         if (!amount) return toast.error('Please enter an amount');
+        setIsLoading(true);
         if (tokenData?.network == "Sonic") {
             switchChain({
                 chainId: 57054
@@ -432,6 +439,7 @@ function TokenDetails() {
     const handleSell = async () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
+        setIsLoading(true);
         if (tokenData?.network == "Sonic") {
             switchChain({
                 chainId: 57054
@@ -546,11 +554,12 @@ function TokenDetails() {
         <div className="bg-[#0B0E17] top-0 sm:top-12 border-[#1F2937] border-b sm:border-b-0">
             <div className="container mx-auto py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8">
                 <div className="flex items-center gap-2 justify-between sm:justify-start">
-                    <Link to="/" className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200"
+                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+                            onClick={()=>navigate({to: "/"})}
                         >
                             <div className="w-7 h-7 bg-[#161B28] flex items-center justify-center border border-[#1F2937] hover:border-gray-600">
                                 <ArrowLeft className="w-4 h-4" />
@@ -559,7 +568,7 @@ function TokenDetails() {
                         <div className="hidden sm:flex items-center gap-2 border border-[#1F2937] px-3 py-1 hover:border-gray-600 transition-colors duration-200">
                             <p className="text-gray-400 text-sm font-medium">{tokenData?.ticker}</p>
                         </div>
-                    </Link>
+                    </div>
                     
                     <ChevronRight className="w-4 h-4 text-gray-500 hidden sm:block" />
                     
@@ -591,7 +600,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('24h')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '24h' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '24h' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         24h
                     </Button>
@@ -599,7 +608,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('3d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '3d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '3d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         3D
                     </Button>
@@ -607,7 +616,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('7d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '7d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '7d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         7D
                     </Button>
@@ -615,7 +624,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('14d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '14d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '14d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         14D
                     </Button>
@@ -623,7 +632,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('30d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '30d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '30d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         30D
                     </Button>
@@ -721,7 +730,7 @@ function TokenDetails() {
                                             ) : (
                                                 <span>Address not available</span>
                                             )}
-                                            <button onClick={() => copyToClipboard(tokenData?.address||'')} className="ml-1 text-gray-400 hover:text-white">
+                                            <button onClick={() => copyToClipboard(tokenData?.address||'')} className="ml-1 text-gray-400 hover:text-white cursor-pointer">
                                                 <Copy className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -794,25 +803,25 @@ function TokenDetails() {
                             <TabsList className="h-[62px] w-full justify-start gap-6 bg-transparent">
                                 <TabsTrigger 
                                     value="trade"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
                                 >
                                     <div className="flex items-center gap-1">Trade</div>
                                 </TabsTrigger>      
                                 <TabsTrigger 
                                     value="transactions"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
                                 >
                                     <div className="flex items-center gap-1 ">Transactions</div>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="analytics"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
                                 >
                                     <div className="flex items-center gap-1 text-xs md:text-base">Analytics</div>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="social"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
                                 >
                                     <div className="flex items-center gap-1">Social</div>
                                 </TabsTrigger>
@@ -826,11 +835,6 @@ function TokenDetails() {
                                 <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[450px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                     <div className="col-span-1  flex-1 p-2 sm:p-4 relative">
                                         <div className="flex flex-col w-full h-full relative pt-3">
-                                            {/* <TokenPriceChart 
-                                                transactionHistory={transactionHistory as any} 
-                                                valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
-                                                priceUSD={tokenData?.network == "Sonic" ? sonicPrice : ethPrice}
-                                            /> */}
                                             <BondingCurveChart
                                                 tokenAddress={tokenData?.address||''}
                                             />
@@ -846,20 +850,20 @@ function TokenDetails() {
                                                     <TabsTrigger 
                                                         value="buy"
                                                         onClick={() => handleTypeChange('buy')}
-                                                        className="text-gray-400 data-[state=active]:text-white"
+                                                        className="text-gray-400 data-[state=active]:text-white cursor-pointer"
                                                     >
                                                         Buy
                                                     </TabsTrigger>
                                                     <TabsTrigger 
                                                         value="sell"
                                                         onClick={() => handleTypeChange('sell')}
-                                                        className="text-gray-400 data-[state=active]:text-white"
+                                                        className="text-gray-400 data-[state=active]:text-white cursor-pointer"
                                                     >
                                                         Sell
                                                     </TabsTrigger>
                                                     <TabsTrigger 
                                                         value="auto"
-                                                        className="text-gray-400 data-[state=active]:text-white"
+                                                        className="text-gray-400 data-[state=active]:text-white cursor-pointer"
                                                     >
                                                         Auto
                                                     </TabsTrigger>
@@ -889,25 +893,25 @@ function TokenDetails() {
                                                     <div className="grid grid-cols-4 gap-2">
                                                         <button 
                                                             onClick={() => handleAmountClick(1)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             1
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(2)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             2
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(5)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             5
                                                         </button>
                                                         <button 
                                                             onClick={() => handleAmountClick(10)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             10
                                                         </button>
@@ -916,8 +920,12 @@ function TokenDetails() {
                                                 <div className="flex items-center gap-2 text-sm text-gray-400">
                                                     <span>You will receive: {formatNumber(amountToReceive)} {tokenData?.ticker}</span>
                                                 </div>
-                                                <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
-                                                    Buy
+                                                <Button 
+                                                    onClick={handleBuy} 
+                                                    disabled={isLoading}
+                                                    className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                >
+                                                    {isLoading ? 'Buying...' : 'Buy'}
                                                 </Button>
                                             </div>
                                         </TabsContent>
@@ -938,25 +946,25 @@ function TokenDetails() {
                                                     <div className="grid grid-cols-4 gap-2">
                                                         <button 
                                                             onClick={() => setAmount('10')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             10%
                                                         </button>
                                                         <button 
                                                             onClick={() => setAmount('30')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             30%
                                                         </button>
                                                         <button 
                                                             onClick={() => setAmount('50')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             50%
                                                         </button>
                                                         <button 
                                                             onClick={() => setAmount('100')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400 cursor-pointer"
                                                         >
                                                             100%
                                                         </button>
@@ -968,17 +976,18 @@ function TokenDetails() {
                                                 {amount && amountToSell > 0 && tokenAllowance !== undefined && BigInt(amountToSell) > tokenAllowance && !isApproving ? (
                                                     <Button 
                                                         onClick={handleApproveToken} 
-                                                        className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-md font-medium transition-colors"
+                                                        disabled={isApproving}
+                                                        className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                     >
-                                                        Approve {tokenData?.ticker}
+                                                        {isApproving ? 'Approving...' : 'Approve'} {tokenData?.ticker}
                                                     </Button>
                                                 ) : (
                                                     <Button 
                                                         onClick={handleSell} 
-                                                        disabled={isApproving}
-                                                        className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        disabled={isLoading}
+                                                        className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                                     >
-                                                        {isApproving ? 'Approving...' : 'Sell'}
+                                                        {isLoading ? 'Selling...' : 'Sell'}
                                                     </Button>
                                                 )}
                                             </div>
