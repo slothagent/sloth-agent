@@ -253,6 +253,7 @@ function TokenDetails() {
             setTxHash(tx as `0x${string}`);
             setTransactionType('APPROVE');
             toast.success("Please wait for the approval to be confirmed", { id: loadingToast });
+            setIsLoading(false);
         } catch (error: any) {
             console.error('Approval error:', error);
             if (error.code === 4001 || error.message?.includes('User rejected')) {
@@ -260,6 +261,7 @@ function TokenDetails() {
             } else {
                 toast.error(`Failed to approve: ${error.message || 'Unknown error'}`, { id: loadingToast });
             }
+            setIsLoading(false);
             setIsApproving(false);
         }
     };
@@ -431,6 +433,7 @@ function TokenDetails() {
             } else {
                 toast.error('Failed to buy', { id: loadingToast });
             }
+            setIsLoading(false);
         }
     }
 

@@ -300,18 +300,33 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
           >
             {chartData.map((entry: any, index: number) => {
               // Check if we have actual data for this bin
+              // console.log(entry);
               const hasActualData = !entry.noData && parseFloat(entry.tokenValue) > 0;
               
               let fillGradient, hoverGradient;
               if (!hasData) {
                 // No data available at all - use gray
                 fillGradient = "url(#noDataGradient)";
-                hoverGradient = "url(#noDataGradientHover)";
+                hoverGradient = "url(#noDataGradientHover)"; 
               } else if (hasActualData) {
                 // Has tokens
-                const isBin0 = index === 0;
-                fillGradient = isBin0 ? "url(#barGradient)" : "url(#noDataGradient)";
-                hoverGradient = isBin0 ? "url(#barGradientHover)" : "url(#noDataGradientHover)";
+                const currentSonicAmount = parseFloat(entry.sonicFullAmount);
+                const isFirstBin = index === 0;
+                
+                if (currentSonicAmount === 0) {
+                  // If this bin has sonicFullAmount = 0, color this and next bin
+                  const showGradient = index === chartData.findIndex((item: { sonicFullAmount: string }) => parseFloat(item.sonicFullAmount) === 0) || 
+                                     index === chartData.findIndex((item: { sonicFullAmount: string }) => parseFloat(item.sonicFullAmount) === 0) + 1;
+                  fillGradient = showGradient ? "url(#barGradient)" : "url(#noDataGradient)";
+                  hoverGradient = showGradient ? "url(#barGradientHover)" : "url(#noDataGradientHover)";
+                } else if (isFirstBin) {
+                  // If it's first bin and has sonicFullAmount > 0, only color first bin
+                  fillGradient = "url(#barGradient)";
+                  hoverGradient = "url(#barGradientHover)";
+                } else {
+                  fillGradient = "url(#noDataGradient)";
+                  hoverGradient = "url(#noDataGradientHover)";
+                }
               } else {
                 // Empty bin - use gray
                 fillGradient = "url(#noDataGradient)";
