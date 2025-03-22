@@ -8,7 +8,7 @@ import { formatNumber } from "../../utils/utils";
 
 // Add chain logos mapping
 const chainLogos: { [key: string]: string } = {
-  eth: "/assets/chains/ethereum.png",
+  ethereum: "/assets/chains/ethereum.png",
   bsc: "/assets/chains/bnb.png",
   movement: "/assets/chains/movement.png",
   solana: "/assets/chains/solana.png",
@@ -91,6 +91,7 @@ const fetchTrendingDex = async (): Promise<TrendingItem[]> => {
 
   // Process only the first 5 profiles
   const topProfiles = profiles.slice(0, 5);
+  
   // Fetch pair data for each token
   const trendingItems = await Promise.all(
     topProfiles.map(async (profile, index) => {

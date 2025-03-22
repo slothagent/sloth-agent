@@ -14,6 +14,7 @@ interface BondingCurveChartProps {
   height?: number;
   width?: string | number;
   tokenAddress?: string;
+  refreshTrigger?: number;
 }
 
 const formatToMillions = (value: string) => {
@@ -43,7 +44,8 @@ const formatToMillions = (value: string) => {
 const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
   height = 350,
   width = '100%',
-  tokenAddress = '0x21D0a122e3bF9fFc7E8A7C34F250211B1139306C'
+  tokenAddress = '0x21D0a122e3bF9fFc7E8A7C34F250211B1139306C',
+  refreshTrigger = 0
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [tokenData, setTokenData] = useState<any>(null);
@@ -75,7 +77,7 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
     };
     
     fetchTokenDetails();
-  }, [tokenAddress]);
+  }, [tokenAddress, refreshTrigger]);
   
   // Pre-calculate the chart data only when tokenData changes
   const chartData = useMemo(() => {
@@ -277,6 +279,17 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
               <stop offset="5%" stopColor="#0B0E17" stopOpacity={0.8} />
               <stop offset="95%" stopColor="#0B0E17" stopOpacity={0.2} />
             </linearGradient>
+            {chartData.map((entry: any, index: number) => {
+              const percentageOfTotal = (Number(entry.sonicValue) / (Number(entry.sonicFullAmount) + Number(entry.sonicValue))) * 100;
+              return (
+                <linearGradient key={`percentageGradient-${index}`} id={`percentageGradient-${index}`} x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="var(--chakra-colors-blue-500, #3182CE)" stopOpacity={0.8} />
+                  <stop offset={`${percentageOfTotal}%`} stopColor="var(--chakra-colors-blue-500, #3182CE)" stopOpacity={0.8} />
+                  <stop offset={`${percentageOfTotal}%`} stopColor="#0B0E17" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#0B0E17" stopOpacity={0.2} />
+                </linearGradient>
+              );
+            })}
           </defs>
           
           {/* Transparent X and Y axes */}
@@ -299,36 +312,15 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
             onMouseLeave={handleMouseLeave}
           >
             {chartData.map((entry: any, index: number) => {
-              // Check if we have actual data for this bin
-              // console.log(entry);
               const hasActualData = !entry.noData && parseFloat(entry.tokenValue) > 0;
-              
               let fillGradient, hoverGradient;
               if (!hasData) {
-                // No data available at all - use gray
                 fillGradient = "url(#noDataGradient)";
-                hoverGradient = "url(#noDataGradientHover)"; 
+                hoverGradient = "url(#noDataGradientHover)";
               } else if (hasActualData) {
-                // Has tokens
-                const currentSonicAmount = parseFloat(entry.sonicFullAmount);
-                const isFirstBin = index === 0;
-                
-                if (currentSonicAmount === 0) {
-                  // If this bin has sonicFullAmount = 0, color this and next bin
-                  const showGradient = index === chartData.findIndex((item: { sonicFullAmount: string }) => parseFloat(item.sonicFullAmount) === 0) || 
-                                     index === chartData.findIndex((item: { sonicFullAmount: string }) => parseFloat(item.sonicFullAmount) === 0) + 1;
-                  fillGradient = showGradient ? "url(#barGradient)" : "url(#noDataGradient)";
-                  hoverGradient = showGradient ? "url(#barGradientHover)" : "url(#noDataGradientHover)";
-                } else if (isFirstBin) {
-                  // If it's first bin and has sonicFullAmount > 0, only color first bin
-                  fillGradient = "url(#barGradient)";
-                  hoverGradient = "url(#barGradientHover)";
-                } else {
-                  fillGradient = "url(#noDataGradient)";
-                  hoverGradient = "url(#noDataGradientHover)";
-                }
+                fillGradient = `url(#percentageGradient-${index})`;
+                hoverGradient = `url(#percentageGradient-${index})`;
               } else {
-                // Empty bin - use gray
                 fillGradient = "url(#noDataGradient)";
                 hoverGradient = "url(#noDataGradientHover)";
               }

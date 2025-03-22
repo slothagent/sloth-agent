@@ -67,6 +67,7 @@ function TokenDetails() {
     const { getBinDetails } = useCalculateBin();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const navigate = useNavigate();
+    const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
     const ethPrice = useMemo(() => {
       return ethPriceData?.price || 2500;
@@ -313,6 +314,7 @@ function TokenDetails() {
                             setAmount(null);
                             await refetchBalanceOfToken();
                             setIsLoading(false);
+                            setRefreshTrigger(prev => prev + 1);
                             toast.success('Buy successful!', { id: loadingToast });
                         }else if(transactionType === 'SELL'){
                             // Save price history after successful transaction
@@ -334,6 +336,7 @@ function TokenDetails() {
                             });
                             await refetchBalanceOfToken();
                             setIsLoading(false);
+                            setRefreshTrigger(prev => prev + 1);
                             toast.success('Sell successful!', { id: loadingToast });
                             setAmount(null);
                         }
@@ -840,6 +843,7 @@ function TokenDetails() {
                                         <div className="flex flex-col w-full h-full relative pt-3">
                                             <BondingCurveChart
                                                 tokenAddress={tokenData?.address||''}
+                                                refreshTrigger={refreshTrigger}
                                             />
                                         </div>
                                     </div>
