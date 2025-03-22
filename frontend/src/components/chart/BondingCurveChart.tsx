@@ -15,6 +15,7 @@ interface BondingCurveChartProps {
   width?: string | number;
   tokenAddress?: string;
   refreshTrigger?: number;
+  network?: string;
 }
 
 const formatToMillions = (value: string) => {
@@ -45,6 +46,7 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
   height = 350,
   width = '100%',
   tokenAddress = '0x21D0a122e3bF9fFc7E8A7C34F250211B1139306C',
+  network = 'Sonic',
   refreshTrigger = 0
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -58,8 +60,11 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
     const fetchTokenDetails = async () => {
       setLoading(true);
       try {
+        const rpcUrl = network == "Sonic" ? "https://rpc.blaze.soniclabs.com" : "https://rpcv2-testnet.ancient8.gg";
+        const addressSlothFactory = network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
         // Get token details 
-        const details = await getBinDetails(tokenAddress);
+        const details = await getBinDetails(tokenAddress, rpcUrl, addressSlothFactory);
+        // console.log("details", details);
         setTokenData(details);
         // console.log(details);
         setHasData(details.formattedData && 

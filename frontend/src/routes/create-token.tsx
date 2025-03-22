@@ -1,5 +1,3 @@
-
-
 import { useRef, useState, useEffect } from 'react';
 import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '../utils/pinata';
@@ -7,13 +5,13 @@ import { toast } from 'react-hot-toast';
 import { createFileRoute, useRouter } from '@tanstack/react-router';
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from 'wagmi';
 import { factoryAbi } from '../abi/factoryAbi';
+import { a8TokenAbi } from '../abi/a8TokenAbi';
 import { Button } from '../components/ui/button';
 import { parseEther, decodeEventLog } from 'viem';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Dialog } from '../components/ui/dialog';
-import { bondingCurveAbi } from '../abi/bondingCurveAbi';
 import { useSwitchChain } from 'wagmi';
 import { configAncient8 } from '../config/wagmi';
 import { configSonicBlaze } from '../config/wagmi';
@@ -21,7 +19,9 @@ import { formatNumber } from '../utils/format';
 import { tokenInfo } from '../lib/contants';
 import { useCalculateTokens } from '../hooks/useCalculateTokens';
 import { ethers } from 'ethers';
-
+import { waitForTransactionReceipt } from 'viem/actions';
+import { createPublicClient, http } from 'viem';
+import { ancient8Sepolia } from 'wagmi/chains';
 
 export const Route = createFileRoute("/token/create")({
     component: CreateToken
@@ -55,6 +55,29 @@ function CreateToken() {
     const { switchChain } = useSwitchChain();
     const { calculateExpectedTokens } = useCalculateTokens();
 
+    // Add A8 token contract states
+    const { data: createFee } = useReadContract({
+        address: selectedNetwork === "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}`,
+        abi: factoryAbi,
+        functionName: 'createFee',
+        config: selectedNetwork === "Ancient8" ? configAncient8 : configSonicBlaze
+    });
+
+    const { data: a8Balance } = useReadContract({
+        address: selectedNetwork === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
+        abi: a8TokenAbi,
+        functionName: 'balanceOf',
+        args: [OwnerAddress as `0x${string}`],
+        config: configAncient8
+    });
+
+    const { data: a8Allowance } = useReadContract({
+        address: selectedNetwork === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
+        abi: a8TokenAbi,
+        functionName: 'allowance',
+        args: [OwnerAddress as `0x${string}`, process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`],
+        config: configAncient8
+    });
 
     const { data: balance } = useBalance({
         address: OwnerAddress,
@@ -254,6 +277,7 @@ function CreateToken() {
     // Watch for transaction confirmation
     const { data: receipt, isError: isConfirmationError } = useWaitForTransactionReceipt({
         hash: txHash as `0x${string}`,
+        config: selectedNetwork === "Ancient8" ? configAncient8 : configSonicBlaze
     });
     
     // console.log('Receipt:', receipt);
@@ -262,7 +286,7 @@ function CreateToken() {
         if(tokenInfo&&amount){
             const calculateTokens = async () => {
                 const expectedTokens = await calculateExpectedTokens(tokenInfo, amount||"0");
-                // console.log("expectedTokens", ethers.formatEther(expectedTokens));
+                console.log("expectedTokens", ethers.formatEther(expectedTokens));
                 // Add 15% slippage tolerance
                 const slippageTolerance = 0.15;
                 const minTokensOut = expectedTokens * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);
@@ -330,7 +354,7 @@ function CreateToken() {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                network: chain?.id == 57054 ? "Sonic" : "Ancient8",
+                                network: selectedNetwork,
                                 userAddress: OwnerAddress,
                                 tokenAddress,
                                 amountToken: amountToReceive,
@@ -394,15 +418,52 @@ function CreateToken() {
         const loadingToast = toast.loading('Buying token...');
         
         try {
+            // For Ancient8 network, handle A8 token approvals
+            if (selectedNetwork === "Ancient8") {
+                const buyAmount = parseEther(amount);
+                
+                // Check A8 token balance and allowance
+                if (!a8Balance || a8Balance < buyAmount) {
+                    toast.error(`Insufficient A8 token balance. Need ${amount} A8 tokens`, { id: loadingToast });
+                    return;
+                }
+
+                // Check and set allowance for A8 tokens if needed
+                if (!a8Allowance || a8Allowance < buyAmount) {
+                    try {
+                        const client = createPublicClient({
+                            chain: ancient8Sepolia,
+                            transport: http()
+                        });
+                        
+                        const approveTx = await writeContractAsync({
+                            address: process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}`,
+                            abi: a8TokenAbi,
+                            functionName: 'approve',
+                            args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, buyAmount]
+                        });
+                        
+                        toast.loading('Approving A8 tokens...', { id: loadingToast });
+                        
+                        await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
+                        toast.success('A8 tokens approved successfully', { id: loadingToast });
+                    } catch (error: any) {
+                        console.error('A8 token approval error:', error);
+                        toast.error('Failed to approve A8 tokens', { id: loadingToast });
+                        return;
+                    }
+                }
+            }
+
             setTransactionType('BUY');
             const tx = await writeContractAsync({
-                address: chain?.id == 57054 ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
+                address: selectedNetwork === "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                 abi: factoryAbi,
                 functionName: 'buy',
-                value: parseEther(amount),
-                args: [tokenAddress as `0x${string}` , BigInt(minTokensOut||0)]
+                value: selectedNetwork === "Sonic" ? parseEther(amount) : parseEther("0"), // Only send ETH value for Sonic network
+                args: [tokenAddress as `0x${string}`, BigInt(minTokensOut||0)]
             });
-    
+
             setTxHash(tx);
             toast.success("Transaction submitted! Waiting for confirmation...", { id: loadingToast });
         } catch (error: any) {
@@ -415,19 +476,63 @@ function CreateToken() {
     const handleCreateToken = async () => {
         const loadingToast = toast.loading('Creating token...');
 
+        if(selectedNetwork == "Sonic"){
+            switchChain({chainId: 57054});
+        }else if(selectedNetwork == "Ancient8"){
+            switchChain({chainId: 28122024});
+        }
+
         try {
             if (!tokenName || !ticker) {
                 toast.error('Token name and ticker are required', { id: loadingToast });
                 return;
             }
+
+            // Handle A8 token approvals for Ancient8 network
+            if (selectedNetwork === "Ancient8") {
+                if (!createFee) {
+                    toast.error('Failed to get creation fee', { id: loadingToast });
+                    return;
+                }
+
+                if (!a8Balance || a8Balance < createFee) {
+                    toast.error(`Insufficient A8 token balance. Need ${ethers.formatEther(createFee)} A8 tokens`, { id: loadingToast });
+                    return;
+                }
+
+                // Check and set allowance for A8 tokens if needed
+                if (!a8Allowance || a8Allowance < createFee) {
+                    try {
+                        const client = createPublicClient({
+                            chain: ancient8Sepolia,
+                            transport: http()
+                        });
+                        
+                        const approveTx = await writeContractAsync({
+                            address: process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}`,
+                            abi: a8TokenAbi,
+                            functionName: 'approve',
+                            args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, createFee]
+                        });
+                        
+                        toast.loading('Approving A8 tokens...', { id: loadingToast });
+                        await waitForTransactionReceipt(client, { hash: approveTx });
+                        toast.success('A8 tokens approved successfully', { id: loadingToast });
+                    } catch (error: any) {
+                        console.error('A8 token approval error:', error);
+                        toast.error('Failed to approve A8 tokens', { id: loadingToast });
+                        return;
+                    }
+                }
+            }
             
             try {
                 setTransactionType('CREATE');
                 const tx = await writeContractAsync({
-                    address: chain?.id == 57054 ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
+                    address: selectedNetwork == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
                     abi: factoryAbi,
                     functionName: 'createToken',
-                    value: parseEther("2"),
+                    value: selectedNetwork == "Sonic" ? parseEther("2") : parseEther("0"), // No ETH value needed for Ancient8
                     args: [tokenName, ticker, BigInt(parseEther("1000000000")), 2]
                 });
                 
@@ -467,7 +572,7 @@ function CreateToken() {
                 twitterUrl: twitterUrl,
                 telegramUrl: telegramUrl,
                 websiteUrl: websiteUrl,
-                network: chain?.id == 57054 ? "Sonic" : "Ancient8",
+                network: selectedNetwork,
                 categories: selectedCategories || [],
             };
 
@@ -530,7 +635,7 @@ function CreateToken() {
             { icon: "💰", label: "Investment DAO", description: "Tokens representing membership and voting rights in a decentralized autonomous organization (DAO) focused on collective investment." },
             { icon: "👾", label: "Meme", description: "Tokens inspired by meme culture, often humorous, viral, and tied to playful online communities or social media trends." },
             { icon: "🎮", label: "Gaming", description: "Tokens designed for the gaming industry, used in blockchain games, trading digital assets (NFTs), or rewarding players." },
-            { icon: "�", label: "Entertainment", description: "Tokens powering entertainment on the blockchain, such as access to exclusive content, artist funding, or trading digitized entertainment assets." },
+            { icon: "🎞", label: "Entertainment", description: "Tokens powering entertainment on the blockchain, such as access to exclusive content, artist funding, or trading digitized entertainment assets." },
             { icon: "🧠", label: "AI", description: "Tokens linked to artificial intelligence projects, enabling access to AI services, funding tech development, or transactions within a decentralized AI ecosystem." },
         ],
     };

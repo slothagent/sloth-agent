@@ -9,7 +9,7 @@ export const useCalculateBin = () => {
   const ETHER = ethers.parseEther("1");
 
   // Helper function to round a number to specific decimal places
-  const roundToDecimal = (num: string, decimals: number = 2) => {
+  const roundToDecimal = (num: string, decimals: number = 2): string => {
     const parsed = parseFloat(num);
     if (isNaN(parsed)) return "0";
     
@@ -97,29 +97,31 @@ export const useCalculateBin = () => {
   };
 
   // Get bin details for a specific token
-  const getBinDetails = async (tokenAddress: string, rpcUrl: string = 'https://rpc.blaze.soniclabs.com') => {
+  const getBinDetails = async (tokenAddress: string, rpcUrl: string, address: string) => {
     try {
       // Connect to the network
       const provider = new ethers.JsonRpcProvider(rpcUrl);
-      const slothFactoryAddress = '0x250633708b05F9241B8560c24c3d59F1e8c8a504';
-      const slothFactory = new ethers.Contract(slothFactoryAddress, factoryAbi, provider);
+
+      // console.log("provider", provider);
+      const slothFactory = new ethers.Contract(address, factoryAbi, provider);
       
       // Get token info
       const tokenInfo = await slothFactory.tokens(tokenAddress);
-      
+      // console.log("tokenInfo", tokenInfo);
       // Current bin details
-      const currentBin = Number(tokenInfo.currentIndex);
-      const tokensPerSonic = calculateTokensPerSonic(tokenInfo.initialSupply, currentBin);
+      const currentBin = Number(tokenInfo[3]);
+      // console.log("currentBin", currentBin);
+      const tokensPerSonic = calculateTokensPerSonic(tokenInfo[5], currentBin);
       const sonicPrice = calculateSonicPrice(currentBin);
-      const percentageInBin = calculatePercentageInBin(tokenInfo.currentValue, tokenInfo.initialSupply);
-      const sonicNeeded = calculateSonicNeeded(tokenInfo.currentValue, tokensPerSonic);
+      const percentageInBin = calculatePercentageInBin(tokenInfo[4], tokenInfo[5]);
+      const sonicNeeded = calculateSonicNeeded(tokenInfo[4], tokensPerSonic);
       
       // Format the sonicNeeded value with appropriate rounding
       const formattedSonicNeeded = roundToDecimal(ethers.formatEther(sonicNeeded), 2);
       
       // Calculate distribution across all bins
-      const allBinsDistribution = calculateAllBinsDistribution(tokenInfo.initialSupply);
-      
+      const allBinsDistribution = calculateAllBinsDistribution(tokenInfo[5]);
+      // console.log("allBinsDistribution", allBinsDistribution);
       return {
         tokenInfo,
         currentBin,

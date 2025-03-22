@@ -170,6 +170,7 @@ export function useTransactionsData(tokenAddress: string, timeRange: string = '3
     // Add listener for transactions data
     const removeListener = addDataListener('transactions', (data: any) => {
       // Chỉ xử lý dữ liệu cho địa chỉ token cụ thể mà chúng ta quan tâm
+      // console.log("data", data);
       if (Array.isArray(data)) {
         setTransactions(data);
         setLoading(false);

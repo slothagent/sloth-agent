@@ -31,6 +31,10 @@ import { factoryAbi } from '../abi/factoryAbi';
 import { useSignTypedData } from 'wagmi';
 import BondingCurveChart from '../components/chart/BondingCurveChart';
 import { useCalculateBin } from '../hooks/useCalculateBin';
+import { createPublicClient, http } from 'viem';
+import { waitForTransactionReceipt } from 'viem/actions';
+import { a8TokenAbi } from '../abi/a8TokenAbi';
+import { ancient8Sepolia } from 'viem/chains';
 
 export const Route = createFileRoute("/token/$tokenAddress")({
     component: TokenDetails,
@@ -127,8 +131,10 @@ function TokenDetails() {
     useEffect(() => {
         const fetchTokenDetails = async () => {
             try {
+                const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
+                const rpcUrl = tokenData?.network == "Sonic" ? "https://rpc.blaze.soniclabs.com" : "https://rpcv2-testnet.ancient8.gg";
                 // Get token details 
-                const details = await getBinDetails(tokenAddress);
+                const details = await getBinDetails(tokenAddress, rpcUrl, addressSlothFactory);
                 // console.log("details", details);
                 setPriceToken(Number(ethers.formatEther(details.sonicPrice)));
                 // console.log("priceToken", Number(ethers.formatEther(details.sonicPrice)));
@@ -137,22 +143,17 @@ function TokenDetails() {
             };
         }     
         fetchTokenDetails();
-    }, [tokenAddress]);
+    }, [tokenAddress,tokenData]);
 
     const { data: tokenInfo } = useReadContract({
         address: addressSlothFactory,
         abi: factoryAbi,
         functionName: 'tokens',
-        args: [tokenData?.address as `0x${string}`]
+        args: [tokenData?.address as `0x${string}`],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
     // console.log("tokenData", tokenData);
     // console.log("tokenInfo", tokenInfo);
-
-    const { data: balance } = useBalance({
-        address: address,
-        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
-    });
-
     const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
@@ -183,6 +184,22 @@ function TokenDetails() {
         abi: tokenAbi,
         functionName: 'name',
         config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8,
+    });
+
+    const { data: a8Balance } = useReadContract({
+        address: tokenData?.network === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
+        abi: a8TokenAbi,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+        config: configAncient8
+    });
+
+    const { data: a8Allowance } = useReadContract({
+        address: tokenData?.network === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
+        abi: a8TokenAbi,
+        functionName: 'allowance',
+        args: [address as `0x${string}`, process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`],
+        config: configAncient8
     });
 
     useEffect(() => {
@@ -282,7 +299,6 @@ function TokenDetails() {
                                 data: log.data,
                                 topics: log.topics,
                             });
-                            // console.log('Decoded:', decoded);
                             return decoded.eventName === 'SlothSwap';
                         } catch {
                             return false;
@@ -293,7 +309,7 @@ function TokenDetails() {
                         await refetchAllowance();
                         setIsApproving(false);
                         toast.success('Token approved successfully!', { id: loadingToast });
-                    } else if (eventLog) {
+                    } else if (eventLog && txHash) {  // Only process if we have both eventLog and txHash
                         if(transactionType === 'BUY'){
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
@@ -308,16 +324,18 @@ function TokenDetails() {
                                     amount: parseFloat(amount||"0"),
                                     price: priceToken,
                                     transactionType: 'BUY',
-                                    transactionHash: txHash as `0x${string}`
+                                    transactionHash: txHash
                                 }),
                             });
+                            
                             setAmount(null);
                             await refetchBalanceOfToken();
                             setIsLoading(false);
                             setRefreshTrigger(prev => prev + 1);
                             toast.success('Buy successful!', { id: loadingToast });
-                        }else if(transactionType === 'SELL'){
-                            // Save price history after successful transaction
+                            // Clear transaction hash after processing
+                            setTxHash(null);
+                        } else if(transactionType === 'SELL'){
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
                                 headers: {
@@ -331,14 +349,17 @@ function TokenDetails() {
                                     amount: amountToReceive,
                                     price: priceToken,
                                     transactionType: 'SELL',
-                                    transactionHash: txHash as `0x${string}`
+                                    transactionHash: txHash
                                 }),
                             });
+                            
                             await refetchBalanceOfToken();
                             setIsLoading(false);
                             setRefreshTrigger(prev => prev + 1);
                             toast.success('Sell successful!', { id: loadingToast });
                             setAmount(null);
+                            // Clear transaction hash after processing
+                            setTxHash(null);
                         }
                     } else {
                         setIsLoading(false);
@@ -375,6 +396,7 @@ function TokenDetails() {
         return transactionsData;
     }, [transactionsData]);
     
+    // console.log("transactionHistory", transactionHistory);
 
     const totalMarketCapToken = useMemo(() => {
         if (!transactionHistory) return 0;
@@ -408,20 +430,58 @@ function TokenDetails() {
         }
         // console.log("amountToReceive", amountToReceive);
         if (amountToReceive <= 0) return toast.error('Insufficient tokens to receive');
-        if (balance && balance.value < parseEther(amount||"0")){
-            return toast.error('Insufficient balance');
-        }
+
         setAmountToReceive(Number(amountToReceive||"0"));
 
         const loadingToast = toast.loading('Buying...');
 
         const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
         try {
+            // For Ancient8 network, handle A8 token approvals
+            if (tokenData?.network === "Ancient8") {
+                const buyAmount = parseEther(amount);
+                
+                // Check A8 token balance and allowance
+                if (!a8Balance || a8Balance < buyAmount) {
+                    toast.error(`Insufficient A8 token balance. Need ${amount} A8 tokens`, { id: loadingToast });
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Check and set allowance for A8 tokens if needed
+                if (!a8Allowance || a8Allowance < buyAmount) {
+                    try {
+                        const client = createPublicClient({
+                            chain: ancient8Sepolia,
+                            transport: http()
+                        });
+                        
+                        const approveTx = await writeContractAsync({
+                            address: process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}`,
+                            abi: a8TokenAbi,
+                            functionName: 'approve',
+                            args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, buyAmount]
+                        });
+                        
+                        toast.loading('Approving A8 tokens...', { id: loadingToast });
+                        
+                        await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
+                        toast.success('A8 tokens approved successfully', { id: loadingToast });
+                    } catch (error: any) {
+                        console.error('A8 token approval error:', error);
+                        toast.error('Failed to approve A8 tokens', { id: loadingToast });
+                        setIsLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            setTransactionType('BUY');
             const tx = await writeContractAsync({
                 address: addressSlothFactory,
                 abi: factoryAbi,
                 functionName: 'buy',
-                value: parseEther(amount||"0"),
+                value: tokenData?.network === "Sonic" ? parseEther(amount||"0") : parseEther("0"),
                 args: [tokenData?.address as `0x${string}`, BigInt(minTokensOut||0)]
             });
             setTransactionType('BUY');
@@ -844,6 +904,7 @@ function TokenDetails() {
                                             <BondingCurveChart
                                                 tokenAddress={tokenData?.address||''}
                                                 refreshTrigger={refreshTrigger}
+                                                network={tokenData?.network}
                                             />
                                         </div>
                                     </div>
