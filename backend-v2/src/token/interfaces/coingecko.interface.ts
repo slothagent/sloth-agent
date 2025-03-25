@@ -2,7 +2,7 @@ import { Token } from '../token.service';
 
 export interface CoinGeckoToken {
   id: string;
-  symbol: string;
+  ticker: string;
   name: string;
   platforms: {
     [key: string]: string;  // chainId: contractAddress

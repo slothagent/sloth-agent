@@ -24,7 +24,7 @@ export class CoinGeckoService {
         .slice(0, 10)
         .map(coin => ({
           id: coin.id,
-          symbol: coin.symbol,
+          ticker: coin.symbol,
           name: coin.name,
           imageUrl: coin.large,
           market_data: {

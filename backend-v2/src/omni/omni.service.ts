@@ -396,8 +396,11 @@ export class OmniService {
       }
       
     } catch (error) {
-      console.error('Error executing action:', error);
-      throw error;
+      // console.error('Error executing action:', error);
+      return {
+        message: 'Error executing action',
+        error: error
+      }
     }
   }
 } 

@@ -120,6 +120,9 @@ export class ActionService {
       Input: "Show liquidity for ETH/USDC pair on polygon"
       Output: function=getPairReserves, pair=ETH/USDC, chain=polygon
 
+      Input: "How many people hold $CGPT?"
+      Output: function=getTokenHolderStats, token=CGPT, chain=eth
+
       Input: "Compare volume of AI vs Gaming tokens"
       Output: function=getVolumeStatsByCategory, categories=[AI,Gaming], chain=eth
 
