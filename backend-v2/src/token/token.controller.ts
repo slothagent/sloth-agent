@@ -73,33 +73,40 @@ export class TokenController {
           data: [],
           metadata: {
             currentPage: 1,
-            pageSize: 10,
-            totalPages: 0,
+            pageSize: 0,
+            totalPages: 1,
             totalCount: 0
           }
         };
       }
 
-      const collection = await this.tokenService.getCollection();
-      const tokens = await collection.find({
-        $or: [
-          { name: { $regex: searchTerm, $options: 'i' } },
-          { ticker: { $regex: searchTerm, $options: 'i' } }
-        ]
-      }).sort({ createdAt: -1 }).toArray();
+      console.log('Starting token search with query:', searchTerm);
+      const searchResults = await this.tokenService.search(searchTerm);
+      
+      // Combine local and market tokens
+      const combinedTokens = [
+        ...searchResults.localTokens,
+        ...searchResults.marketTokens
+      ];
+
+      console.log('Search completed. Results:', {
+        localTokensCount: searchResults.localTokens.length,
+        marketTokensCount: searchResults.marketTokens.length,
+        totalResults: combinedTokens.length
+      });
 
       return {
         success: true,
-        data: tokens,
+        data: combinedTokens,
         metadata: {
           currentPage: 1,
-          pageSize: tokens.length,
+          pageSize: combinedTokens.length,
           totalPages: 1,
-          totalCount: tokens.length
+          totalCount: searchResults.total
         }
       };
     } catch (error) {
-      console.error('Error searching tokens:', error);
+      console.error('Error in searchTokens endpoint:', error);
       
       if (error instanceof HttpException) {
         throw error;
@@ -116,14 +123,13 @@ export class TokenController {
   async getTokens(
     @Query('address') address: string,
     @Query('page') page: string = '1',
-    @Query('pageSize') pageSize: string = '10',
-    @Query('search') search: string
+    @Query('pageSize') pageSize: string = '10'
   ) {
     try {
       const pageNum = parseInt(page);
       const pageSizeNum = parseInt(pageSize);
 
-      console.log('Fetching tokens with params:', { address, page: pageNum, pageSize: pageSizeNum, search });
+      console.log('Fetching tokens with params:', { address, page: pageNum, pageSize: pageSizeNum });
 
       const collection = await this.tokenService.getCollection();
       
@@ -159,28 +165,6 @@ export class TokenController {
             pageSize: 1,
             totalPages: 1,
             totalCount: 1
-          }
-        };
-      }
-
-      if (search) {
-        // Search tokens by name or ticker
-        const tokens = await collection.find({
-          $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { ticker: { $regex: search, $options: 'i' } }
-          ]
-        }).sort({ createdAt: -1 }).toArray();
-
-        console.log('Found tokens by search:', tokens.length);
-
-        return { 
-          data: tokens,
-          metadata: {
-            currentPage: 1,
-            pageSize: tokens.length,
-            totalPages: 1,
-            totalCount: tokens.length
           }
         };
       }

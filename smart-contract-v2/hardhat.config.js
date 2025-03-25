@@ -14,6 +14,11 @@ module.exports = {
     }
   },
   networks: {
+    'bsc-testnet': {
+      url: "https://bsc-testnet.drpc.org",
+      chainId: 97,
+      accounts: [process.env.PRIVATE_KEY],
+    },
     'ancient8-testnet': {
       url: 'https://rpcv2-testnet.ancient8.gg',
       accounts: [process.env.PRIVATE_KEY],

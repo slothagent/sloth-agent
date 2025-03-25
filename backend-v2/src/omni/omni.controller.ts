@@ -11,27 +11,9 @@ export class OmniController {
     return { isTokenCreationIntent };
   }
 
-  @Post('create-token')
-  async createToken(
-    @Body()
-    data: {
-      name: string;
-      description: string;
-      chain: string;
-      userAddress: string;
-    },
-  ) {
-    return await this.omniService.createToken(data);
-  }
-
-  @Post('process-token-creation')
-  async processTokenCreation(
-    @Body() body: { message: string; address: string },
-  ) {
-    return await this.omniService.processTokenCreation(
-      body.message,
-      body.address,
-    );
+  @Post('resolve-action')
+  async resolveAction(@Body() body: { message: string }) {
+    return await this.omniService.resolveAction(body.message);
   }
 
   @Post('search')

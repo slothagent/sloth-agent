@@ -2,6 +2,53 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PriceService {
+  async getTokenPrice(symbol: string): Promise<any> {
+    try {
+      let response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+      
+      if (!response.ok) {
+        console.log('Binance API failed, trying CoinGecko API');
+        response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd`);
+        
+        if (response.ok) {
+          const geckoData = await response.json();
+          return { 
+            success: true, 
+            data: {
+              symbol: symbol,
+              price: geckoData.ethereum.usd,
+              timestamp: new Date().toISOString(),
+              source: 'coingecko'
+            }
+          };
+        }
+        throw new Error('All API attempts failed');
+      }
+      
+      const data = await response.json();
+      return { 
+        success: true, 
+        data: {
+          symbol: symbol,
+          price: parseFloat(data.price),
+          timestamp: new Date().toISOString(),
+          source: 'binance'
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching ETH price:', error);
+      return { 
+        success: true, 
+        data: {
+          symbol: symbol,
+          price: 2500,
+          timestamp: new Date().toISOString(),
+          source: 'fallback'
+        },
+        warning: 'Using fallback price data'
+      };
+    }
+  }
   async getEthPrice(): Promise<any> {
     try {
       let response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT');

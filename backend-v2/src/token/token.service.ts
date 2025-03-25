@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { MongodbService } from '../database/mongodb.service';
 import { Collection, ObjectId } from 'mongodb';
+import { CoinGeckoService } from './coingecko.service';
+import { TokenSearchResponse } from './interfaces/coingecko.interface';
 
 export interface Token {
   _id?: ObjectId;
@@ -22,7 +24,10 @@ export interface Token {
 
 @Injectable()
 export class TokenService {
-  constructor(private readonly mongodbService: MongodbService) {}
+  constructor(
+    private readonly mongodbService: MongodbService,
+    private readonly coingeckoService: CoinGeckoService
+  ) {}
 
   async getCollection(): Promise<Collection> {
     return this.mongodbService.getCollection('tokens');
@@ -98,13 +103,47 @@ export class TokenService {
     return { tokens, total };
   }
 
-  async search(query: string): Promise<Token[]> {
+  async search(query: string): Promise<TokenSearchResponse> {
+    console.log('Starting search with query:', query);
+    
+    try {
+      // Parallel execution of both searches
+      const [localTokens, marketTokens] = await Promise.all([
+        this.searchLocal(query),
+        this.coingeckoService.searchTokens(query)
+      ]);
+      
+      console.log('Search results:', {
+        localTokensCount: localTokens.length,
+        marketTokensCount: marketTokens.length
+      });
+      
+      return {
+        localTokens,
+        marketTokens,
+        total: localTokens.length + marketTokens.length
+      };
+    } catch (error) {
+      console.error('Error in token search:', error);
+      // Return empty results on error rather than failing
+      return {
+        localTokens: [],
+        marketTokens: [],
+        total: 0
+      };
+    }
+  }
+
+  private async searchLocal(query: string): Promise<Token[]> {
+    console.log('Performing local search with query:', query);
     const collection = await this.getCollection();
-    return collection.find<Token>({
+    const results = await collection.find<Token>({
       $or: [
         { name: { $regex: query, $options: 'i' } },
         { ticker: { $regex: query, $options: 'i' } }
       ]
     }).toArray();
+    console.log('Local search found:', results.length, 'results');
+    return results;
   }
 } 

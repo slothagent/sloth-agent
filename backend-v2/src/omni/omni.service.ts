@@ -2,33 +2,72 @@ import { Injectable } from '@nestjs/common';
 import { ChatOpenAI } from '@langchain/openai';
 import OpenAI from "openai";
 import { PromptTemplate } from '@langchain/core/prompts';
-import { ConfigService } from '@nestjs/config';
-import { ImageService } from '../image/image.service';
 import { SystemMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
+import { ActionService } from '../action/action.service';
+import { PriceService } from '../price/price.service';
+import Moralis from 'moralis';
 
 @Injectable()
 export class OmniService {
   private openai: ChatOpenAI;
-  private ai: OpenAI;
   private intentPrompt: PromptTemplate;
-  private tokenPrompt: PromptTemplate;
-  private imagePrompt: PromptTemplate;
   private searchPrompt: PromptTemplate;
   private agentPrompt: PromptTemplate;
   private messageHistory: Map<string, Array<HumanMessage | AIMessage>>;
 
-  constructor(
-    private configService: ConfigService,
-    private imageService: ImageService
-  ) {
-    this.openai = new ChatOpenAI({
-      openAIApiKey: process.env.OPENAI_API_KEY,
-      temperature: 0.7,
-      modelName: 'gpt-4',
-    });
+  // Add chain mapping
+  private readonly chainIdMap = {
+    'eth': '0x1',
+    'ethereum': '0x1',
+    'sepolia': '0xaa36a7',
+    'holesky': '0x4268',
+    'polygon': '0x89',
+    'polygon_amoy': '0x13882',
+    'bsc': '0x38',
+    'bsc_testnet': '0x61',
+    'arbitrum': '0xa4b1',
+    'arbitrum_sepolia': '0x66eee',
+    'base': '0x2105',
+    'base_sepolia': '0x14a34',
+    'optimism': '0xa',
+    'optimism_sepolia': '0xaa37dc',
+    'linea': '0xe708',
+    'linea_sepolia': '0xe705',
+    'avalanche': '0xa86a',
+    'fantom': '0xfa',
+    'fantom_testnet': '0xfa2',
+    'cronos': '0x19',
+    'gnosis': '0x64',
+    'gnosis_testnet': '0x27d8'
+  };
 
-    this.ai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+  private getChainId(chain: string): string {
+    const chainLower = chain.toLowerCase();
+    const chainId = this.chainIdMap[chainLower];
+    if (!chainId) {
+      throw new Error(`Unsupported chain: ${chain}`);
+    }
+    return chainId;
+  }
+
+  private getDefaultDates(): { fromDate: string; toDate: string } {
+    const toDate = new Date();
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 7);
+
+    return {
+      fromDate: fromDate.toISOString().split('.')[0] + '.000',
+      toDate: toDate.toISOString().split('.')[0] + '.000'
+    };
+  }
+
+  constructor(
+    private actionService: ActionService,
+    private priceService: PriceService
+  ) {
+    // Initialize Moralis
+    Moralis.start({
+      apiKey: process.env.MORALIS_API_KEY
     });
 
     this.messageHistory = new Map();
@@ -78,31 +117,6 @@ export class OmniService {
       Response (true/false):
     `);
 
-    this.tokenPrompt = PromptTemplate.fromTemplate(`
-      Create a detailed token deployment plan based on the following information:
-      Name: {name}
-      Description: {description}
-      Chain: {chain}
-
-      Please provide:
-      1. Token symbol suggestion
-      2. Initial supply recommendation
-      3. Key features based on the description
-      4. Deployment considerations for {chain} chain
-    `);
-
-    this.imagePrompt = PromptTemplate.fromTemplate(`
-      Create a professional and modern token logo based on:
-      Token Name: {name}
-      Token Description: {description}
-
-      The image should be:
-      1. Minimalistic and memorable
-      2. Suitable for a cryptocurrency token
-      3. Incorporating elements from the description: {description}
-      4. Using colors that reflect the token's purpose
-    `);
-
     this.searchPrompt = PromptTemplate.fromTemplate(`
       Search for information about: {query}
       
@@ -113,33 +127,6 @@ export class OmniService {
       4. Any additional related information that might be helpful
 
       Use web search to find the most up-to-date information.
-    `);
-
-    this.agentPrompt = PromptTemplate.fromTemplate(`
-      You are an advanced AI agent named Omni, designed to assist users with various tasks.
-      You have access to multiple capabilities including:
-      1. Token creation and management
-      2. Real-time information search
-      3. Image generation
-      4. Natural language understanding
-      
-      Current conversation context:
-      {context}
-
-      User query: {query}
-
-      Please provide a helpful, informative, and engaging response. You can:
-      1. Use web search for real-time information
-      2. Process token-related requests
-      3. Generate images when needed
-      4. Maintain context of the conversation
-      5. Ask clarifying questions if needed
-
-      Remember to:
-      - Be conversational but professional
-      - Provide accurate and up-to-date information
-      - Maintain conversation context
-      - Use appropriate tools when needed
     `);
   }
 
@@ -165,113 +152,16 @@ export class OmniService {
     }
   }
 
-  async createToken(data: {
-    name: string;
-    description: string;
-    chain: string;
-    userAddress: string;
-  }) {
+  async resolveAction(message: string) {
     try {
-      // Generate token details using LangChain
-      // const formattedPrompt = await this.tokenPrompt.format({
-      //   name: data.name,
-      //   description: data.description,
-      //   chain: data.chain,
-      // });
-      // const tokenResponse = await this.openai.invoke([
-      //   new SystemMessage(formattedPrompt)
-      // ]);
-
-      // Generate image using ImageService
-      // const imagePrompt = await this.imagePrompt.format({
-      //   name: data.name,
-      //   description: data.description,
-      // });
-      // const imageResponse = await this.openai.invoke([
-      //   new SystemMessage(imagePrompt)
-      // ]);
-
-      // Generate image using ImageService await this.imageService.generateImage(imageResponse.content)
-      const imageUrl = '';
-
-      // Here you would add the actual token deployment logic for the specified chain
-      // This is a placeholder for the actual deployment code
-      const contractAddress = '0x...'; // Result from actual deployment
-
-      return {
-        success: true,
-        name: data.name,
-        description: data.description,
-        chain: data.chain,
-        contractAddress,
-        imageUrl
-      };
+      // Parse user input to determine action
+      const parsedAction = await this.actionService.parseUserInput(message);
+      const response = await this.execute(parsedAction);
+      return response;
     } catch (error) {
-      console.error('Error creating token:', error);
+      console.error('Error executing action:', error);
       throw error;
     }
-  }
-
-  async processTokenCreation(message: string, address: string) {
-    // Check if message is about token creation using multiple keywords
-    const tokenKeywords = [
-      'deploy token',
-      'create token',
-      'mint token',
-      'launch token',
-      'generate token',
-      'make token',
-      'issue token',
-      'new token',
-      'token creation',
-      'token deployment',
-    ];
-
-    const messageNormalized = message.toLowerCase();
-    const isTokenCreation = tokenKeywords.some(keyword => messageNormalized.includes(keyword));
-
-    // If basic keyword check fails, use AI to check intent
-    if (!isTokenCreation) {
-      const isTokenCreationIntent = await this.checkIntent(message);
-      if (!isTokenCreationIntent) return false;
-    }
-
-    // Extract token details from message
-    const { name, description, chain } = this.extractTokenDetails(message);
-
-    // If we don't have required fields, return missing fields info
-    if (!name || !description) {
-      return {
-        needsMoreInfo: true,
-        missingFields: {
-          name: !name,
-          description: !description,
-        },
-      };
-    }
-
-    // Create token
-    return await this.createToken({
-      name,
-      description,
-      chain,
-      userAddress: address,
-    });
-  }
-
-  private extractTokenDetails(message: string) {
-    const nameMatch = message.match(/(?:name|called|named)\s+([^\s,\.]+)/i);
-    const descriptionMatch = message.match(/description\s+([^(on|chain|\.)]+)/i) ||
-      message.match(/with description\s+([^(on|chain|\.)]+)/i) ||
-      message.match(/described as\s+([^(on|chain|\.)]+)/i);
-    const chainMatch = message.match(/(?:on|in|at|using|via)\s+(?:chain\s+)?([^\s,\.]+)\s+(?:chain|network)?/i) ||
-      message.match(/chain\s+([^\s,\.]+)/i);
-
-    return {
-      name: nameMatch?.[1] || '',
-      description: descriptionMatch?.[1]?.trim() || '',
-      chain: chainMatch?.[1]?.toLowerCase() === 'sonic' ? 'sonic' : 'sonic', // Default to sonic if not specified or invalid
-    };
   }
 
   async search(query: string) {
@@ -363,5 +253,151 @@ export class OmniService {
       success: true,
       message: 'Chat history cleared'
     };
+  }
+
+  fetchOptions() {
+    const options = {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+        'X-API-Key': process.env.MORALIS_API_KEY
+      },
+    }
+    return options;
+  }
+
+  async execute(parsedAction: any) {
+    try {
+      // Execute the appropriate Moralis API call based on the action
+      const functionName = parsedAction.function;
+      console.log(parsedAction);
+      const selectedChain = this.getChainId(parsedAction.chain);
+
+      switch (functionName) {
+        case 'getTokenPrice':
+          const response = await this.priceService.getTokenPrice(parsedAction.token);
+          return response;
+        
+        case 'getWalletTokenBalancesPrices':
+          const res = await Moralis.EvmApi.wallets.getWalletTokenBalancesPrice({
+            "chain": selectedChain,
+            "address": parsedAction.wallet
+          });
+          return res.result;
+
+        case 'getSolTokenPrice':
+          return null;
+        
+        case 'getDefiPositionsSummary':
+          const resDefi = await Moralis.EvmApi.wallets.getDefiPositionsSummary({
+            "chain": selectedChain,
+            "address": parsedAction.wallet
+          });
+          return resDefi.result;
+
+        // Wallet Analysis Functions
+        case 'getWalletNFTs':
+          const resNFTs = await Moralis.EvmApi.nft.getWalletNFTs({
+            "chain": selectedChain,
+            "address": parsedAction.wallet
+          });
+          return resNFTs.result;
+
+        case 'getWalletNetWorth':
+          const resNetWorth = await Moralis.EvmApi.wallets.getWalletNetWorth({
+            "excludeSpam": true,
+            "excludeUnverifiedContracts": true,
+            "maxTokenInactivity": 1,
+            "address": parsedAction.wallet
+          });
+          return resNetWorth.result;
+
+        case 'getWalletProfitabilitySummary':
+          const resProfitability = await Moralis.EvmApi.wallets.getWalletProfitabilitySummary({
+            "chain": selectedChain,
+            "address": parsedAction.wallet
+          });
+          return resProfitability.result;
+
+        case 'getSwapsByWalletAddress':
+          const resSwaps = await fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${parsedAction.wallet}/swaps?chain=${selectedChain}&order=DESC`, this.fetchOptions());
+          return resSwaps.json();
+
+        case 'resolveAddressToDomain':
+          const resDomain = await fetch(`https://deep-index.moralis.io/api/v2.2/resolve/${parsedAction.wallet}/domain`, this.fetchOptions());
+          return resDomain.json();
+
+        case 'resolveENSDomain':
+          const resENS = await Moralis.EvmApi.resolve.resolveENSDomain({
+            "domain": parsedAction.domain
+          });
+          return resENS.result;
+
+        // Token Analysis Functions
+        case 'getTokenHolderStats':
+          const resHolderStats = await fetch(`https://deep-index.moralis.io/api/v2.2/erc20/${parsedAction.tokenAddress}/holders?chain=${selectedChain}`, this.fetchOptions());
+          return resHolderStats.json();
+
+        case 'getHistoricalTokenHolders':
+          const dates = this.getDefaultDates();
+          const resHistoricalHolders = await fetch(
+            `https://deep-index.moralis.io/api/v2.2/erc20/${parsedAction.tokenAddress}/holders/historical?chain=${selectedChain}&fromDate=${parsedAction.fromDate || dates.fromDate}&toDate=${parsedAction.toDate || dates.toDate}&timeFrame=1d`, 
+            this.fetchOptions()
+          );
+          return resHistoricalHolders.json();
+
+        case 'getTopProfitableWalletPerToken':
+          const resTopTraders = await Moralis.EvmApi.token.getTopProfitableWalletPerToken({
+            "chain": selectedChain,
+            "address": parsedAction.tokenAddress
+          });
+          return resTopTraders.result;
+
+        case 'getTrendingTokens':
+          const resTrending = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd`);
+          const trending = await resTrending.json();
+          return trending.slice(0, 10);
+
+        case 'getTopGainersTokens':
+          const resGainers = await fetch(`https://deep-index.moralis.io/api/v2.2/discovery/tokens/top-gainers?chain=${selectedChain}&time_frame=1d`, this.fetchOptions());
+          return resGainers.json();
+
+        case 'getTokenAnalytics':
+          const resAnalytics = await fetch(`https://deep-index.moralis.io/api/v2.2/tokens/${parsedAction.tokenAddress}/analytics?chain=${selectedChain}`, this.fetchOptions());
+          return resAnalytics.json();
+
+        case 'getTokenStats':
+          const resStats = await Moralis.EvmApi.token.getTokenStats({
+            "chain": selectedChain,
+            "address": parsedAction.tokenAddress
+          });
+          return resStats.result;
+
+        case 'getPairCandlesticks':
+          const candleDates = this.getDefaultDates();
+          const resCandles = await fetch(
+            `https://deep-index.moralis.io/api/v2.2/pairs/${parsedAction.pairAddress}/ohlcv?chain=${selectedChain}&timeframe=${parsedAction.interval || '1h'}&currency=usd&fromDate=${parsedAction.fromDate || candleDates.fromDate}&toDate=${parsedAction.toDate || candleDates.toDate}`, 
+            this.fetchOptions()
+          );
+          return resCandles.json();
+
+        case 'getTopERC20TokensByMarketCap':
+          const resTopTokens = await Moralis.EvmApi.marketData.getTopERC20TokensByMarketCap();
+          return resTopTokens.result;
+
+        case 'searchTokens':
+          const resSearch = await fetch(`https://deep-index.moralis.io/api/v2.2/tokens/search?query=${parsedAction.query}&chains=${selectedChain}`, this.fetchOptions());
+          return resSearch.json();
+
+        default:
+          return {
+            message: 'Unsupported function'
+          }
+      }
+      
+    } catch (error) {
+      console.error('Error executing action:', error);
+      throw error;
+    }
   }
 } 

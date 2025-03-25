@@ -16,7 +16,8 @@ import { toast } from "react-hot-toast";
 import { a8TokenAbi } from "../abi/a8TokenAbi";
 import { ancient8Sepolia } from "wagmi/chains";
 import { waitForTransactionReceipt } from 'viem/actions';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, decodeEventLog, http } from 'viem';
+import { sonicBlazeTestnet } from "../config/wagmi";
 
 
 export const Route = createFileRoute("/omni/$chatId")({
@@ -757,6 +758,10 @@ Your token has been deployed successfully! 🎉`;
                 })
             }
 
+            const client = createPublicClient({
+                chain: chainName.toLowerCase() == 'sonic' || chainName.toLowerCase() == 'soniclabs' ? sonicBlazeTestnet : ancient8Sepolia,
+                transport: http()
+            });
             const price = chainName.toLowerCase() == 'sonic' || chainName.toLowerCase() == 'soniclabs' ? parseEther('1') : parseEther('0');
 
             if (chainName.toLowerCase() == 'ancient8') {
@@ -791,7 +796,15 @@ Your token has been deployed successfully! 🎉`;
                 args: [name, symbol, parseEther("1000000000"),2],
                 chainId: chainName.toLowerCase() == 'sonic' || chainName.toLowerCase() == 'soniclabs' ? 57054 : 28122024
             });
-
+            const res = await waitForTransactionReceipt(client, { hash: tx as `0x${string}` });
+            // console.log("res", res)
+            const decoded = decodeEventLog({
+                abi: factoryAbi,
+                data: chainName.toLowerCase() == "sonic" || chainName.toLowerCase() == "soniclabs" ? res.logs[3].data : res.logs[4].data,
+                topics: chainName.toLowerCase() == "sonic" || chainName.toLowerCase() == "soniclabs" ? res.logs[3].topics : res.logs[4].topics,
+            });
+            // console.log("decoded", decoded)
+            const { token } = decoded.args as any;
             // Complete all steps
             setProcessSteps(steps => steps.map(step => 
                 step.status === 'current' ? { ...step, status: 'completed' } : step
@@ -806,7 +819,7 @@ Your token has been deployed successfully! 🎉`;
                 chain: chainName,
                 hash: tx,
                 imageUrl: ipfsUrl,
-                contractAddress: '0x'
+                contractAddress: token
             }
         } catch (error) {
             console.error('Error creating token:', error);
