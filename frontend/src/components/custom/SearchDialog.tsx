@@ -57,12 +57,12 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) => {
         // Search tokens
         const tokenResponse = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token/search?q=${searchTerm}`)
         const tokenData = await tokenResponse.json()
-        console.log('tokenData', tokenData)
+        // console.log('tokenData', tokenData)
 
         // Search transactions
         const txResponse = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction/search?q=${searchTerm}`)
         const txData = await txResponse.json()
-        console.log('txData', txData)
+        // console.log('txData', txData)
         setResults({
           tokens: tokenData.data || [],
           transactions: txData.data || [],
@@ -79,8 +79,13 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) => {
   }, [searchTerm])
 
   const handleTokenClick = (token: Token) => {
-    router.navigate({ to: `/token/${token.address}` })
-    onClose()
+    if (token.address) {
+      router.navigate({ to: `/token/${token.address}` })
+      onClose()
+    } else {
+      window.open(`https://www.coingecko.com/en/coins/${token.id}`, '_blank')
+      onClose()
+    }
   }
 
   const handleTransactionClick = (tx: Transaction) => {
@@ -125,17 +130,22 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) => {
                     {results.tokens.map((token) => (
                       <div
                         key={token.address}
-                        className="flex items-center space-x-3 p-2 hover:bg-[#1A202C] rounded-lg cursor-pointer"
+                        className="flex items-center justify-between space-x-3 p-2 hover:bg-[#1A202C] rounded-lg cursor-pointer"
                         onClick={() => handleTokenClick(token)}
                       >
-                        <img
-                          src={token.imageUrl || '/placeholder.png'}
-                          alt={token.name}
-                          className="w-8 h-8 rounded-full"
-                        />
-                        <div>
-                          <div className="text-sm font-medium text-white">{token.name}</div>
-                          <div className="text-xs text-gray-400">{token.ticker}</div>
+                        <div className="flex items-center space-x-3">
+                          <img
+                            src={token.imageUrl || '/placeholder.png'}
+                            alt={token.name}
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <div>
+                            <div className="text-sm font-medium text-white">{token.name}</div>
+                            <div className="text-xs text-gray-400">{token.ticker}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {formatNumber(token.market_data?.current_price?.usd || 1)} USD
                         </div>
                       </div>
                     ))}

@@ -3,6 +3,7 @@ import clientPromise from '../lib/mongodb';
 
 export interface Token {
   _id?: ObjectId;
+  id: string;
   name: string;
   address: string;
   owner: string;
@@ -17,6 +18,11 @@ export interface Token {
   updatedAt?: Date;
   categories?: string[];
   network?: string;
+  market_data?: {
+    current_price: {
+      usd: number;
+    };
+  };
 }
 
 export class TokenModel {
