@@ -52,6 +52,7 @@ function Omni() {
             if (!address) return;
             try {
                 const chats = await getUserChats(address);
+                // console.log(chats);
                 setUserChats(chats);
             } catch (error) {
                 console.error('Error loading user chats:', error);
@@ -68,34 +69,33 @@ function Omni() {
         try {
             setIsTransitioning(true);
             const chatId = uuidv4();
+            const messageContent = inputValue.trim();
             
-            // Create chat first
-            await createChat(chatId, address);
+            // Create chat and save message in parallel
+            await Promise.all([
+                createChat(chatId, address),
+                setInitialMessage(chatId, messageContent)
+            ]);
 
-            // Create initial user message
+            // Create and save user message
             const userMessage: ChatMessage = {
                 id: uuidv4(),
-                content: inputValue,
+                content: messageContent,
                 role: 'user',
                 timestamp: new Date()
             };
 
-            // Save the user message and wait for it to complete
+            // Save the message
             await addMessage(chatId, userMessage);
-            
-            // Wait a moment to ensure message is saved
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Set initial message and navigate
-            setInitialMessage(chatId, inputValue);
 
+            // Clear input and navigate
+            setInputValue("");
             navigate({ 
                 to: "/omni/$chatId", 
                 params: { chatId }
             });
         } catch (error) {
             console.error('Error creating chat:', error);
-            // Show error message to user
             alert('Failed to create chat. Please try again.');
             setIsTransitioning(false);
         }
