@@ -828,11 +828,6 @@ function TokenDetails() {
                             <div className="col-span-2 h-[350px] w-full sm:h-[450px] md:h-[450px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                 <div className="col-span-1  flex-1 sm:p-4 relative">
                                     <div className="flex flex-col w-auto h-full relative">
-                                        {/* <TokenPriceChart 
-                                            transactionHistory={transactionHistory as any} 
-                                            valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
-                                            priceUSD={tokenData?.network == "Sonic" ? sonicPrice : ethPrice}
-                                        /> */}
                                         <BondingCurveChart
                                             tokenAddress={tokenData?.address||''}
                                         />
