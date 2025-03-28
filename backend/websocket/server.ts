@@ -1,5 +1,5 @@
-import { serve, Server, ServerWebSocket } from "bun";
-import { MongoClient, ChangeStream } from 'mongodb';
+import { serve, ServerWebSocket } from "bun";
+import { ChangeStream } from 'mongodb';
 import clientPromise from './mongodb';
 import * as fs from 'fs';
 import * as path from 'path';
