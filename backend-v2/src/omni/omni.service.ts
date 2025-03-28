@@ -156,11 +156,194 @@ export class OmniService {
     try {
       // Parse user input to determine action
       const parsedAction = await this.actionService.parseUserInput(message);
+      console.log(parsedAction);
+      // If no function is parsed, use AI to generate a human-like response
+      if (!parsedAction || !parsedAction.function) {
+        const openai = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+
+        const stream = await openai.chat.completions.create({
+          model: "gpt-4o",
+          temperature: 0.7,
+          messages: [
+            {
+              role: "system",
+              content: `You are a friendly and knowledgeable AI assistant specializing in cryptocurrency and blockchain technology.
+              - Be conversational and engaging
+              - Keep responses concise but informative
+              - If you don't know something, be honest about it
+              - Use a friendly, helpful tone
+              - Feel free to use appropriate emojis occasionally
+              - Stay focused on crypto/blockchain topics when relevant`
+            },
+            {
+              role: "user",
+              content: message
+            }
+          ],
+          stream: true
+        });
+
+        return {
+          success: true,
+          stream: true,
+          streamResponse: stream
+        };
+      }
+
       const response = await this.execute(parsedAction);
-      return response;
+
+      // Initialize OpenAI
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      // Create appropriate prompt based on action type and response
+      let prompt = '';
+      const functionName = parsedAction.function;
+
+      switch (functionName) {
+        case 'getTokenPrice':
+          if (response.success) {
+            prompt = `Given this token price data:
+Token: ${response.data.symbol}
+Price: $${response.data.price}
+
+Provide a natural one-sentence summary of the current price.`;
+          }
+          break;
+
+        case 'getWalletTokenBalancesPrices':
+          if (response.result) {
+            prompt = `Given these wallet token balances:
+${response.result.map(token => `${token.token.name || token.token.symbol}: ${token.value}`).join('\n')}
+
+Provide a natural one-sentence summary of the wallet's holdings.`;
+          }
+          break;
+
+        case 'getTrendingTokens':
+          const marketSummary = response.slice(0, 10).map(coin => ({
+            name: coin.name,
+            symbol: coin.symbol,
+            image: coin.image,
+            price: coin.current_price,
+            market_cap: coin.market_cap,
+            market_cap_change_24h: coin.market_cap_change_24h,
+            change_24h: coin.price_change_percentage_24h
+          }));
+
+          prompt = `Here are the current trending tokens with their details:
+${marketSummary.map((coin, index) => `
+${index + 1}. ${coin.name} (${coin.symbol.toUpperCase()})
+   - Price: $${coin.price.toLocaleString()}
+   - Market Cap: $${(coin.market_cap / 1e9).toFixed(2)} billion
+   - 24h Price Change: ${coin.change_24h.toFixed(2)}%
+   - 24h Volume: $${(coin.volume / 1e9).toFixed(2)} billion
+   ![${coin.name}](${coin.image})`).join('\n')}
+
+Please format this information into a clear, readable list. Include all the details for each token, and make sure to display the image using Markdown image syntax: ![TokenName](ImageURL). Use the exact numbers and image URLs provided.`;
+          break;
+
+        case 'getWalletNFTs':
+          if (response.result) {
+            prompt = `Analyze this NFT collection data:
+Total NFTs: ${response.result.length}
+Collections: ${[...new Set(response.result.map(nft => nft.name))].join(', ')}
+
+Provide a brief summary of the wallet's NFT holdings.`;
+          }
+          break;
+
+        case 'getWalletNetWorth':
+          if (response.result) {
+            prompt = `Given this wallet net worth data:
+Total Value: $${response.result.total_usd?.toFixed(2)}
+Total Tokens: ${response.result.tokens?.length}
+
+Provide a brief summary of the wallet's total value.`;
+          }
+          break;
+
+        case 'getDefiPositionsSummary':
+          if (response.result) {
+            prompt = `Analyze these DeFi positions:
+${response.result.map(pos => `${pos.protocol_name}: $${pos.total_value_usd}`).join('\n')}
+
+Provide a brief summary of the DeFi positions.`;
+          }
+          break;
+
+        case 'getTokenHolderStats':
+          if (response.holders) {
+            prompt = `Given these token holder statistics:
+Total Holders: ${response.holders.length}
+Top Holders: ${response.holders.slice(0, 5).map(h => `${h.address}: ${h.balance}`).join('\n')}
+
+Provide a brief summary of the token holder distribution.`;
+          }
+          break;
+
+        case 'getTopGainersTokens':
+          if (response.tokens) {
+            prompt = `Analyze these top gaining tokens:
+${response.tokens.map(token => 
+  `${token.name}: ${token.price_change_24h}% (24h)`
+).join('\n')}
+
+Provide a brief summary of the top gaining tokens.`;
+          }
+          break;
+
+        // Add more cases as needed...
+        default:
+          prompt = `Summarize this data in a natural way:
+${JSON.stringify(response, null, 2)}`;
+      }
+
+      // Get natural language summary from OpenAI with streaming
+      if (prompt) {
+        const stream = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          temperature: 0.7,
+          messages: [
+            {
+              role: "system",
+              content: "You are a cryptocurrency analyst. Provide a concise summary of trending tokens in a clear, list-based format. Make sure to include all provided information and display images using Markdown syntax. Format the output as follows:\n\nHere are the currently trending tokens:\n1. [Token Name] ([Symbol])\n   - Price: $[Price]\n   - Market Cap: $[Market Cap]\n   - 24h Price Change: [Change]%\n   - ![TokenName](ImageURL)"
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          stream: true // Enable streaming
+        });
+
+        // Return stream response
+        return {
+          success: true,
+          stream: true,
+          streamResponse: stream
+        };
+      }
+
+      // If no prompt was generated, return original response in standardized format
+      return {
+        success: true,
+        stream: false,
+        message: "Operation completed successfully",
+        data: response
+      };
+
     } catch (error) {
       console.error('Error executing action:', error);
-      throw error;
+      return {
+        success: false,
+        message: 'Error executing action',
+        data: null,
+        error: error
+      };
     }
   }
 
@@ -346,17 +529,16 @@ export class OmniService {
           );
           return resHistoricalHolders.json();
 
+        case 'getTrendingTokens':
+          const resTrending = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd`);
+          return resTrending.json();
+
         case 'getTopProfitableWalletPerToken':
           const resTopTraders = await Moralis.EvmApi.token.getTopProfitableWalletPerToken({
             "chain": selectedChain,
             "address": parsedAction.tokenAddress
           });
           return resTopTraders.result;
-
-        case 'getTrendingTokens':
-          const resTrending = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd`);
-          const trending = await resTrending.json();
-          return trending.slice(0, 10);
 
         case 'getTopGainersTokens':
           const resGainers = await fetch(`https://deep-index.moralis.io/api/v2.2/discovery/tokens/top-gainers?chain=${selectedChain}&time_frame=1d`, this.fetchOptions());
@@ -391,16 +573,118 @@ export class OmniService {
 
         default:
           return {
-            message: 'Unsupported function'
+            success: false,
+            message: 'Unsupported function',
+            data: null
           }
       }
-      
+
     } catch (error) {
-      // console.error('Error executing action:', error);
+      console.error('Error executing action:', error);
       return {
+        success: false,
         message: 'Error executing action',
+        data: null,
         error: error
       }
+    }
+  }
+
+  private readonly actionSteps = {
+    'getTrendingTokens': 'Getting trending tokens',
+    'getTokenPrice': 'Fetching token price',
+    'getWalletTokenBalancesPrices': 'Getting wallet token balances',
+    'getWalletNFTs': 'Fetching wallet NFTs',
+    'getWalletNetWorth': 'Calculating wallet net worth',
+    'getDefiPositionsSummary': 'Analyzing DeFi positions',
+    'getTokenHolderStats': 'Getting token holder statistics',
+    'getTopGainersTokens': 'Finding top gaining tokens',
+    'getSwapsByWalletAddress': 'Fetching wallet swap history',
+    'resolveAddressToDomain': 'Resolving address to domain',
+    'resolveENSDomain': 'Resolving ENS domain',
+    'getHistoricalTokenHolders': 'Getting historical token holders',
+    'getTopProfitableWalletPerToken': 'Finding top traders for token',
+    'getTokenAnalytics': 'Analyzing token metrics',
+    'getTokenStats': 'Getting token statistics',
+    'getPairCandlesticks': 'Fetching token price history',
+    'getTopERC20TokensByMarketCap': 'Getting top tokens by market cap',
+    'searchTokens': 'Searching for tokens'
+  };
+
+  private readonly commonQuestionSteps = {
+    greetings: {
+      patterns: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
+      steps: ['Initializing conversation', 'Preparing personalized greeting']
+    },
+    help: {
+      patterns: ['help', 'what can you do', 'how can you help', 'capabilities', 'features'],
+      steps: ['Analyzing available features', 'Preparing capability summary', 'Generating help information']
+    },
+    crypto_info: {
+      patterns: ['what is crypto', 'explain cryptocurrency', 'how does blockchain work', 'what is bitcoin'],
+      steps: ['Gathering educational resources', 'Preparing simplified explanation', 'Compiling relevant examples']
+    },
+    market_overview: {
+      patterns: ['how is the market', 'market overview', 'crypto market status', 'market condition'],
+      steps: ['Analyzing market data', 'Gathering trend information', 'Preparing market summary']
+    },
+    investment_advice: {
+      patterns: ['should i invest', 'investment strategy', 'portfolio advice', 'how to invest'],
+      steps: ['Analyzing query context', 'Preparing educational information', 'Gathering general guidelines']
+    },
+    security: {
+      patterns: ['how to secure', 'wallet security', 'protect crypto', 'security tips'],
+      steps: ['Analyzing security context', 'Gathering best practices', 'Preparing security recommendations']
+    }
+  };
+
+  private identifyCommonQuestion(message: string): { type: string; steps: string[] } | null {
+    const normalizedMessage = message.toLowerCase();
+    
+    for (const [type, data] of Object.entries(this.commonQuestionSteps)) {
+      if (data.patterns.some(pattern => normalizedMessage.includes(pattern))) {
+        return { type, steps: data.steps };
+      }
+    }
+    
+    // Default steps for unrecognized questions
+    return {
+      type: 'general',
+      steps: [
+        'Understanding your question',
+        'Analyzing available information',
+        'Preparing comprehensive response'
+      ]
+    };
+  }
+
+  async checkAction(message: string) {
+    try {
+      // Use actionService to parse the action
+      const parsedAction = await this.actionService.parseUserInput(message);
+
+      if (parsedAction && parsedAction.function) {
+        const step = this.actionSteps[parsedAction.function] || 'Processing request';
+        return {
+          success: true,
+          step: step
+        };
+      }
+
+      // Handle common questions if no specific action is found
+      const commonQuestion = this.identifyCommonQuestion(message);
+      return {
+        success: true,
+        step: commonQuestion.steps[0]
+      };
+
+    } catch (error) {
+      console.error('Error checking action:', error);
+      return {
+        success: false,
+        message: 'Error checking action',
+        error: error
+      };
     }
   }
 } 

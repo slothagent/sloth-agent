@@ -189,6 +189,25 @@ export class ActionService {
 
   async parseUserInput(userInput: string) {
     try {
+      // Check if it's a conversational query
+      const conversationalPatterns = [
+        /^hi+\s*$/i,
+        /^hello+\s*$/i,
+        /^hey+\s*$/i,
+        /^how are you/i,
+        /^can you help/i,
+        /^what can you do/i,
+        /^help me/i,
+        /^who are you/i,
+        /^what are you/i,
+        /^tell me about yourself/i
+      ];
+
+      // If input matches any conversational pattern, return null
+      if (conversationalPatterns.some(pattern => pattern.test(userInput.trim()))) {
+        return null;
+      }
+
       // Check cache first
       const cacheKey = userInput.toLowerCase().trim();
       const cachedResult = this.cache.get(cacheKey);
