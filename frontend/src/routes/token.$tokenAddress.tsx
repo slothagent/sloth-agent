@@ -541,10 +541,10 @@ function TokenDetails() {
     }
 
     return (
-    <div className="min-h-screen bg-[#0B0E17] pb-[60px] sm:pb-0">
+    <div className="min-h-full bg-[#0B0E17] p-4 pb-0 md:p-0 sm:pb-0">
       {/* Top Navigation Bar */}
-        <div className="bg-[#0B0E17] top-0 sm:top-12 border-[#1F2937] border-b sm:border-b-0">
-            <div className="container mx-auto py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8">
+        <div className="bg-[#0B0E17] top-0 sm:top-12 border-[#1F2937] sm:border-b-0">
+            <div className="container mx-0 md:mx-auto py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center md:justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8">
                 <div className="flex items-center gap-2 justify-between sm:justify-start">
                     <Link to="/" className="flex items-center gap-3">
                         <Button 
@@ -634,10 +634,10 @@ function TokenDetails() {
 
         {/* Main Content */}
         <div className="container mx-auto flex flex-col sm:mt-4 mb-6 lg:px-4 lg:mb-12">
-            <div className="lg:mb-10 hidden sm:block">
+            <div className="lg:mb-10 block">
                 <div className="flex flex-col max-lg:p-2 h-full w-full">
-                    <div className="hidden lg:flex gap-4 w-full">
-                        <div className="lg:flex hidden flex-col">
+                    <div className="flex gap-4 w-full">
+                        <div className="hidden md:flex flex-col">
                             <div className="lg:flex w-full items-center">                        
                                 <div className="lg:flex items-start gap-3 h-full hidden">
                                     <img 
@@ -753,17 +753,20 @@ function TokenDetails() {
                     {/* Mobile View */}
                     <div className="flex flex-col lg:hidden">
                         <div className="flex gap-3 items-center">
-                            <div>
+                            <div className='flex gap-4'>
+                                <img 
+                                    src={tokenData?.imageUrl}
+                                    alt="Token Logo"
+                                    className="w-28 h-28 rounded-xl"
+                                    loading="lazy"
+                                    width={64}
+                                    height={64}
+                                />
                                 <div className="flex flex-col gap-0">
-                                    <div className="mb-1 flex items-center gap-1.5">
-                                        <div className="flex items-center justify-center font-sans font-medium w-fit gap-1 rounded-full px-2 py-1 text-xs h-auto bg-[#161B28] border-[#1F2937] text-gray-400 border">
-                                            {tokenData?.ticker}
-                                        </div>
-                                    </div>
                                     <div className="flex items-center gap-1.5">
                                         <h1 className="text-2xl font-medium font-display mb-1 text-white">{tokenData?.name}</h1>
                                     </div>
-                                    <p className="text-xs text-gray-400">{tokenData?.ticker}</p>
+                                    <p className="text-xs text-gray-400">@{tokenData?.ticker}</p>
                                     <div className="mt-2 flex items-center gap-1">
                                         <div className="flex items-center rounded justify-center font-sans font-medium w-fit bg-[#161B28] text-gray-400 h-6 gap-1 text-xs px-2 border border-[#1F2937]">
                                             {tokenData?.ticker}
@@ -821,174 +824,172 @@ function TokenDetails() {
                     </div>
 
                     <TabsContent value="trade" className="mt-4">
-                        <div className="flex flex-col gap-4">
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="col-span-2 h-[300px] w-full sm:h-[400px] md:h-[450px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
-                                    <div className="col-span-1  flex-1 p-2 sm:p-4 relative">
-                                        <div className="flex flex-col w-full h-full relative pt-3">
-                                            {/* <TokenPriceChart 
-                                                transactionHistory={transactionHistory as any} 
-                                                valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
-                                                priceUSD={tokenData?.network == "Sonic" ? sonicPrice : ethPrice}
-                                            /> */}
-                                            <BondingCurveChart
-                                                tokenAddress={tokenData?.address||''}
-                                            />
-                                        </div>
+                        <div className="flex flex-col md:flex-row gap-4">
+                            <div className="col-span-2 h-[350px] w-full sm:h-[450px] md:h-[450px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
+                                <div className="col-span-1  flex-1 sm:p-4 relative">
+                                    <div className="flex flex-col w-auto h-full relative">
+                                        {/* <TokenPriceChart 
+                                            transactionHistory={transactionHistory as any} 
+                                            valuePrefix={tokenData?.network == "Sonic" ? `S` : "ETH"}
+                                            priceUSD={tokenData?.network == "Sonic" ? sonicPrice : ethPrice}
+                                        /> */}
+                                        <BondingCurveChart
+                                            tokenAddress={tokenData?.address||''}
+                                        />
                                     </div>
                                 </div>
-
-                                <div className="border border-[#1F2937] p-2 overflow-hidden h-[450px] sm:h-[450px] bg-[#161B28]">
-                                    <Tabs defaultValue="buy" className="flex flex-col gap-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="w-[200px]">
-                                                <TabsList className="grid w-full grid-cols-3 bg-[#0B0E17]">
-                                                    <TabsTrigger 
-                                                        value="buy"
-                                                        onClick={() => handleTypeChange('buy')}
-                                                        className="text-gray-400 data-[state=active]:text-white"
-                                                    >
-                                                        Buy
-                                                    </TabsTrigger>
-                                                    <TabsTrigger 
-                                                        value="sell"
-                                                        onClick={() => handleTypeChange('sell')}
-                                                        className="text-gray-400 data-[state=active]:text-white"
-                                                    >
-                                                        Sell
-                                                    </TabsTrigger>
-                                                    <TabsTrigger 
-                                                        value="auto"
-                                                        className="text-gray-400 data-[state=active]:text-white"
-                                                    >
-                                                        Auto
-                                                    </TabsTrigger>
-                                                </TabsList>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm text-gray-400">Balance:</span>
-                                                <span className="text-sm font-medium text-white">{formatNumber(parseFloat(formatUnits(balanceOfToken||BigInt(0), 18).toString()))} {tokenData?.ticker}</span>
-                                            </div>
-                                        </div>
-                                        <TabsContent value="buy">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-sm text-gray-400">Amount</span>
-                                                    <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
-                                                        <Input 
-                                                            type="number"
-                                                            placeholder="0.0"
-                                                            step="0.01"
-                                                            min="0"
-                                                            value={parseFloat(amount||"0")||''}
-                                                            onChange={handleAmountChange}
-                                                            className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
-                                                        />
-                                                        <span className="text-gray-400">{chain?.id == 57054 ? `S` : "ETH"}</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-4 gap-2">
-                                                        <button 
-                                                            onClick={() => handleAmountClick(1)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            1
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleAmountClick(2)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            2
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleAmountClick(5)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            5
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleAmountClick(10)}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            10
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {formatNumber(amountToReceive)} {tokenData?.ticker}</span>
-                                                </div>
-                                                <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
-                                                    Buy
-                                                </Button>
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="sell">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-sm text-gray-400">Amount</span>
-                                                    <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
-                                                        <Input 
-                                                            type="text"
-                                                            placeholder="0.0"
-                                                            value={amount||''}
-                                                            onChange={handleAmountChange}
-                                                            className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
-                                                        />
-                                                        <span className="text-gray-400">{tokenData?.ticker}</span>
-                                                    </div>
-                                                    <div className="grid grid-cols-4 gap-2">
-                                                        <button 
-                                                            onClick={() => setAmount('10')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            10%
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setAmount('30')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            30%
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setAmount('50')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            50%
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => setAmount('100')}
-                                                            className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
-                                                        >
-                                                            100%
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                    <span>You will receive: {formatNumber(amountToReceive)} {chain?.id == 57054 ? `S` : "ETH"}</span>
-                                                </div>
-                                                {amount && amountToSell > 0 && tokenAllowance !== undefined && BigInt(amountToSell) > tokenAllowance && !isApproving ? (
-                                                    <Button 
-                                                        onClick={handleApproveToken} 
-                                                        className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-md font-medium transition-colors"
-                                                    >
-                                                        Approve {tokenData?.ticker}
-                                                    </Button>
-                                                ) : (
-                                                    <Button 
-                                                        onClick={handleSell} 
-                                                        disabled={isApproving}
-                                                        className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    >
-                                                        {isApproving ? 'Approving...' : 'Sell'}
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </TabsContent>
-                                        <TabsContent value="auto">
-                                            <span className="text-gray-400">Coming Soon</span>
-                                        </TabsContent>  
-                                    </Tabs>
-                                </div>
                             </div>
+                            <div className="border border-[#1F2937] md:w-xl p-2 overflow-hidden h-[450px] sm:h-[450px] bg-[#161B28]">
+                                <Tabs defaultValue="buy" className="flex flex-col gap-4">
+                                    <div className="flex items-center gap-4 justify-between">
+                                        <div className="w-[200px]">
+                                            <TabsList className="grid w-full grid-cols-3 bg-[#0B0E17]">
+                                                <TabsTrigger 
+                                                    value="buy"
+                                                    onClick={() => handleTypeChange('buy')}
+                                                    className="text-gray-400 data-[state=active]:text-white"
+                                                >
+                                                    Buy
+                                                </TabsTrigger>
+                                                <TabsTrigger 
+                                                    value="sell"
+                                                    onClick={() => handleTypeChange('sell')}
+                                                    className="text-gray-400 data-[state=active]:text-white"
+                                                >
+                                                    Sell
+                                                </TabsTrigger>
+                                                <TabsTrigger 
+                                                    value="auto"
+                                                    className="text-gray-400 data-[state=active]:text-white"
+                                                >
+                                                    Auto
+                                                </TabsTrigger>
+                                            </TabsList>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm text-gray-400">Balance:</span>
+                                            <span className="text-xs font-medium text-white">{formatNumber(parseFloat(formatUnits(balanceOfToken||BigInt(0), 18).toString()))} {tokenData?.ticker}</span>
+                                        </div>
+                                    </div>
+                                    <TabsContent value="buy">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-sm text-gray-400">Amount</span>
+                                                <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
+                                                    <Input 
+                                                        type="number"
+                                                        placeholder="0.0"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={parseFloat(amount||"0")||''}
+                                                        onChange={handleAmountChange}
+                                                        className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
+                                                    />
+                                                    <span className="text-gray-400">{chain?.id == 57054 ? `S` : "ETH"}</span>
+                                                </div>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <button 
+                                                        onClick={() => handleAmountClick(1)}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        1
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleAmountClick(2)}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        2
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleAmountClick(5)}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        5
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleAmountClick(10)}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        10
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                <span>You will receive: {formatNumber(amountToReceive)} {tokenData?.ticker}</span>
+                                            </div>
+                                            <Button onClick={handleBuy} className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors">
+                                                Buy
+                                            </Button>
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="sell">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-sm text-gray-400">Amount</span>
+                                                <div className="flex items-center gap-2 border border-[#1F2937] px-2 bg-[#0B0E17]">
+                                                    <Input 
+                                                        type="text"
+                                                        placeholder="0.0"
+                                                        value={amount||''}
+                                                        onChange={handleAmountChange}
+                                                        className="w-full border-none focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none bg-transparent text-white" 
+                                                    />
+                                                    <span className="text-gray-400">{tokenData?.ticker}</span>
+                                                </div>
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    <button 
+                                                        onClick={() => setAmount('10')}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        10%
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setAmount('30')}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        30%
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setAmount('50')}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        50%
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setAmount('100')}
+                                                        className="px-4 py-2 text-sm font-medium border border-[#1F2937] rounded-md hover:bg-[#1C2333] text-gray-400"
+                                                    >
+                                                        100%
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                <span>You will receive: {formatNumber(amountToReceive)} {chain?.id == 57054 ? `S` : "ETH"}</span>
+                                            </div>
+                                            {amount && amountToSell > 0 && tokenAllowance !== undefined && BigInt(amountToSell) > tokenAllowance && !isApproving ? (
+                                                <Button 
+                                                    onClick={handleApproveToken} 
+                                                    className="w-full mt-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-md font-medium transition-colors"
+                                                >
+                                                    Approve {tokenData?.ticker}
+                                                </Button>
+                                            ) : (
+                                                <Button 
+                                                    onClick={handleSell} 
+                                                    disabled={isApproving}
+                                                    className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {isApproving ? 'Approving...' : 'Sell'}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </TabsContent>
+                                    <TabsContent value="auto">
+                                        <span className="text-gray-400">Coming Soon</span>
+                                    </TabsContent>  
+                                </Tabs>
+                            </div>
+                            
                         </div>
                         
                     </TabsContent>

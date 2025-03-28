@@ -27,7 +27,6 @@ const Launching: React.FC<LaunchingProps> = (
         network
     }
 ) => {
-    
     const {data: balanceOfToken} = useReadContract({
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
@@ -38,7 +37,7 @@ const Launching: React.FC<LaunchingProps> = (
     const uniqueToAddresses = [...new Set(transactions.map(tx => tx.to))];
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             {/* Market Cap Stats */}
             <div className="bg-[#161B28] text-gray-300 rounded-lg p-6">
                 <div className="hidden md:block">
@@ -88,14 +87,15 @@ const Launching: React.FC<LaunchingProps> = (
                 <div className="h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <div className="flex justify-between items-center w-full gap-2">
                                 <span className="text-gray-400">1.</span>
                                 <a href={`https://testnet.sonicscan.org/address/${process.env.PUBLIC_FACTORY_ADDRESS_SONIC}`} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-white">{formatAddress(process.env.PUBLIC_FACTORY_ADDRESS_SONIC || '')}</a>
                                 <Badge variant="outline" className="bg-[#93E905]/10 text-[#93E905] border-[#93E905]">
                                     Bonding Curve
                                 </Badge>
+                                <span className='text-sm'>{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/10**18).toFixed(5))}%</span>
                             </div>
-                            <span>{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/10**18).toFixed(5))}%</span>
+                            
                         </div>
                         {uniqueToAddresses.map((address, index) => (
                             <TableLaunching  tokenAddress={tokenAddress} network={network} key={index} address={address} index={index} totalValue={transactions.filter(tx => tx.to === address).reduce((acc, tx) => acc + Number(tx.totalValue), 0)} />

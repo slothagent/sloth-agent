@@ -214,7 +214,7 @@ export default function ChatPage() {
                         onClick={() => setActiveTab('chat')}
                         className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
                             ${activeTab === 'chat'
-                                ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                ? 'text-white shadow-md border-b-2 border-white'
                                 : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                     >
                       <MessageSquare className='w-4 h-4' />
@@ -224,7 +224,7 @@ export default function ChatPage() {
                         onClick={() => setActiveTab('overview')}
                         className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
                             ${activeTab === 'overview'
-                                ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                ? 'text-white shadow-md border-b-2 border-white'
                                 : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                     >
                         <User className="w-4 h-4" />
@@ -234,7 +234,7 @@ export default function ChatPage() {
                         onClick={() => setActiveTab('settings')}
                         className={`px-2 text-sm font-medium rounded-md transition-all duration-200 flex items-center gap-2
                             ${activeTab === 'settings'
-                                ? 'bg-[#2196F3] text-white shadow-md shadow-[#2196F3]/20'
+                                ? 'text-white shadow-md border-b-2 border-white'
                                 : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                     >
                         <User className="w-4 h-4" />

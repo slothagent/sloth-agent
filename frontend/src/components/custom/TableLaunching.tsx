@@ -31,11 +31,13 @@ const TableLaunching: React.FC<TableLaunchingProps> = ({address,index,tokenAddre
 
     return (
         <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex justify-between w-full items-center gap-2">
                 <span className="text-gray-400">{index + 2}.</span>
-                <a href={network == "Sonic" ? `https://testnet.sonicscan.org/address/${address}` : `https://scanv2-testnet.ancient8.gg/address/${address}`} target="_blank" className="hover:underline hover:text-white">{formatAddress(address)}</a>
+                <a href={network == "Sonic" ? `https://testnet.sonicscan.org/address/${address}` : `https://scanv2-testnet.ancient8.gg/address/${address}`} target="_blank" className="hover:underline hover:text-white text-sm">{formatAddress(address)}</a>
+                <span className="w-[120px]"></span>
+                <span className="text-sm">{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/10**18).toFixed(5))}%</span>
             </div>
-            <span>{parseFloat((((Number(balanceOfToken)/INITIAL_SUPPLY)*100)/10**18).toFixed(5))}%</span>
+            
         </div>
     );
 };

@@ -53,28 +53,28 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
             <div className="col-span-1.5 text-[#2196F3] flex items-center">
                 {timeAgo(tx.timestamp)}
             </div>
-            <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/tx/" : "https://scanv2-testnet.ancient8.gg/tx/"}${tx.transactionHash}`} className="col-span-2 text-gray-400 hover:text-white hover:underline flex items-center">
+            <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/tx/" : "https://scanv2-testnet.ancient8.gg/tx/"}${tx.transactionHash}`} className="col-span-2 text-gray-400 hover:text-white hover:underline flex items-center text-nowrap">
                 {formatAddress(tx.transactionHash)}
             </a>
-            <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/address/" : "https://scanv2-testnet.ancient8.gg/address/"}${tx.from}`} className="col-span-2 text-gray-400 hover:text-white hover:underline flex items-center">
+            <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/address/" : "https://scanv2-testnet.ancient8.gg/address/"}${tx.from}`} className="col-span-2 text-gray-400 hover:text-white hover:underline flex items-center text-nowrap">
                 {formatAddress(tx.from)}
             </a>
-            <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/address/" : "https://scanv2-testnet.ancient8.gg/address/"}${tx.to}`} className="col-span-2 text-gray-400 hover:text-white hover:underline flex items-center">
+            <a target='_blank' href={`${tx.network == "Sonic" ? "https://testnet.sonicscan.org/address/" : "https://scanv2-testnet.ancient8.gg/address/"}${tx.to}`} className="col-span-2 text-gray-400 hover:text-white hover:underline flex items-center text-nowrap">
                 {formatAddress(tx.to)}
             </a>
-            <div className={`col-span-1 ${tx.transactionType === 'BUY' ? 'text-green-500' : 'text-red-500'} flex items-center`}>
+            <div className={`col-span-1 ${tx.transactionType === 'BUY' ? 'text-green-500' : 'text-red-500'} flex items-center text-nowrap`}>
                 {tx.transactionType}
             </div>
-            <div className="col-span-1 text-right text-white flex items-center justify-end">
+            <div className="col-span-1 text-right text-white flex items-center justify-end text-nowrap">
                 {tx.amount ? tx.transactionType === 'BUY' ? formatNumber(Number(tx.amountToken)) : formatNumber(Number(tx.amountToken)) : '-'}
             </div>
-            <div className="col-span-1 text-right text-white flex items-center justify-end">
+            <div className="col-span-1 text-right text-white flex items-center justify-end text-nowrap">
                 <div onClick={() => handleTokenClick(tx)} className="flex items-center gap-2 justify-end w-full cursor-pointer">
                     <img src={token?.data?.imageUrl} alt={token?.data?.name} className="w-4 h-4 rounded-full" />
                     <span className="hover:underline">{token?.data?.ticker}</span>
                 </div>
             </div>
-            <div className="col-span-1 text-right text-white flex items-center justify-end">
+            <div className="col-span-1 text-right text-white flex items-center justify-end text-nowrap">
                 {tx.price ? formatNumber(price): "-"} USD
             </div>
 
