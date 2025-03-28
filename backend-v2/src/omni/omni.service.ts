@@ -193,32 +193,48 @@ export class OmniService {
   };
 
   private formatErrorMessage(error: any): string {
-    if (error.message && error.message.includes('Unsupported chain')) {
-      const chainName = error.message.split('chain:')[1]?.trim() || 'specified chain';
-      return `❌ The ${chainName} is not supported. Please use one of the supported chains: Ethereum, Polygon, BSC, Arbitrum, Optimism, Base, Avalanche, Fantom, Cronos, or Gnosis.`;
+    // Handle undefined error
+    if (!error) {
+      return '❌ An unknown error occurred. Please try again later.';
     }
 
-    // Add more specific error cases
-    const errorMap = {
-      'Invalid address': '❌ The wallet address provided is not valid. Please check and try again.',
-      'Rate limit exceeded': '❌ Too many requests. Please try again in a few moments.',
-      'API key invalid': '❌ There was an authentication error. Please try again later.',
-      'Network error': '❌ Network connection issue. Please check your connection and try again.',
-      'Request failed': '❌ The request failed. Please try again later.',
-      'Invalid token address': '❌ The token address provided is not valid. Please check and try again.',
-      'Token not found': '❌ The specified token could not be found. Please verify the token address.',
-      'Insufficient balance': '❌ The wallet has insufficient balance for this operation.',
-    };
+    // Handle case where error is a string
+    if (typeof error === 'string') {
+      return `❌ ${error}`;
+    }
 
-    // Check if the error message matches any known patterns
-    for (const [pattern, message] of Object.entries(errorMap)) {
-      if (error.message?.toLowerCase().includes(pattern.toLowerCase())) {
-        return message;
+    // Handle case where error.message exists
+    if (error.message && typeof error.message === 'string') {
+      if (error.message.includes('Unsupported chain')) {
+        const chainName = error.message.split('chain:')[1]?.trim() || 'specified chain';
+        return `❌ The ${chainName} is not supported. Please use one of the supported chains: Ethereum, Polygon, BSC, Arbitrum, Optimism, Base, Avalanche, Fantom, Cronos, or Gnosis.`;
       }
+
+      // Add more specific error cases
+      const errorMap = {
+        'Invalid address': '❌ The wallet address provided is not valid. Please check and try again.',
+        'Rate limit exceeded': '❌ Too many requests. Please try again in a few moments.',
+        'API key invalid': '❌ There was an authentication error. Please try again later.',
+        'Network error': '❌ Network connection issue. Please check your connection and try again.',
+        'Request failed': '❌ The request failed. Please try again later.',
+        'Invalid token address': '❌ The token address provided is not valid. Please check and try again.',
+        'Token not found': '❌ The specified token could not be found. Please verify the token address.',
+        'Insufficient balance': '❌ The wallet has insufficient balance for this operation.',
+      };
+
+      // Check if the error message matches any known patterns
+      for (const [pattern, message] of Object.entries(errorMap)) {
+        if (error.message.toLowerCase().includes(pattern.toLowerCase())) {
+          return message;
+        }
+      }
+
+      // If no specific match, return the error message
+      return `❌ ${error.message}`;
     }
 
     // Default error message
-    return `❌ An error occurred: ${error.message || 'Unknown error'}. Please try again later.`;
+    return '❌ An unexpected error occurred. Please try again later.';
   }
 
   private async createErrorStream(error: any): Promise<any> {
@@ -310,19 +326,17 @@ Provide a natural one-sentence summary of the current price.`;
           break;
 
         case 'getWalletTokenBalancesPrices':
-          if (response) {
-            console.log(response);
-            const totalValue = response.result.reduce((sum, token) => sum + token.usdValue, 0).toFixed(2);
-            const change24h = response.result[0].usdPrice24hrPercentChange;
-            const changeType = change24h > 0 ? '📈' : '📉';
+          const totalValue = response.result.reduce((sum, token) => sum + token.usdValue, 0).toFixed(2);
+          const change24h = response.result[0].usdPrice24hrPercentChange;
+          const changeType = change24h > 0 ? '📈' : '📉';
 
-            prompt = `**Summary of Total Holdings:**
+          prompt = `**Summary of Total Holdings:**
 • Total ETH balance: ${response.result[0].balanceFormatted} • Total value: $${totalValue} • 24-hour change: ${change24h.toFixed(2)}% ${changeType} format list based on the data provided. Only summarize the data, don't add any other text.`;
-          }
           break;
 
         case 'getTrendingTokens':
-          const marketSummary = response.slice(0, 10).map(coin => ({
+          // console.log(response);
+          const marketSummary = response.result.map(coin => ({
             name: coin.name,
             symbol: coin.symbol,
             image: coin.image,
@@ -695,7 +709,11 @@ ${JSON.stringify(response, null, 2)}`;
 
         case 'getTrendingTokens':
           const resTrending = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd`);
-          return resTrending.json();
+          const data = await resTrending.json();
+          return {
+            success: true,
+            result: data.slice(0,10)
+          };
 
         case 'getTopProfitableWalletPerToken':
           const resTopTraders = await Moralis.EvmApi.token.getTopProfitableWalletPerToken({
