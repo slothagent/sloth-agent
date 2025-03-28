@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import Hero from "../components/custom/Hero";
 import TransactionList from "../components/custom/TransactionList";
 import TokenMarket from "../components/custom/TokenMarket";
@@ -12,6 +12,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { tokens, loading } = useSolanaTokens();
+  const navigate = useNavigate()
   // console.log(tokens[0],loading);
   return (
     <main className="min-h-screen mx-auto flex flex-col bg-[#0B0E17]">   
@@ -33,7 +34,7 @@ function Index() {
                 <div 
                   key={index} 
                   className="min-w-[350px] bg-[#1F2937] rounded-lg p-4 hover:bg-[#2D3748] transition-all cursor-pointer"
-                  onClick={()=> window.open(`https://gmgn.ai/sol/token/${token?.mint}`, '_blank')}
+                  onClick={()=> navigate({to: `/sol/${token?.mint}`})}
                 >
                   <div className="flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-3">
