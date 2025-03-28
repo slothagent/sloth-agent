@@ -29,7 +29,7 @@ const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 left-0 right-0 z-50 bg-[#0B0E17] border-b border-[#1F2937]">
+    <header className="sticky w-full top-0 left-0 right-0 z-50 bg-[#0B0E17] border-b border-[#1F2937]">
       <div className="container mx-auto px-4">
         <div className="h-16 flex items-center justify-between gap-4">
           {/* Logo - Responsive */}
@@ -88,7 +88,7 @@ const Header: React.FC = () => {
         </div>
 
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 space-y-4 border-t border-[#1F2937]">
+          <div className="md:hidden w-full py-4 space-y-4 border-t border-[#1F2937]">
             {/* Mobile Search */}
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -99,7 +99,26 @@ const Header: React.FC = () => {
                 readOnly
               />
             </div>
-            
+            <div className="flex gap-2 w-full">
+              <div className="w-full">
+                {isConnected && (
+                  <Link to="/agent">
+                    <div className="flex-1 bg-[#161B28] h-10 p-2 w-full flex justify-center items-center">
+                      <span className="text-white text-sm">My Agent</span>
+                    </div>
+                  </Link>
+                )}
+              </div>
+              <div className="w-full">
+                {isConnected && (
+                  <Link to="/omni">
+                    <div className="flex-1 bg-[#161B28] w-full h-10 p-2 flex justify-center items-center">
+                      <span className="text-white text-sm">Omni</span>
+                    </div>
+                  </Link>
+                )}
+              </div>
+            </div>
             {/* Mobile Wallet Button */}
             <div className="flex justify-center">
               <WalletButton />
@@ -107,7 +126,6 @@ const Header: React.FC = () => {
           </div>
         )}
       </div>
-
       <SearchDialog 
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}

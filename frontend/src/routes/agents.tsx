@@ -120,7 +120,7 @@ function Agents() {
                                     alt={agent.name}
                                     width={80}
                                     height={80}
-                                    className="object-contain w-28 h-28"
+                                    className=" w-28 h-28 object-cover"
                                 />
                                 
                                 {/* Right - Content */}

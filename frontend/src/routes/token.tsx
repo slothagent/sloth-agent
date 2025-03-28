@@ -1,39 +1,87 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState } from 'react';
-import { useTokens, useDeleteToken } from '../hooks/useTokens';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query'
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { Search, Trash2, Edit2, Plus } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { Search, Plus } from 'lucide-react';
 import { Token } from '../models/token';
-
-const DEFAULT_IMAGE = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="200" viewBox="0 0 400 200"%3E%3Crect width="400" height="200" fill="%23f3f4f6"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="system-ui" font-size="16" fill="%236b7280"%3EAI Agent%3C/text%3E%3C/svg%3E';
-
+import TokenCard from '../components/custom/TokenCard';
+import { useTokensData } from '../hooks/useWebSocketData';
 export const Route = createFileRoute("/token")({
     component: Tokens
 });
+const sortTokensByPriority = (tokens: Token[], query: string) => {
+    return [...tokens].sort((a, b) => {
+      const aName = a.name.toLowerCase()
+      const bName = b.name.toLowerCase()
+      const aTicker = a.ticker.toLowerCase()
+      const bTicker = b.ticker.toLowerCase()
+  
+      const aStartsWithName = aName.startsWith(query)
+      const bStartsWithName = bName.startsWith(query)
+      
+      if (aStartsWithName && !bStartsWithName) return -1
+      if (!aStartsWithName && bStartsWithName) return 1
+      if (!aStartsWithName && !bStartsWithName) {
+        const aStartsWithTicker = aTicker.startsWith(query)
+        const bStartsWithTicker = bTicker.startsWith(query)
+        
+        if (aStartsWithTicker && !bStartsWithTicker) return -1
+        if (!aStartsWithTicker && bStartsWithTicker) return 1
+      }
+  
+      const aContainsName = aName.includes(query)
+      const bContainsName = bName.includes(query)
+      
+      if (aContainsName && !bContainsName) return -1
+      if (!aContainsName && bContainsName) return 1
+  
+      if (!aContainsName && !bContainsName) {
+        const aContainsTicker = aTicker.includes(query)
+        const bContainsTicker = bTicker.includes(query)
+        
+        if (aContainsTicker && !bContainsTicker) return -1
+        if (!aContainsTicker && bContainsTicker) return 1
+      }
+  
+      return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
+    })
+  }
 
 function Tokens() {
+    const [searchQuery] = useState('')
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
-    const pageSize = 10;
-
-    const { data: tokensData, isLoading } = useTokens({
-        page,
-        pageSize,
-        search,
-    });
-
-    const deleteToken = useDeleteToken();
-
-    const handleDelete = async (id: string) => {
-        try {
-            await deleteToken.mutateAsync(id);
-            toast.success('Token deleted successfully');
-        } catch (error) {
-            toast.error('Failed to delete token');
+    const { tokens, loading: tokensLoading } = useTokensData();
+    const {data: tokensData, isLoading: tokensDataLoading} = useQuery({
+        queryKey: ['tokens'],
+        queryFn: async () => {
+          const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token?page=1&pageSize=10`);
+          const result = await response.json();
+          return result.data;
         }
-    };
+      });
+    const filteredTokens = useMemo(() => {
+        
+        const sourceTokens = tokens || tokensData || [];
+        
+        let result = !searchQuery ? [...sourceTokens] : sourceTokens.filter((token: Token) => 
+          token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          token.ticker.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        
+        if (searchQuery) {
+          result = sortTokensByPriority(result, searchQuery.toLowerCase())
+        } else {
+          result.sort((a, b) => {
+            return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
+          })
+        }
+        
+        return result
+      }, [tokens, tokensData, searchQuery])
+
+    const isLoading = (tokensLoading || tokensDataLoading) && !tokens && !tokensData;
 
     if (isLoading) {
         return (
@@ -43,8 +91,8 @@ function Tokens() {
         );
     }
 
-    const tokens = tokensData?.data || [];
-    const { currentPage, totalPages } = tokensData?.metadata || { currentPage: 1, totalPages: 1 };
+    
+    const { totalPages } = tokensData?.metadata || { currentPage: 1, totalPages: 1 };
 
     return (
         <div className="min-h-screen bg-[#0B0E17] py-12 sm:py-12">
@@ -52,7 +100,7 @@ function Tokens() {
                 {/* Header Section */}
                 <div className="flex justify-between items-start mb-12">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">My Tokens</h1>
+                        <h1 className="text-3xl font-bold text-white mb-2">ALL Tokens</h1>
                         <p className="text-gray-400">Manage and monitor your tokens for blockchain technology.</p>
                     </div>
                     <Link 
@@ -79,60 +127,15 @@ function Tokens() {
                 </div>
 
                 {/* Agents Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {tokens.map((token: Token) => (
-                        <div key={token._id?.toString() || ''} 
-                            className="bg-[#161B28] border border-[#1F2937] overflow-hidden hover:border-blue-600 transition-all duration-300"
-                        >
-                            <div className="flex p-4 space-x-4 h-full">
-                                {/* Left - Image */}
-                                <img 
-                                    src={token.imageUrl || DEFAULT_IMAGE}
-                                    alt={token.name}
-                                    width={80}
-                                    height={80}
-                                    className="object-contain w-28 h-28"
-                                />
-                                
-                                {/* Right - Content */}
-                                <div className="flex-1 flex flex-col min-w-0">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className="min-w-0">
-                                            <h3 className="text-lg font-bold text-white mb-1 truncate">{token.name}</h3>
-                                            <p className="text-gray-400 text-sm truncate">{token.ticker}</p>
-                                        </div>
-                                        <div className="flex space-x-1 ml-2 shrink-0">
-                                            <Link to={`/token/${token.address?.toString() || ''}` as any}>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#1F2937]">
-                                                    <Edit2 className="w-4 h-4 text-gray-400 hover:text-white" />
-                                                </Button>
-                                            </Link>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon"
-                                                onClick={() => handleDelete(token._id?.toString() || '')}
-                                                disabled={deleteToken.isPending}
-                                                className="h-8 w-8 hover:bg-[#1F2937]"
-                                            >
-                                                <Trash2 className="w-4 h-4 text-red-400 hover:text-red-500" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    
-                                    <p className="text-gray-400 text-sm line-clamp-2 mb-4 flex-1">
-                                        {token.description}
-                                    </p>
-
-                                    <Link 
-                                        to={`/token/${token.address?.toString() || '' }` as any}
-                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-all text-sm font-medium justify-center"
-                                    >
-                                        View Details
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                <div className='gap-4 py-4 overflow-x-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+                  {filteredTokens.map((token: Token, index: number) => (
+                    <TokenCard key={index} token={token} />
+                  ))}
+                  {filteredTokens.length === 0 && searchQuery && (
+                    <div className="flex flex-col items-center justify-center w-full py-8">
+                      <p className="text-gray-400 text-sm">No tokens found matching "{searchQuery}"</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Pagination with smaller buttons */}
