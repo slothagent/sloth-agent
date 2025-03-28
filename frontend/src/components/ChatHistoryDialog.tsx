@@ -111,7 +111,9 @@ export function ChatHistoryDialog({ isOpen, onClose, chats, currentChatId }: Cha
                                             <Clock className="w-4 h-4 text-[#7D8590] shrink-0" />
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-white text-sm truncate">
-                                                    {chat.messages[chat.messages.length - 1]?.content || 'New Chat'}
+                                                    {typeof chat.messages[chat.messages.length - 1]?.content === 'object' 
+                                                        ? JSON.stringify(chat.messages[chat.messages.length - 1]?.content)
+                                                        : chat.messages[chat.messages.length - 1]?.content || 'New Chat'}
                                                 </div>
                                                 <div className="text-[#7D8590] text-xs">
                                                     {formatTimestamp(new Date(chat.updatedAt))}
@@ -155,7 +157,9 @@ export function ChatHistoryDialog({ isOpen, onClose, chats, currentChatId }: Cha
                                                 {message.role === 'user' ? 'You' : 'Assistant'}
                                             </div>
                                             <div className="text-white text-sm whitespace-pre-wrap">
-                                                {message.content}
+                                                {typeof message.content === 'object' 
+                                                    ? JSON.stringify(message.content)
+                                                    : message.content}
                                             </div>
                                         </div>
                                     ))}

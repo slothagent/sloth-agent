@@ -15,6 +15,8 @@ import { configAncient8 } from '../../config/wagmi'
 import { useCalculateBin } from '../../hooks/useCalculateBin'
 import { useReadContract } from 'wagmi'
 import { ethers } from 'ethers'
+import { Loader2 } from 'lucide-react'
+import { INITIAL_SUPPLY } from '../../lib/contants'
 
 const formatLaunchDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
@@ -64,47 +66,47 @@ const TokenCard = ({ token }: { token: Token }) => {
     return transactionsData
   }, [transactionsData]);
 
-  const totalCirculatingSupply = useMemo(() => {
-    if (!transactions) return 0;
-    return transactions.reduce((acc: number, tx: any) => {
-      // Add for buy transactions, subtract for sell transactions
-      if (tx.transactionType.toLowerCase() === 'buy') {
-        return acc + Number(tx.amountToken);
-      } else if (tx.transactionType.toLowerCase() === 'sell') {
-        return acc - Number(tx.amountToken);
-      }
-      return acc; // For other transaction types, don't change the accumulator
-    }, 0);
-  }, [transactions]);
 
   // console.log(totalCirculatingSupply)
 
   const totalMarketCapToken = useMemo(() => {
-    if (!transactions || transactions.length === 0) return 0;
+    if (!transactions) return 0;
 
-    // Determine which network to use for base price
-    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8');
+    const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8')
+    const ancient8TokenPrice = ancient8Transactions[ancient8Transactions.length - 1]?.price;
+    const ancient8MarketCap = ancient8TokenPrice * ethPrice * INITIAL_SUPPLY;
     const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
+    const sonicTokenPrice = sonicTransactions[sonicTransactions.length - 1]?.price;
+    const sonicMarketCap = sonicTokenPrice * sonicPrice * INITIAL_SUPPLY;
+    return ancient8MarketCap || sonicMarketCap;
+  }, [transactions]);
+
+  // const totalMarketCapToken = useMemo(() => {
+  //   if (!transactions || transactions.length === 0) return 0;
+
+  //   // Determine which network to use for base price
+  //   const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8');
+  //   const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
     
-    let basePrice = 0;
+  //   let basePrice = 0;
     
-    // Use the latest price from transactions as the base price
-    if (ancient8Transactions.length > 0) {
-      const lastTransaction = ancient8Transactions[0];
-      basePrice = lastTransaction?.price * ethPrice; // Convert to USD
-    } else if (sonicTransactions.length > 0) {
-      const lastTransaction = sonicTransactions[0];
-      basePrice = lastTransaction?.price * sonicPrice; // Convert to USD
-    }
+  //   // Use the latest price from transactions as the base price
+  //   if (ancient8Transactions.length > 0) {
+  //     const lastTransaction = ancient8Transactions[0];
+  //     basePrice = lastTransaction?.price * ethPrice; // Convert to USD
+  //   } else if (sonicTransactions.length > 0) {
+  //     const lastTransaction = sonicTransactions[0];
+  //     basePrice = lastTransaction?.price * sonicPrice; // Convert to USD
+  //   }
     
-    if (basePrice === 0) return 0;
-    // console.log("basePrice", basePrice);
-    // console.log("totalSupply", ethers.formatEther(totalSupply || BigInt(0)));
-    // Calculate market cap at the last bin (for Metropolis migration)
-    const { requiredMarketCap } = calculateMarketCap(Number(ethers.formatEther(totalSupply || BigInt(0))), basePrice);
-    // console.log("requiredMarketCap", requiredMarketCap);
-    return requiredMarketCap;
-  }, [transactions, ethPrice, sonicPrice, calculateMarketCap]);
+  //   if (basePrice === 0) return 0;
+  //   // console.log("basePrice", basePrice);
+  //   // console.log("totalSupply", ethers.formatEther(totalSupply || BigInt(0)));
+  //   // Calculate market cap at the last bin (for Metropolis migration)
+  //   const { requiredMarketCap } = calculateMarketCap(Number(ethers.formatEther(totalSupply || BigInt(0))), basePrice);
+  //   // console.log("requiredMarketCap", requiredMarketCap);
+  //   return requiredMarketCap;
+  // }, [transactions, ethPrice, sonicPrice, calculateMarketCap]);
 
   const truncateDescription = (description: string) => {
     if (description.length > 50) {
@@ -247,10 +249,9 @@ export default function TokenMarket() {
     }
   });
 
-  const isLoading = (tokensLoading || tokensDataLoading) && !tokens && !tokensData;
-
   const filteredTokens = useMemo(() => {
-    const sourceTokens = tokens || tokensData || [];
+    // Use websocket data if available, otherwise use API data
+    const sourceTokens = tokens?.length ? tokens : (tokensData || []);
     
     let result = !searchQuery ? [...sourceTokens] : sourceTokens.filter((token: Token) => 
       token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -260,7 +261,7 @@ export default function TokenMarket() {
     if (searchQuery) {
       result = sortTokensByPriority(result, searchQuery.toLowerCase())
     } else {
-      result.sort((a, b) => {
+      result.sort((a: Token, b: Token) => {
         return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
       })
     }
@@ -277,29 +278,13 @@ export default function TokenMarket() {
     'AI',
   ]
 
-  
-  if (isLoading) {
-    return (
-      <div className="flex flex-col pt-6">
-        <div className="flex items-center justify-between">
-          <p className="text-white text-2xl font-bold">Tokens Market</p>
-        </div>
-        <div className="flex gap-4 py-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex-shrink-0 w-[300px] h-[200px] bg-[#161B28] animate-pulse" />
-          ))}
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col pt-6">
       <div className='flex items-center justify-between'>
         <p className='text-white text-2xl font-bold'>
-          Token Market
+          All Tokens
         </p>
-        <div className="flex items-center gap-2 mt-2">
+        {/* <div className="flex items-center gap-2 mt-2">
           <Button 
             variant="outline" 
             className="text-gray-400 hover:bg-[#1C2333] hover:text-white text-sm bg-transparent rounded-none cursor-pointer"
@@ -307,9 +292,9 @@ export default function TokenMarket() {
           >
             View More
           </Button>
-        </div>
+        </div> */}
       </div>
-      <div className="flex items-center gap-4 mt-4 mb-2 rounded-lg">
+      {/* <div className="flex items-center gap-4 mt-4 mb-2 rounded-lg">
         <div className="relative flex-1">
           <Search size={16} className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
           <input
@@ -320,7 +305,7 @@ export default function TokenMarket() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-      </div>
+      </div> */}
       <div className='py-4 border-b border-gray-800'>
         <div className='flex items-center justify-between gap-2'>
           <div className='flex flex-wrap gap-2'>
@@ -334,6 +319,12 @@ export default function TokenMarket() {
                 {category}
               </button>
             ))}
+            <button
+                  onClick={()=>router.navigate({to: '/token/create'})}
+                  className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-blue-500 border border-[#1F2937] text-white hover:bg-blue-400 hover:text-white cursor-pointer`}
+              >
+                  Create New Token
+              </button>
           </div>
           <div className='md:hidden flex items-center'>
             <Button 
@@ -347,14 +338,15 @@ export default function TokenMarket() {
         </div>
       </div>
       <div className='gap-4 py-4 overflow-x-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-        {filteredTokens.map((token: Token, index: number) => (
-          <TokenCard key={index} token={token} />
-        ))}
-        {filteredTokens.length === 0 && searchQuery && (
-          <div className="flex flex-col items-center justify-center w-full py-8">
-            <p className="text-gray-400 text-sm">No tokens found matching "{searchQuery}"</p>
+        {tokensDataLoading  && (
+          <div className="flex flex-row items-center gap-2">
+            <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+            <p className="text-gray-400 text-sm">Loading tokens...</p>
           </div>
         )}
+        {!tokensDataLoading && filteredTokens.slice(0, 4).map((token: Token, index: number) => (
+          <TokenCard key={index} token={token} />
+        ))}
       </div>
     </div>
   )

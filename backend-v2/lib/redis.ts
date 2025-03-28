@@ -68,7 +68,7 @@ export async function createChat(chatId: string, address: string): Promise<Chat>
         });
         
         const chatJson = JSON.stringify(chat);
-        console.log(`Creating chat ${chatId} with data:`, chatJson);
+        // console.log(`Creating chat ${chatId} with data:`, chatJson);
         
         await redis.set(`chat:${chatId}`, chatJson);
         await redis.sadd(`user:${address}:chats`, chatId);
@@ -84,7 +84,7 @@ export async function createChat(chatId: string, address: string): Promise<Chat>
 export async function getChat(chatId: string): Promise<Chat | null> {
     try {
         const chatStr = await redis.get<string>(`chat:${chatId}`);
-        console.log(`Raw chat data for ${chatId}:`, chatStr);
+        // console.log(`Raw chat data for ${chatId}:`, chatStr);
         
         if (!chatStr) {
             console.log(`No chat found for ID ${chatId}`);
@@ -105,7 +105,7 @@ export async function getChat(chatId: string): Promise<Chat | null> {
 export async function getUserChats(address: string): Promise<Chat[]> {
     try {
         const chatIds = await redis.smembers(`user:${address}:chats`);
-        console.log(`Found ${chatIds.length} chats for address ${address}`);
+        // console.log(`Found ${chatIds.length} chats for address ${address}`);
         const chats: Chat[] = [];
 
         for (const chatId of chatIds) {
@@ -137,7 +137,7 @@ export async function addMessage(chatId: string, message: ChatMessage): Promise<
         };
 
         const chatJson = JSON.stringify(updatedChat);
-        console.log(`Updating chat ${chatId} with data:`, chatJson);
+        // console.log(`Updating chat ${chatId} with data:`, chatJson);
         
         await redis.set(`chat:${chatId}`, chatJson);
         await redis.zadd('chats', { score: Date.now(), member: chatId });
@@ -152,7 +152,7 @@ export async function addMessage(chatId: string, message: ChatMessage): Promise<
 export async function getRecentChats(address: string, limit: number = 10): Promise<Chat[]> {
     try {
         const chatIds = await redis.smembers(`user:${address}:chats`);
-        console.log(`Found ${chatIds.length} chats for recent lookup, address ${address}`);
+        // console.log(`Found ${chatIds.length} chats for recent lookup, address ${address}`);
         const chats: Chat[] = [];
 
         for (const chatId of chatIds) {

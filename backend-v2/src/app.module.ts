@@ -10,6 +10,7 @@ import { TokenModule } from './token/token.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { ChatModule } from './chat/chat.module';
 import { OmniModule } from './omni/omni.module';
+import { ActionModule } from './action/action.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { OmniModule } from './omni/omni.module';
     TransactionModule,
     ChatModule,
     OmniModule,
+    ActionModule,
   ],
 })
 export class AppModule {}

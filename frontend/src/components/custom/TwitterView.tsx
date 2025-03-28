@@ -65,7 +65,7 @@ const TwitterView: React.FC<{ tokenData: Token }> = ({ tokenData }) => {
     };
 
     return (
-        <Card className="w-full border border-[#1F2937] rounded-lg overflow-hidden bg-[#0F1724] text-white">
+        <Card className="w-full border border-[#1F2937] rounded-lg overflow-hidden bg-[#161B28] text-white">
             <div className="flex items-center gap-3 p-4 border-b border-[#1F2937]">
                 <img src="/assets/icon/x-light.svg" alt="twitter" className='w-5 h-5' />
                 <h2 className="text-xl font-bold text-white">Tweets {ticker && `#${ticker}`}</h2>
@@ -78,7 +78,7 @@ const TwitterView: React.FC<{ tokenData: Token }> = ({ tokenData }) => {
                         </div>
                     ) : error ? (
                         <div className="flex items-center justify-center w-full h-[200px]">
-                            <p>Error loading tweets</p>
+                            <p>Not found Tweets</p>
                         </div>
                     ) : data?.data?.tweets && data.data.tweets.length > 0 ? (
                         data.data.tweets.map((tweet) => (

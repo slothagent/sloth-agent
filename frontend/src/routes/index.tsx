@@ -19,7 +19,7 @@ function Index() {
         <Hero />
         <div className="container mx-auto space-y-8 pb-10">
           <div className="space-y-2">
-            <h1 className="text-white text-2xl font-bold mt-5">Solana Tokens</h1>
+            <h1 className="text-white text-2xl font-bold mt-5">Meme Pump</h1>
             <span className="text-gray-400 text-sm">🌱 New Creations</span>
             <div className="flex flex-row gap-4 overflow-x-auto py-2">
               {

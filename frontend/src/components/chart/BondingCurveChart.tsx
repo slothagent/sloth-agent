@@ -14,6 +14,8 @@ interface BondingCurveChartProps {
   height?: number;
   width?: string | number;
   tokenAddress?: string;
+  refreshTrigger?: number;
+  network?: string;
 }
 
 const formatToMillions = (value: string) => {
@@ -43,7 +45,9 @@ const formatToMillions = (value: string) => {
 const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
   height = 350,
   width = '100%',
-  tokenAddress = '0x21D0a122e3bF9fFc7E8A7C34F250211B1139306C'
+  tokenAddress = '0x21D0a122e3bF9fFc7E8A7C34F250211B1139306C',
+  network = 'Sonic',
+  refreshTrigger = 0
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [tokenData, setTokenData] = useState<any>(null);
@@ -56,8 +60,11 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
     const fetchTokenDetails = async () => {
       setLoading(true);
       try {
+        const rpcUrl = network == "Sonic" ? "https://rpc.blaze.soniclabs.com" : "https://rpcv2-testnet.ancient8.gg";
+        const addressSlothFactory = network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
         // Get token details 
-        const details = await getBinDetails(tokenAddress);
+        const details = await getBinDetails(tokenAddress, rpcUrl, addressSlothFactory);
+        // console.log("details", details);
         setTokenData(details);
         // console.log(details);
         setHasData(details.formattedData && 
@@ -75,7 +82,7 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
     };
     
     fetchTokenDetails();
-  }, [tokenAddress]);
+  }, [tokenAddress, refreshTrigger]);
   
   // Pre-calculate the chart data only when tokenData changes
   const chartData = useMemo(() => {
@@ -277,6 +284,17 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
               <stop offset="5%" stopColor="#0B0E17" stopOpacity={0.8} />
               <stop offset="95%" stopColor="#0B0E17" stopOpacity={0.2} />
             </linearGradient>
+            {chartData.map((entry: any, index: number) => {
+              const percentageOfTotal = (Number(entry.sonicValue) / (Number(entry.sonicFullAmount) + Number(entry.sonicValue))) * 100;
+              return (
+                <linearGradient key={`percentageGradient-${index}`} id={`percentageGradient-${index}`} x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="var(--chakra-colors-blue-500, #3182CE)" stopOpacity={0.8} />
+                  <stop offset={`${percentageOfTotal}%`} stopColor="var(--chakra-colors-blue-500, #3182CE)" stopOpacity={0.8} />
+                  <stop offset={`${percentageOfTotal}%`} stopColor="#0B0E17" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="#0B0E17" stopOpacity={0.2} />
+                </linearGradient>
+              );
+            })}
           </defs>
           
           {/* Transparent X and Y axes */}
@@ -299,21 +317,15 @@ const BondingCurveChart: React.FC<BondingCurveChartProps> = ({
             onMouseLeave={handleMouseLeave}
           >
             {chartData.map((entry: any, index: number) => {
-              // Check if we have actual data for this bin
               const hasActualData = !entry.noData && parseFloat(entry.tokenValue) > 0;
-              
               let fillGradient, hoverGradient;
               if (!hasData) {
-                // No data available at all - use gray
                 fillGradient = "url(#noDataGradient)";
                 hoverGradient = "url(#noDataGradientHover)";
               } else if (hasActualData) {
-                // Has tokens
-                const isBin0 = index === 0;
-                fillGradient = isBin0 ? "url(#barGradient)" : "url(#noDataGradient)";
-                hoverGradient = isBin0 ? "url(#barGradientHover)" : "url(#noDataGradientHover)";
+                fillGradient = `url(#percentageGradient-${index})`;
+                hoverGradient = `url(#percentageGradient-${index})`;
               } else {
-                // Empty bin - use gray
                 fillGradient = "url(#noDataGradient)";
                 hoverGradient = "url(#noDataGradientHover)";
               }

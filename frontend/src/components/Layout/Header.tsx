@@ -33,7 +33,7 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="h-16 flex items-center justify-between gap-4">
           {/* Logo - Responsive */}
-          <div onClick={()=>navigate({to:'/'})} className="flex items-center gap-2 min-w-fit">
+          <div onClick={()=>navigate({to:'/'})} className="flex items-center gap-2 min-w-fit cursor-pointer">
             <div className="w-8 h-8 sm:w-10 sm:h-10 relative">
               <img
                 src="/assets/logo/sloth.png"
@@ -55,17 +55,17 @@ const Header: React.FC = () => {
               />
             </div>
           </div>
-          {isConnected && (
+          {/* {isConnected && (
             <Link to="/agent" className="hidden md:block">
               <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
                 <span className="text-white text-sm">My Agent</span>
               </div>
             </Link>
-          )}
+          )} */}
           {isConnected && (
             <Link to="/omni" className="hidden md:block">
               <div className="bg-[#161B28] h-10 p-2 flex justify-center items-center">
-                <span className="text-white text-sm">Omni</span>
+                <span className="text-white text-sm">Omni Agent</span>
               </div>
             </Link>
           )}

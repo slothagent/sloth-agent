@@ -25,9 +25,9 @@ const TableTransaction = ({tx, ethPrice, sonicPrice}: TableTransactionProps) => 
 
     const price = useMemo(() => {
         if (tx.network === 'Ancient8') {
-            return (Number(tx.price)) * tx.amountToken * (ethPrice || 0);
+            return (Number(tx.price)) * tx.amount * (ethPrice || 0);
         } else {
-            return Number(tx.price) * tx.amountToken * (sonicPrice || 0);
+            return Number(tx.price) * tx.amount * (sonicPrice || 0);
         }
     }, [tx, ethPrice, sonicPrice]);
 

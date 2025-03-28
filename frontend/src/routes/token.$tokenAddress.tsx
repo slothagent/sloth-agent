@@ -11,7 +11,7 @@ import { Button } from "../components/ui/button";
 import { useQuery } from '@tanstack/react-query';   
 import { useMemo, useState, useEffect } from 'react';
 import { Input } from '../components/ui/input';
-import { useReadContract, useWriteContract, useAccount,useBalance, useWaitForTransactionReceipt } from 'wagmi';
+import { useReadContract, useWriteContract, useAccount, useWaitForTransactionReceipt } from 'wagmi';
 import { toast } from 'react-hot-toast';
 import { parseEther, formatUnits, MaxUint256, ethers } from "ethers";
 import Launching from '../components/custom/Launching';
@@ -23,7 +23,7 @@ import { useEthPrice } from '../hooks/useEthPrice';
 import { useSonicPrice } from  '../hooks/useSonicPrice';
 import { configAncient8,configSonicBlaze } from '../config/wagmi';
 import { useSwitchChain } from 'wagmi';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute,useNavigate } from '@tanstack/react-router';
 import axios from 'axios';
 import { INITIAL_SUPPLY } from '../lib/contants';
 import { useCalculateTokens } from '../hooks/useCalculateTokens';
@@ -31,6 +31,10 @@ import { factoryAbi } from '../abi/factoryAbi';
 import { useSignTypedData } from 'wagmi';
 import BondingCurveChart from '../components/chart/BondingCurveChart';
 import { useCalculateBin } from '../hooks/useCalculateBin';
+import { createPublicClient, http } from 'viem';
+import { waitForTransactionReceipt } from 'viem/actions';
+import { a8TokenAbi } from '../abi/a8TokenAbi';
+import { ancient8Sepolia } from 'viem/chains';
 
 export const Route = createFileRoute("/token/$tokenAddress")({
     component: TokenDetails,
@@ -65,7 +69,9 @@ function TokenDetails() {
     const [type, setType] = useState<string>('buy');
     const [priceToken, setPriceToken] = useState<number>(0);
     const { getBinDetails } = useCalculateBin();
-    
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const navigate = useNavigate();
+    const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
     const ethPrice = useMemo(() => {
       return ethPriceData?.price || 2500;
@@ -125,8 +131,10 @@ function TokenDetails() {
     useEffect(() => {
         const fetchTokenDetails = async () => {
             try {
+                const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
+                const rpcUrl = tokenData?.network == "Sonic" ? "https://rpc.blaze.soniclabs.com" : "https://rpcv2-testnet.ancient8.gg";
                 // Get token details 
-                const details = await getBinDetails(tokenAddress);
+                const details = await getBinDetails(tokenAddress, rpcUrl, addressSlothFactory);
                 // console.log("details", details);
                 setPriceToken(Number(ethers.formatEther(details.sonicPrice)));
                 // console.log("priceToken", Number(ethers.formatEther(details.sonicPrice)));
@@ -135,22 +143,17 @@ function TokenDetails() {
             };
         }     
         fetchTokenDetails();
-    }, [tokenAddress]);
+    }, [tokenAddress,tokenData]);
 
     const { data: tokenInfo } = useReadContract({
         address: addressSlothFactory,
         abi: factoryAbi,
         functionName: 'tokens',
-        args: [tokenData?.address as `0x${string}`]
+        args: [tokenData?.address as `0x${string}`],
+        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
     });
     // console.log("tokenData", tokenData);
     // console.log("tokenInfo", tokenInfo);
-
-    const { data: balance } = useBalance({
-        address: address,
-        config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8
-    });
-
     const {data: balanceOfToken, refetch: refetchBalanceOfToken} = useReadContract({
         address: tokenAddress as `0x${string}`,
         abi: tokenAbi,
@@ -183,12 +186,28 @@ function TokenDetails() {
         config: tokenData?.network == "Sonic" ? configSonicBlaze : configAncient8,
     });
 
+    const { data: a8Balance } = useReadContract({
+        address: tokenData?.network === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
+        abi: a8TokenAbi,
+        functionName: 'balanceOf',
+        args: [address as `0x${string}`],
+        config: configAncient8
+    });
+
+    const { data: a8Allowance } = useReadContract({
+        address: tokenData?.network === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
+        abi: a8TokenAbi,
+        functionName: 'allowance',
+        args: [address as `0x${string}`, process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`],
+        config: configAncient8
+    });
+
     useEffect(() => {
         if(tokenInfo&&amount){
             const calculateTokens = async () => {
                 if(type === 'buy'){
                     const expectedTokens = await calculateExpectedTokens(tokenInfo, amount||"0");
-                    console.log("expectedTokens", ethers.formatEther(expectedTokens));
+                    // console.log("expectedTokens", ethers.formatEther(expectedTokens));
                     // Add 15% slippage tolerance
                     const slippageTolerance = 0.15;
                     const minTokensOut = expectedTokens * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);
@@ -252,6 +271,7 @@ function TokenDetails() {
             setTxHash(tx as `0x${string}`);
             setTransactionType('APPROVE');
             toast.success("Please wait for the approval to be confirmed", { id: loadingToast });
+            setIsLoading(false);
         } catch (error: any) {
             console.error('Approval error:', error);
             if (error.code === 4001 || error.message?.includes('User rejected')) {
@@ -259,6 +279,7 @@ function TokenDetails() {
             } else {
                 toast.error(`Failed to approve: ${error.message || 'Unknown error'}`, { id: loadingToast });
             }
+            setIsLoading(false);
             setIsApproving(false);
         }
     };
@@ -278,7 +299,6 @@ function TokenDetails() {
                                 data: log.data,
                                 topics: log.topics,
                             });
-                            // console.log('Decoded:', decoded);
                             return decoded.eventName === 'SlothSwap';
                         } catch {
                             return false;
@@ -289,7 +309,7 @@ function TokenDetails() {
                         await refetchAllowance();
                         setIsApproving(false);
                         toast.success('Token approved successfully!', { id: loadingToast });
-                    } else if (eventLog) {
+                    } else if (eventLog && txHash) {  // Only process if we have both eventLog and txHash
                         if(transactionType === 'BUY'){
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
@@ -304,14 +324,18 @@ function TokenDetails() {
                                     amount: parseFloat(amount||"0"),
                                     price: priceToken,
                                     transactionType: 'BUY',
-                                    transactionHash: txHash as `0x${string}`
+                                    transactionHash: txHash
                                 }),
                             });
+                            
                             setAmount(null);
                             await refetchBalanceOfToken();
+                            setIsLoading(false);
+                            setRefreshTrigger(prev => prev + 1);
                             toast.success('Buy successful!', { id: loadingToast });
-                        }else if(transactionType === 'SELL'){
-                            // Save price history after successful transaction
+                            // Clear transaction hash after processing
+                            setTxHash(null);
+                        } else if(transactionType === 'SELL'){
                             await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
                                 method: 'POST',
                                 headers: {
@@ -325,21 +349,29 @@ function TokenDetails() {
                                     amount: amountToReceive,
                                     price: priceToken,
                                     transactionType: 'SELL',
-                                    transactionHash: txHash as `0x${string}`
+                                    transactionHash: txHash
                                 }),
                             });
+                            
                             await refetchBalanceOfToken();
+                            setIsLoading(false);
+                            setRefreshTrigger(prev => prev + 1);
                             toast.success('Sell successful!', { id: loadingToast });
                             setAmount(null);
+                            // Clear transaction hash after processing
+                            setTxHash(null);
                         }
                     } else {
+                        setIsLoading(false);
                         toast.success('Transaction successful!', { id: loadingToast });
                     }
                 } catch (error) {
+                    setIsLoading(false);
                     console.error('Error processing transaction receipt:', error);
                     toast.error('Error processing transaction receipt');
                     if (transactionType === 'APPROVE') {
                         setIsApproving(false);
+                        setIsLoading(false);
                     }
                 }
             }
@@ -364,6 +396,7 @@ function TokenDetails() {
         return transactionsData;
     }, [transactionsData]);
     
+    // console.log("transactionHistory", transactionHistory);
 
     const totalMarketCapToken = useMemo(() => {
         if (!transactionHistory) return 0;
@@ -385,6 +418,7 @@ function TokenDetails() {
     const handleBuy = async () => {
         if (!address) return toast.error('Please connect your wallet');
         if (!amount) return toast.error('Please enter an amount');
+        setIsLoading(true);
         if (tokenData?.network == "Sonic") {
             switchChain({
                 chainId: 57054
@@ -396,20 +430,58 @@ function TokenDetails() {
         }
         // console.log("amountToReceive", amountToReceive);
         if (amountToReceive <= 0) return toast.error('Insufficient tokens to receive');
-        if (balance && balance.value < parseEther(amount||"0")){
-            return toast.error('Insufficient balance');
-        }
+
         setAmountToReceive(Number(amountToReceive||"0"));
 
         const loadingToast = toast.loading('Buying...');
 
         const addressSlothFactory = tokenData?.network == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`;
         try {
+            // For Ancient8 network, handle A8 token approvals
+            if (tokenData?.network === "Ancient8") {
+                const buyAmount = parseEther(amount);
+                
+                // Check A8 token balance and allowance
+                if (!a8Balance || a8Balance < buyAmount) {
+                    toast.error(`Insufficient A8 token balance. Need ${amount} A8 tokens`, { id: loadingToast });
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Check and set allowance for A8 tokens if needed
+                if (!a8Allowance || a8Allowance < buyAmount) {
+                    try {
+                        const client = createPublicClient({
+                            chain: ancient8Sepolia,
+                            transport: http()
+                        });
+                        
+                        const approveTx = await writeContractAsync({
+                            address: process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}`,
+                            abi: a8TokenAbi,
+                            functionName: 'approve',
+                            args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, buyAmount]
+                        });
+                        
+                        toast.loading('Approving A8 tokens...', { id: loadingToast });
+                        
+                        await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
+                        toast.success('A8 tokens approved successfully', { id: loadingToast });
+                    } catch (error: any) {
+                        console.error('A8 token approval error:', error);
+                        toast.error('Failed to approve A8 tokens', { id: loadingToast });
+                        setIsLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            setTransactionType('BUY');
             const tx = await writeContractAsync({
                 address: addressSlothFactory,
                 abi: factoryAbi,
                 functionName: 'buy',
-                value: parseEther(amount||"0"),
+                value: tokenData?.network === "Sonic" ? parseEther(amount||"0") : parseEther("0"),
                 args: [tokenData?.address as `0x${string}`, BigInt(minTokensOut||0)]
             });
             setTransactionType('BUY');
@@ -424,6 +496,7 @@ function TokenDetails() {
             } else {
                 toast.error('Failed to buy', { id: loadingToast });
             }
+            setIsLoading(false);
         }
     }
 
@@ -432,6 +505,7 @@ function TokenDetails() {
     const handleSell = async () => {
         if (!amount) return toast.error('Please enter an amount');
         if (!address) return toast.error('Please connect your wallet');
+        setIsLoading(true);
         if (tokenData?.network == "Sonic") {
             switchChain({
                 chainId: 57054
@@ -546,11 +620,12 @@ function TokenDetails() {
         <div className="bg-[#0B0E17] top-0 sm:top-12 border-[#1F2937] sm:border-b-0">
             <div className="container mx-0 md:mx-auto py-2 sm:py-4 lg:px-4 pt-2 flex md:items-center md:justify-between gap-4 max-lg:px-4 flex-col md:flex-row mb-0 lg:mt-8">
                 <div className="flex items-center gap-2 justify-between sm:justify-start">
-                    <Link to="/" className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200"
+                            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
+                            onClick={()=>navigate({to: "/"})}
                         >
                             <div className="w-7 h-7 bg-[#161B28] flex items-center justify-center border border-[#1F2937] hover:border-gray-600">
                                 <ArrowLeft className="w-4 h-4" />
@@ -559,7 +634,7 @@ function TokenDetails() {
                         <div className="hidden sm:flex items-center gap-2 border border-[#1F2937] px-3 py-1 hover:border-gray-600 transition-colors duration-200">
                             <p className="text-gray-400 text-sm font-medium">{tokenData?.ticker}</p>
                         </div>
-                    </Link>
+                    </div>
                     
                     <ChevronRight className="w-4 h-4 text-gray-500 hidden sm:block" />
                     
@@ -591,7 +666,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('24h')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '24h' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '24h' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         24h
                     </Button>
@@ -599,7 +674,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('3d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '3d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '3d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         3D
                     </Button>
@@ -607,7 +682,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('7d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '7d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '7d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         7D
                     </Button>
@@ -615,7 +690,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('14d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '14d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '14d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         14D
                     </Button>
@@ -623,7 +698,7 @@ function TokenDetails() {
                         variant="ghost" 
                         size="sm" 
                         onClick={() => handleTimeRangeChange('30d')}
-                        className={`text-gray-400 hover:text-white ${timeRange === '30d' ? 'bg-[#161B28] text-white' : ''}`}
+                        className={`text-gray-400 hover:text-black cursor-pointer ${timeRange === '30d' ? 'bg-[#161B28] text-white' : ''}`}
                     >
                         30D
                     </Button>
@@ -721,7 +796,7 @@ function TokenDetails() {
                                             ) : (
                                                 <span>Address not available</span>
                                             )}
-                                            <button onClick={() => copyToClipboard(tokenData?.address||'')} className="ml-1 text-gray-400 hover:text-white">
+                                            <button onClick={() => copyToClipboard(tokenData?.address||'')} className="ml-1 text-gray-400 hover:text-white cursor-pointer">
                                                 <Copy className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -768,9 +843,6 @@ function TokenDetails() {
                                     </div>
                                     <p className="text-xs text-gray-400">@{tokenData?.ticker}</p>
                                     <div className="mt-2 flex items-center gap-1">
-                                        <div className="flex items-center rounded justify-center font-sans font-medium w-fit bg-[#161B28] text-gray-400 h-6 gap-1 text-xs px-2 border border-[#1F2937]">
-                                            {tokenData?.ticker}
-                                        </div>
                                         <a href={`https://scanv2-testnet.ancient8.gg/address/${tokenData?.address}`} target="_blank" className="flex items-center rounded justify-center font-medium w-fit bg-[#161B28] text-gray-400 text-[10px] leading-[12px] gap-1 px-1 h-auto py-1 border border-[#1F2937]">
                                             <img alt="Chain" loading="lazy" width="24" height="24" decoding="async" data-nimg="1" className="w-4" src="/assets/chains/a8.png" style={{ color: 'transparent' }} />
                                             {tokenData?.address.slice(0, 4)}...{tokenData?.address.slice(-4)}
@@ -797,41 +869,42 @@ function TokenDetails() {
                             <TabsList className="h-[62px] w-full justify-start gap-6 bg-transparent">
                                 <TabsTrigger 
                                     value="trade"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
                                 >
                                     <div className="flex items-center gap-1">Trade</div>
                                 </TabsTrigger>      
                                 <TabsTrigger 
+                                    value="transactions"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
+                                >
+                                    <div className="flex items-center gap-1 ">Transactions</div>
+                                </TabsTrigger>
+                                <TabsTrigger 
                                     value="analytics"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
                                 >
                                     <div className="flex items-center gap-1 text-xs md:text-base">Analytics</div>
                                 </TabsTrigger>
                                 <TabsTrigger 
                                     value="social"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
+                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap cursor-pointer"
                                 >
                                     <div className="flex items-center gap-1">Social</div>
-                                </TabsTrigger>
-                                <TabsTrigger 
-                                    value="launching"
-                                    className="data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:shadow-none rounded-none px-0 text-xs md:text-base font-medium text-gray-400 data-[state=active]:text-white whitespace-nowrap"
-                                >
-                                    <div className="flex items-center gap-1 ">Launching</div>
                                 </TabsTrigger>
                             </TabsList>
                         </div>
                     </div>
 
                     <TabsContent value="trade" className="mt-4">
+
                         <div className="flex flex-col md:flex-row gap-4">
                             <div className="col-span-2 h-[350px] w-full sm:h-[450px] md:h-[450px] border rounded-lg relative flex flex-col border-[#1F2937] bg-[#161B28]">
                                 <div className="col-span-1  flex-1 sm:p-4 relative">
-                                    <div className="flex flex-col w-auto h-full relative">
-                                        <BondingCurveChart
-                                            tokenAddress={tokenData?.address||''}
-                                        />
-                                    </div>
+                                    <BondingCurveChart
+                                        tokenAddress={tokenData?.address||''}
+                                        refreshTrigger={refreshTrigger}
+                                        network={tokenData?.network}
+                                    />
                                 </div>
                             </div>
                             <div className="border border-[#1F2937] md:w-xl p-2 overflow-hidden h-[450px] sm:h-[450px] bg-[#161B28]">
@@ -988,17 +1061,7 @@ function TokenDetails() {
                         </div>
                         
                     </TabsContent>
-                    <TabsContent value="analytics" className="mt-4">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <span className="text-sm text-gray-400">Coming Soon</span>
-                            </div>
-                        </div>
-                    </TabsContent>
-                    <TabsContent value="social" className="mt-4">
-                        <Social tokenData={tokenData} />
-                    </TabsContent>
-                    <TabsContent value="launching" className="mt-4">
+                    <TabsContent value="transactions" className="mt-4">
                         <Launching 
                             network={tokenData?.network||''} 
                             sonicPrice={sonicPrice} 
@@ -1010,6 +1073,17 @@ function TokenDetails() {
                             symbol={tokenData?.ticker||''} 
                         />
                     </TabsContent>
+                    <TabsContent value="analytics" className="mt-4">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <span className="text-sm text-gray-400">Coming Soon</span>
+                            </div>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="social" className="mt-4">
+                        <Social tokenData={tokenData} />
+                    </TabsContent>
+                    
                 </Tabs>
                 </div>
             </div>
