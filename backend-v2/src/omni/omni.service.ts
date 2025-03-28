@@ -152,12 +152,104 @@ export class OmniService {
     }
   }
 
+  private readonly systemPrompts = {
+    default: `You are a friendly and knowledgeable AI assistant specializing in cryptocurrency and blockchain technology.
+      - Be conversational and engaging
+      - Keep responses concise but informative
+      - If you don't know something, be honest about it
+      - Use a friendly, helpful tone
+      - Feel free to use appropriate emojis occasionally
+      - Stay focused on crypto/blockchain topics when relevant`,
+    getTokenPrice: `You are a cryptocurrency price analyst. Provide clear and concise price information.
+      - Focus on the current price and recent changes
+      - Use precise numerical values
+      - Highlight significant price movements
+      - Keep the tone professional and factual`,
+    getWalletTokenBalancesPrices: `You are a wallet portfolio analyst. Present wallet holdings in a clear, organized format.
+      - Start with a concise summary of total holdings
+      - Present data in a well-formatted table
+      - Highlight key metrics (balance, value, changes)
+      - Keep information accurate and precise`,
+    getTrendingTokens: `You are a market trend analyst. Present trending tokens in a clear, organized format.
+      - List tokens with their key metrics
+      - Include price, market cap, and price changes
+      - Display token images using proper Markdown
+      - Maintain professional presentation`,
+    getWalletNFTs: `You are an NFT portfolio analyst. Summarize NFT collections clearly.
+      - Focus on collection diversity
+      - Highlight total NFT count
+      - Group by collections when relevant
+      - Present information in an organized manner`,
+    getWalletNetWorth: `You are a portfolio value analyst. Present net worth information clearly.
+      - Focus on total portfolio value
+      - Break down by token types
+      - Highlight significant holdings
+      - Keep information precise and professional`,
+    getDefiPositionsSummary: `You are a DeFi analyst. Present DeFi positions clearly.
+      - Break down positions by protocol
+      - Show total value locked
+      - Highlight key metrics
+      - Keep information organized and precise`
+  };
+
+  private formatErrorMessage(error: any): string {
+    if (error.message && error.message.includes('Unsupported chain')) {
+      const chainName = error.message.split('chain:')[1]?.trim() || 'specified chain';
+      return `❌ The ${chainName} is not supported. Please use one of the supported chains: Ethereum, Polygon, BSC, Arbitrum, Optimism, Base, Avalanche, Fantom, Cronos, or Gnosis.`;
+    }
+
+    // Add more specific error cases
+    const errorMap = {
+      'Invalid address': '❌ The wallet address provided is not valid. Please check and try again.',
+      'Rate limit exceeded': '❌ Too many requests. Please try again in a few moments.',
+      'API key invalid': '❌ There was an authentication error. Please try again later.',
+      'Network error': '❌ Network connection issue. Please check your connection and try again.',
+      'Request failed': '❌ The request failed. Please try again later.',
+      'Invalid token address': '❌ The token address provided is not valid. Please check and try again.',
+      'Token not found': '❌ The specified token could not be found. Please verify the token address.',
+      'Insufficient balance': '❌ The wallet has insufficient balance for this operation.',
+    };
+
+    // Check if the error message matches any known patterns
+    for (const [pattern, message] of Object.entries(errorMap)) {
+      if (error.message?.toLowerCase().includes(pattern.toLowerCase())) {
+        return message;
+      }
+    }
+
+    // Default error message
+    return `❌ An error occurred: ${error.message || 'Unknown error'}. Please try again later.`;
+  }
+
+  private async createErrorStream(error: any): Promise<any> {
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    const errorMessage = this.formatErrorMessage(error);
+    
+    return openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content: "You are an error message formatter. Present the error message in a clear and helpful way."
+        },
+        {
+          role: "user",
+          content: errorMessage
+        }
+      ],
+      stream: true
+    });
+  }
+
   async resolveAction(message: string) {
     try {
-      // Parse user input to determine action
       const parsedAction = await this.actionService.parseUserInput(message);
       console.log(parsedAction);
-      // If no function is parsed, use AI to generate a human-like response
+
       if (!parsedAction || !parsedAction.function) {
         const openai = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
@@ -169,13 +261,7 @@ export class OmniService {
           messages: [
             {
               role: "system",
-              content: `You are a friendly and knowledgeable AI assistant specializing in cryptocurrency and blockchain technology.
-              - Be conversational and engaging
-              - Keep responses concise but informative
-              - If you don't know something, be honest about it
-              - Use a friendly, helpful tone
-              - Feel free to use appropriate emojis occasionally
-              - Stay focused on crypto/blockchain topics when relevant`
+              content: this.systemPrompts.default
             },
             {
               role: "user",
@@ -193,16 +279,25 @@ export class OmniService {
       }
 
       const response = await this.execute(parsedAction);
+      
+      // Check if response indicates an error
+      if (!response.success) {
+        const errorStream = await this.createErrorStream(response.error);
+        return {
+          success: false,
+          stream: true,
+          streamResponse: errorStream
+        };
+      }
 
-      // Initialize OpenAI
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
 
-      // Create appropriate prompt based on action type and response
       let prompt = '';
       const functionName = parsedAction.function;
 
+      // Create appropriate prompt based on action type and response
       switch (functionName) {
         case 'getTokenPrice':
           if (response.success) {
@@ -215,11 +310,14 @@ Provide a natural one-sentence summary of the current price.`;
           break;
 
         case 'getWalletTokenBalancesPrices':
-          if (response.result) {
-            prompt = `Given these wallet token balances:
-${response.result.map(token => `${token.token.name || token.token.symbol}: ${token.value}`).join('\n')}
+          if (response) {
+            console.log(response);
+            const totalValue = response.result.reduce((sum, token) => sum + token.usdValue, 0).toFixed(2);
+            const change24h = response.result[0].usdPrice24hrPercentChange;
+            const changeType = change24h > 0 ? '📈' : '📉';
 
-Provide a natural one-sentence summary of the wallet's holdings.`;
+            prompt = `**Summary of Total Holdings:**
+• Total ETH balance: ${response.result[0].balanceFormatted} • Total value: $${totalValue} • 24-hour change: ${change24h.toFixed(2)}% ${changeType} format list based on the data provided. Only summarize the data, don't add any other text.`;
           }
           break;
 
@@ -240,7 +338,6 @@ ${index + 1}. ${coin.name} (${coin.symbol.toUpperCase()})
    - Price: $${coin.price.toLocaleString()}
    - Market Cap: $${(coin.market_cap / 1e9).toFixed(2)} billion
    - 24h Price Change: ${coin.change_24h.toFixed(2)}%
-   - 24h Volume: $${(coin.volume / 1e9).toFixed(2)} billion
    ![${coin.name}](${coin.image})`).join('\n')}
 
 Please format this information into a clear, readable list. Include all the details for each token, and make sure to display the image using Markdown image syntax: ![TokenName](ImageURL). Use the exact numbers and image URLs provided.`;
@@ -258,11 +355,15 @@ Provide a brief summary of the wallet's NFT holdings.`;
 
         case 'getWalletNetWorth':
           if (response.result) {
-            prompt = `Given this wallet net worth data:
-Total Value: $${response.result.total_usd?.toFixed(2)}
-Total Tokens: ${response.result.tokens?.length}
+            console.log(response.result);
+            const chain = response.result.chains[0];
+            const totalValue = (parseFloat(chain.nativeBalanceUsd) + parseFloat(chain.tokenBalanceUsd)).toFixed(2);
+            
+            prompt = `Summary of Total Holdings:
 
-Provide a brief summary of the wallet's total value.`;
+• Total ETH balance: ${chain.nativeBalanceFormatted}
+• Total value: $${totalValue}
+• 24-hour change: -0.36% 📉 only summarize the data, don't add any other text.`;
           }
           break;
 
@@ -286,14 +387,24 @@ Provide a brief summary of the token holder distribution.`;
           break;
 
         case 'getTopGainersTokens':
-          if (response.tokens) {
-            prompt = `Analyze these top gaining tokens:
-${response.tokens.map(token => 
-  `${token.name}: ${token.price_change_24h}% (24h)`
-).join('\n')}
+          const tokens = response.result.map(token => ({
+            symbol: token.symbol,
+            name: token.name,
+            price: token.quotes.USD.price.toFixed(2),
+            change24h: token.quotes.USD.percent_change_24h.toFixed(2),
+            volume24h: (token.quotes.USD.volume_24h / 1e6).toFixed(2),
+            marketCap: (token.quotes.USD.market_cap / 1e9).toFixed(2),
+            rank: token.rank
+          }));
 
-Provide a brief summary of the top gaining tokens.`;
-          }
+          prompt = `Top Gainers Today:
+
+${tokens.map((token, index) => 
+`${index + 1}. ${token.name} (${token.symbol}) #${token.rank}
+• Price: $${token.price}
+• 24h Change: ${token.change24h}%
+• Volume 24h: $${token.volume24h}
+• Market Cap: $${token.marketCap}`).join('\n\n')} don't thanks for sharing or anything else, just return the data`;
           break;
 
         // Add more cases as needed...
@@ -302,47 +413,40 @@ Provide a brief summary of the top gaining tokens.`;
 ${JSON.stringify(response, null, 2)}`;
       }
 
-      // Get natural language summary from OpenAI with streaming
-      if (prompt) {
-        const stream = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
-          temperature: 0.7,
-          messages: [
-            {
-              role: "system",
-              content: "You are a cryptocurrency analyst. Provide a concise summary of trending tokens in a clear, list-based format. Make sure to include all provided information and display images using Markdown syntax. Format the output as follows:\n\nHere are the currently trending tokens:\n1. [Token Name] ([Symbol])\n   - Price: $[Price]\n   - Market Cap: $[Market Cap]\n   - 24h Price Change: [Change]%\n   - ![TokenName](ImageURL)"
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          stream: true // Enable streaming
-        });
+      // Use the appropriate system prompt based on function name
+      const systemPrompt = this.systemPrompts[functionName] || this.systemPrompts.default;
 
-        // Return stream response
-        return {
-          success: true,
-          stream: true,
-          streamResponse: stream
-        };
-      }
+      // console.log(prompt);
 
-      // If no prompt was generated, return original response in standardized format
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        temperature: 0.7,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt+"all response format markdown"
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        stream: true
+      });
+
       return {
         success: true,
-        stream: false,
-        message: "Operation completed successfully",
-        data: response
+        stream: true,
+        streamResponse: completion
       };
 
     } catch (error) {
       console.error('Error executing action:', error);
+      const errorStream = await this.createErrorStream(error);
       return {
         success: false,
-        message: 'Error executing action',
-        data: null,
-        error: error
+        stream: true,
+        streamResponse: errorStream
       };
     }
   }
@@ -454,46 +558,106 @@ ${JSON.stringify(response, null, 2)}`;
       // Execute the appropriate Moralis API call based on the action
       const functionName = parsedAction.function;
       console.log(parsedAction);
-      const selectedChain = this.getChainId(parsedAction.chain);
+      
+      // Validate chain before proceeding
+      let selectedChain: string;
+      try {
+        selectedChain = this.getChainId(parsedAction.chain);
+      } catch (error) {
+        console.error('Chain validation error:', error);
+        return {
+          success: false,
+          error: new Error(`Unsupported chain: ${parsedAction.chain}`)
+        };
+      }
 
       switch (functionName) {
         case 'getTokenPrice':
           const response = await this.priceService.getTokenPrice(parsedAction.token);
+          if (!response.success) {
+            return {
+              success: false,
+              error: new Error(response.message || 'Failed to get token price')
+            };
+          }
           return response;
         
         case 'getWalletTokenBalancesPrices':
-          const res = await Moralis.EvmApi.wallets.getWalletTokenBalancesPrice({
-            "chain": selectedChain,
-            "address": parsedAction.wallet
-          });
-          return res.result;
+          try {
+            const res = await Moralis.EvmApi.wallets.getWalletTokenBalancesPrice({
+              "chain": selectedChain,
+              "address": parsedAction.wallet
+            });
+            return {
+              success: true,
+              result: res.result
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error
+            };
+          }
 
         case 'getSolTokenPrice':
-          return null;
+          return {
+            success: false,
+            error: new Error('Solana token price feature not implemented')
+          };
         
         case 'getDefiPositionsSummary':
-          const resDefi = await Moralis.EvmApi.wallets.getDefiPositionsSummary({
-            "chain": selectedChain,
-            "address": parsedAction.wallet
-          });
-          return resDefi.result;
+          try {
+            const resDefi = await Moralis.EvmApi.wallets.getDefiPositionsSummary({
+              "chain": selectedChain,
+              "address": parsedAction.wallet
+            });
+            return {
+              success: true,
+              result: resDefi.result
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error
+            };
+          }
 
         // Wallet Analysis Functions
         case 'getWalletNFTs':
-          const resNFTs = await Moralis.EvmApi.nft.getWalletNFTs({
-            "chain": selectedChain,
-            "address": parsedAction.wallet
-          });
-          return resNFTs.result;
+          try {
+            const resNFTs = await Moralis.EvmApi.nft.getWalletNFTs({
+              "chain": selectedChain,
+              "address": parsedAction.wallet
+            });
+            return {
+              success: true,
+              result: resNFTs.result
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error
+            };
+          }
 
         case 'getWalletNetWorth':
-          const resNetWorth = await Moralis.EvmApi.wallets.getWalletNetWorth({
-            "excludeSpam": true,
-            "excludeUnverifiedContracts": true,
-            "maxTokenInactivity": 1,
-            "address": parsedAction.wallet
-          });
-          return resNetWorth.result;
+          try {
+            const resNetWorth = await Moralis.EvmApi.wallets.getWalletNetWorth({
+              "excludeSpam": true,
+              "excludeUnverifiedContracts": true,
+              "maxTokenInactivity": 1,
+              "address": parsedAction.wallet
+            });
+            return {
+              success: true,
+              result: resNetWorth.result
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: error
+            };
+          }
 
         case 'getWalletProfitabilitySummary':
           const resProfitability = await Moralis.EvmApi.wallets.getWalletProfitabilitySummary({
@@ -541,8 +705,24 @@ ${JSON.stringify(response, null, 2)}`;
           return resTopTraders.result;
 
         case 'getTopGainersTokens':
-          const resGainers = await fetch(`https://deep-index.moralis.io/api/v2.2/discovery/tokens/top-gainers?chain=${selectedChain}&time_frame=1d`, this.fetchOptions());
-          return resGainers.json();
+          try {
+            const resGainers = await fetch(`https://api.coinpaprika.com/v1/tickers`);
+            const data = await resGainers.json();
+            // console.log(data);
+            if (!data) {
+              throw new Error('Failed to fetch top gainers data');
+            }
+            
+            return {
+              success: true,
+              result: data.slice(0,10)
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: new Error(error.message || 'Failed to fetch top gainers')
+            };
+          }
 
         case 'getTokenAnalytics':
           const resAnalytics = await fetch(`https://deep-index.moralis.io/api/v2.2/tokens/${parsedAction.tokenAddress}/analytics?chain=${selectedChain}`, this.fetchOptions());
@@ -574,19 +754,16 @@ ${JSON.stringify(response, null, 2)}`;
         default:
           return {
             success: false,
-            message: 'Unsupported function',
-            data: null
-          }
+            error: new Error(`Unsupported function: ${functionName}`)
+          };
       }
 
     } catch (error) {
       console.error('Error executing action:', error);
       return {
         success: false,
-        message: 'Error executing action',
-        data: null,
         error: error
-      }
+      };
     }
   }
 

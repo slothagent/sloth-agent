@@ -54,7 +54,7 @@ export class OmniController {
         // Send the final data
         res.write(`data: ${JSON.stringify({ 
           done: true, 
-          data: result.data 
+          data: result.streamResponse 
         })}\n\n`);
         
         res.end();
