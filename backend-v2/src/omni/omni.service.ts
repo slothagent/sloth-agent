@@ -328,10 +328,9 @@ Provide a natural one-sentence summary of the current price.`;
         case 'getWalletTokenBalancesPrices':
           const totalValue = response.result.reduce((sum, token) => sum + token.usdValue, 0).toFixed(2);
           const change24h = response.result[0].usdPrice24hrPercentChange;
-          const changeType = change24h > 0 ? '📈' : '📉';
 
           prompt = `**Summary of Total Holdings:**
-• Total ETH balance: ${response.result[0].balanceFormatted} • Total value: $${totalValue} • 24-hour change: ${change24h.toFixed(2)}% ${changeType} format list based on the data provided. Only summarize the data, don't add any other text.`;
+• Total ETH balance: ${response.result[0].balanceFormatted} • Total value: $${totalValue} • 24-hour change: ${change24h.toFixed(2)}% format list based on the data provided. Only summarize the data, don't add any other text.`;
           break;
 
         case 'getTrendingTokens':
