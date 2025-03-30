@@ -9,12 +9,6 @@ import { formatNumber } from '../../utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useEthPrice } from '../../hooks/useEthPrice'
 import { useSonicPrice } from '../../hooks/useSonicPrice'
-import { tokenAbi } from '../../abi/tokenAbi'
-import { configSonicBlaze } from '../../config/wagmi'
-import { configAncient8 } from '../../config/wagmi'
-import { useCalculateBin } from '../../hooks/useCalculateBin'
-import { useReadContract } from 'wagmi'
-import { ethers } from 'ethers'
 import { Loader2 } from 'lucide-react'
 import { INITIAL_SUPPLY } from '../../lib/contants'
 
@@ -38,15 +32,6 @@ const TokenCard = ({ token }: { token: Token }) => {
 
   const { data: sonicPriceData } = useSonicPrice();
   const { data: ethPriceData } = useEthPrice();
-  const { calculateMarketCap } = useCalculateBin();
-
-  const { data: totalSupply } = useReadContract({
-    address: token?.address as `0x${string}`,
-    abi: tokenAbi,
-    functionName: 'totalSupply',
-    config: token?.network == "Sonic" ? configSonicBlaze : configAncient8
-  });
-
   // Get the ETH price for calculations, fallback to 2500 if not available
   const ethPrice = useMemo(() => {
     return ethPriceData?.price || 2500;

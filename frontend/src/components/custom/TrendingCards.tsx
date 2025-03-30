@@ -287,7 +287,7 @@ const TrendingCards = () => {
                 <div 
                   key={item.id} 
                   className="flex items-center justify-between cursor-pointer group" 
-                  onClick={() => window.open(item.url, '_blank')}
+                  onClick={() => item.chainId == "solana" ? navigate({to: `/sol/${item.id}`}) : window.open(item.url, '_blank')}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-gray-400 text-sm">{item.market_cap_rank}</span>

@@ -109,3 +109,24 @@ export const useDeleteToken = () => {
     },
   });
 }; 
+
+export const useFetchTokenSolana = (tokenAddress: string) => {
+  return useQuery({
+    queryKey: ['tokens', tokenAddress],
+    queryFn: async () => {
+      const response = await fetch(`https://solana-gateway.moralis.io/token/mainnet/${tokenAddress}/metadata`, {
+        headers: {
+          'accept': 'application/json',
+          'X-API-Key': import.meta.env.PUBLIC_MORALIS_API_KEY
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch Solana token metadata');
+      }
+
+      return response.json();
+    },
+    placeholderData: (previousData) => previousData,
+  });
+};
