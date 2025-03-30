@@ -169,15 +169,15 @@ export function useTransactionsData(tokenAddress: string, timeRange: string = '3
     
     // Add listener for transactions data
     const removeListener = addDataListener('transactions', (data: any) => {
-      // Chỉ xử lý dữ liệu cho địa chỉ token cụ thể mà chúng ta quan tâm
+      // Only process data for the specific token address we're interested in
       // console.log("data", data);
       if (Array.isArray(data)) {
         setTransactions(data);
         setLoading(false);
       } else if (data.change && data.change.operationType && data.tokenAddress === tokenAddress) {
-        // Xử lý cập nhật dựa trên loại thao tác
+        // Handle updates based on operation type
         if (data.change.operationType === 'insert' && data.change.fullDocument) {
-          // Kiểm tra xem transaction mới có liên quan đến token của chúng ta không
+          // Check if the new transaction is related to our token
           const newTx = data.change.fullDocument;
           const isRelevant = newTx.from === tokenAddress || 
                             newTx.to === tokenAddress || 
@@ -189,7 +189,7 @@ export function useTransactionsData(tokenAddress: string, timeRange: string = '3
         } else if (data.change.operationType === 'update' && data.change.documentKey && data.change.updateDescription) {
           console.log('Received transaction update:', data.change);
           
-          // Cập nhật transaction nếu nó đã tồn tại trong danh sách của chúng ta
+          // Update transaction if it exists in our list
           setTransactions((prev: Transaction[]) => {
             const txIndex = prev.findIndex((tx: Transaction) => tx._id === data.change.documentKey._id);
             
@@ -204,24 +204,24 @@ export function useTransactionsData(tokenAddress: string, timeRange: string = '3
               return newTransactions;
             }
             
-            // Nếu không tìm thấy transaction, có thể nó mới được thêm vào và liên quan đến token của chúng ta
-            // Trong trường hợp này, chúng ta nên yêu cầu dữ liệu mới
+            // If transaction not found, it might be newly added and related to our token
+            // In this case, we should request fresh data
             subscribeToTransactions(tokenAddress, timeRange);
             return prev;
           });
         } else if (data.change.operationType === 'delete' && data.change.documentKey) {
-          // Xóa transaction khỏi danh sách nếu nó tồn tại
+          // Remove transaction from list if it exists
           setTransactions((prev: Transaction[]) => 
             prev.filter((tx: Transaction) => tx._id !== data.change.documentKey._id)
           );
         } else {
-          // Đối với các thao tác khác, đơn giản là yêu cầu dữ liệu mới
+          // For other operations, simply request fresh data
           subscribeToTransactions(tokenAddress, timeRange);
         }
       }
     });
     
-    // Đăng ký nhận dữ liệu transactions cho token này
+    // Subscribe to transactions data for this token
     subscribeToTransactions(tokenAddress, timeRange);
     
     return removeListener;
@@ -265,19 +265,19 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
     
     // Add listener for all transactions data
     const removeListener = addDataListener('allTransactions', (data: any) => {
-      // Xử lý dữ liệu transactions
+      // Process transactions data
       if (Array.isArray(data)) {
         setTransactions(data);
         setLoading(false);
       } else if (data.change && data.change.operationType) {
-        // Xử lý cập nhật dựa trên loại thao tác
+        // Handle updates based on operation type
         if (data.change.operationType === 'insert' && data.change.fullDocument) {
-          // Thêm transaction mới vào đầu danh sách
+          // Add new transaction to the beginning of the list
           setTransactions((prev: Transaction[]) => [data.change.fullDocument, ...prev]);
         } else if (data.change.operationType === 'update' && data.change.documentKey && data.change.updateDescription) {
           console.log('Received transaction update:', data.change);
           
-          // Cập nhật transaction nếu nó đã tồn tại trong danh sách
+          // Update transaction if it exists in the list
           setTransactions((prev: Transaction[]) => {
             const txIndex = prev.findIndex((tx: Transaction) => tx._id === data.change.documentKey._id);
             
@@ -292,24 +292,24 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
               return newTransactions;
             }
             
-            // Nếu không tìm thấy transaction, có thể nó đã bị loại khỏi danh sách do giới hạn
-            // Trong trường hợp này, chúng ta nên yêu cầu dữ liệu mới
+            // If transaction not found, it might have been removed from the list due to limit
+            // In this case, we should request fresh data
             subscribeToAllTransactions(timeRange, limit);
             return prev;
           });
         } else if (data.change.operationType === 'delete' && data.change.documentKey) {
-          // Xóa transaction khỏi danh sách nếu nó tồn tại
+          // Remove transaction from list if it exists
           setTransactions((prev: Transaction[]) => 
             prev.filter((tx: Transaction) => tx._id !== data.change.documentKey._id)
           );
         } else {
-          // Đối với các thao tác khác, đơn giản là yêu cầu dữ liệu mới
+          // For other operations, simply request fresh data
           subscribeToAllTransactions(timeRange, limit);
         }
       }
     });
     
-    // Đăng ký nhận tất cả dữ liệu transactions
+    // Subscribe to all transactions data
     subscribeToAllTransactions(timeRange, limit);
     
     return removeListener;
@@ -320,7 +320,11 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
 
 // Hook for Solana token creation events
 export function useSolanaTokens() {
-  const [tokens, setTokens] = useState<SolanaTokenData[]>([]);
+  const [tokens, setTokens] = useState<SolanaTokenData[]>(() => {
+    // Initialize state from localStorage if available
+    const savedTokens = localStorage.getItem('solanaTokens');
+    return savedTokens ? JSON.parse(savedTokens) : [];
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -329,21 +333,26 @@ export function useSolanaTokens() {
     // Add listener for Solana token creation events
     const removeListener = addDataListener('solanaTokens', (data: any) => {
       if (data && data.type === 'update' && data.data) {
-        // console.log('Received token data:', data.data);
-        
         setTokens(prev => {
-          // Nếu token đã tồn tại, cập nhật nó
+          // Check if token already exists
           const existingTokenIndex = prev.findIndex(t => t.mint === data.data.mint);
+          let updatedTokens: SolanaTokenData[];
+
           if (existingTokenIndex !== -1) {
-            const updatedTokens = [...prev];
+            // Update existing token
+            updatedTokens = [...prev];
             updatedTokens[existingTokenIndex] = {
               ...prev[existingTokenIndex],
               ...data.data
             };
-            return updatedTokens;
+          } else {
+            // Add new token at the beginning and limit to 10 tokens
+            updatedTokens = [data.data, ...prev].slice(0, 10);
           }
-          // Nếu là token mới, thêm vào đầu danh sách
-          return [data.data, ...prev];
+
+          // Save to localStorage
+          localStorage.setItem('solanaTokens', JSON.stringify(updatedTokens));
+          return updatedTokens;
         });
         setLoading(false);
       }
