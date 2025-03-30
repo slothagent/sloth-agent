@@ -2,7 +2,6 @@ import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router"
 import { useState, useEffect, useRef } from "react";
 import { ArrowUp, History } from "lucide-react";
 import { ChatMessage, Chat, getChat, addMessage, getUserChats } from "../lib/chat";
-import { useAccount } from "wagmi";
 import { v4 as uuidv4 } from 'uuid';
 import { getInitialMessage, clearInitialMessage } from "../lib/messageStore";
 import { ChatHistoryDialog } from "../components/ChatHistoryDialog";
@@ -10,13 +9,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ProcessLogs } from "../components/ProcessLogs";
 
-
 export const Route = createFileRoute("/omni/$chatId")({
     component: OmniChat,
 });
 
 function OmniChat() {
-    const { address } = useAccount();
     const navigate = useNavigate();
     const { chatId } = useParams({ from: "/omni/$chatId" });
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -76,25 +73,21 @@ function OmniChat() {
     // Load all chats for history
     useEffect(() => {
         async function loadAllChats() {
-            if (!address) return;
             try {
-                const chats = await getUserChats(address);
-                // console.log(chats);
+                const chats = await getUserChats();
                 setAllChats(chats);
             } catch (error) {
                 console.error('Error loading chats:', error);
             }
         }
         loadAllChats();
-    }, [address]);
+    }, []);
 
     // Load chat history when component mounts
     useEffect(() => {
         let mounted = true;
 
         async function loadChat() {
-            if (!address) return;
-            
             try {
                 setIsLoading(true);
                 const chat = await getChat(chatId);
@@ -163,7 +156,7 @@ function OmniChat() {
         return () => {
             mounted = false;
         };
-    }, [chatId, address, navigate, messageProcessed]);
+    }, [chatId, navigate, messageProcessed]);
 
     const processMessage = async (message: string, shouldUpdateUI = true) => {
         // Reset process step
@@ -288,7 +281,7 @@ function OmniChat() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inputValue.trim() || !address) return;
+        if (!inputValue.trim()) return;
 
         const userMessage: ChatMessage = {
             id: uuidv4(),
@@ -356,14 +349,6 @@ function OmniChat() {
         }
     };
 
-    if (!address) {
-        return (
-            <div className="fixed inset-0 flex items-center justify-center bg-[#0B0E17] text-white">
-                <div className="text-xl">Please connect your wallet to continue.</div>
-            </div>
-        );
-    }
-
     if (isLoading) {
         return (
             <div className="fixed inset-0 flex items-center justify-center bg-[#0B0E17] text-white">
@@ -419,7 +404,6 @@ function OmniChat() {
                                 >
                                     {message.content}
                                 </ReactMarkdown>
-                                {/* <div dangerouslySetInnerHTML={{ __html: message.content }} /> */}
                             </div>
                         </div>
                     ))}
