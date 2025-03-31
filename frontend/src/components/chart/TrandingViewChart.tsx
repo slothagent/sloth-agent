@@ -20,7 +20,7 @@ function TrandingViewChart({tokenAddress}: {tokenAddress: string}) {
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'Etc/UTC',
             theme: 'moralis',
             locale: 'en',
-            backgroundColor: '#071321',
+            backgroundColor: '#0B0E17',
             gridColor: '#0d2035',
             textColor: '#68738D',
             candleUpColor: '#4CE666',

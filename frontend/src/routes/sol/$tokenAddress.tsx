@@ -2,6 +2,7 @@ import {
     ArrowLeft,
     ChevronRight,
     Copy,
+    Loader
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Button } from "../../components/ui/button";
@@ -51,11 +52,16 @@ function TokenDetails() {
     }
 
     if(!tokenData) {
-        return <div className="min-h-full bg-[#0B0E17] p-4 pb-0 md:p-0 sm:pb-0">
-            <div className="flex items-start h-full">
-                <span className="text-gray-400">Loading...</span>
+        return (
+            <div className="min-h-full bg-[#0B0E17] p-4 pb-0 md:p-0 sm:pb-0">
+                <div className="flex items-center justify-center h-screen">
+                    <div className='flex flex-row gap-2 items-center'>
+                        <Loader className='h-5 w-5 text-gray-400 animate-spin'/>
+                        <span className="text-gray-400 text-lg">Loading...</span>
+                    </div>
+                </div>
             </div>
-        </div>
+        )
     }
 
     return (
@@ -172,7 +178,7 @@ function TokenDetails() {
                             
                         </div>
                         <div className="ml-auto w-max hidden lg:block">
-                            <div className="grid grid-cols-2 max-h-[86px]">
+                            <div className="grid grid-cols-1 max-h-[86px]">
                                 <div className="w-52 h-[86px] justify-between flex flex-col border border-[#1F2937] px-4 py-2 bg-[#161B28]">
                                     <div className="flex flex-col h-full">
                                         <div className="text-sm mb-auto flex items-center gap-1.5 font-medium text-gray-400">
