@@ -319,13 +319,21 @@ export function useAllTransactionsData(timeRange: string = '30d', limit: number 
 }
 
 // Hook for Solana token creation events
+const MAX_TOKENS = 20;
+const STORAGE_KEY = 'solana_tokens';
+
 export function useSolanaTokens() {
   const [tokens, setTokens] = useState<SolanaTokenData[]>(() => {
-    // Initialize state from localStorage if available
-    const savedTokens = localStorage.getItem('solanaTokens');
-    return savedTokens ? JSON.parse(savedTokens) : [];
+    // Initialize from localStorage
+    const storedTokens = localStorage.getItem(STORAGE_KEY);
+    return storedTokens ? JSON.parse(storedTokens) : [];
   });
   const [loading, setLoading] = useState(true);
+
+  // Update localStorage whenever tokens change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens));
+  }, [tokens]);
 
   useEffect(() => {
     setLoading(true);
@@ -333,26 +341,31 @@ export function useSolanaTokens() {
     // Add listener for Solana token creation events
     const removeListener = addDataListener('solanaTokens', (data: any) => {
       if (data && data.type === 'update' && data.data) {
+        console.log('Received token data:', data.data);
+        
         setTokens(prev => {
           // Check if token already exists
           const existingTokenIndex = prev.findIndex(t => t.mint === data.data.mint);
-          let updatedTokens: SolanaTokenData[];
-
+          
           if (existingTokenIndex !== -1) {
             // Update existing token
-            updatedTokens = [...prev];
+            const updatedTokens = [...prev];
             updatedTokens[existingTokenIndex] = {
               ...prev[existingTokenIndex],
               ...data.data
             };
-          } else {
-            // Add new token at the beginning and limit to 10 tokens
-            updatedTokens = [data.data, ...prev].slice(0, 10);
+            return updatedTokens;
           }
-
-          // Save to localStorage
-          localStorage.setItem('solanaTokens', JSON.stringify(updatedTokens));
-          return updatedTokens;
+          
+          // Handle new token
+          if (prev.length >= MAX_TOKENS) {
+            // Remove last token and add new one at the beginning
+            const newTokens = [data.data, ...prev.slice(0, MAX_TOKENS - 1)];
+            return newTokens;
+          }
+          
+          // Add new token if under limit
+          return [data.data, ...prev];
         });
         setLoading(false);
       }
