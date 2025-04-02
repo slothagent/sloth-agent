@@ -313,6 +313,74 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
     }
   };
 
+  const handleSelectTemplate = async (e: React.MouseEvent<HTMLButtonElement>, question: string) => {
+    e.preventDefault();
+    setInputValue(question);
+    setShowTemplates(false);
+    
+    try {
+      // Create new chat if none exists
+      if (!chatId) {
+        const newChatId = uuidv4();
+        await createChat(newChatId);
+        setChatId(newChatId);
+      }
+
+      // Create user message with the question directly
+      const userMessage: ChatMessage = {
+        id: uuidv4(),
+        content: question,
+        role: 'user',
+        timestamp: new Date()
+      };
+
+      // Add user message to UI immediately
+      setMessages(prev => [...prev, userMessage]);
+      setIsProcessing(true);
+
+      // Start processing message immediately with streaming enabled
+      const processPromise = processMessage(question, true);
+      
+      // Save user message to database in parallel
+      const saveUserMessagePromise = addMessage(chatId!, userMessage);
+      
+      // Wait for processing to complete
+      const result = await processPromise;
+      
+      // After streaming is complete, save the final assistant message
+      const assistantMessage: ChatMessage = {
+        id: uuidv4(),
+        content: result.success && result.message ? result.message : 'Sorry, there was an error processing your message.',
+        role: 'assistant',
+        timestamp: new Date()
+      };
+
+      // Wait for user message to be saved and then save assistant message
+      try {
+        await saveUserMessagePromise;
+        await addMessage(chatId!, assistantMessage);
+      } catch (error) {
+        console.error('Error saving messages:', error);
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      const errorMessage: ChatMessage = {
+        id: uuidv4(),
+        content: 'Sorry, there was an error processing your message.',
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      if (chatId) {
+        await addMessage(chatId, errorMessage);
+      }
+    } finally {
+      setIsProcessing(false);
+      setProcessSteps([]);
+      setInputValue('');
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -333,11 +401,6 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
   };
 
   const handleBack = () => {
-    setShowTemplates(false);
-  };
-
-  const handleSelectTemplate = (question: string) => {
-    setInputValue(question);
     setShowTemplates(false);
   };
 
@@ -410,7 +473,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
               {templateQuestions.map((template, index) => (
                 <button
                   key={index}
-                  onClick={() => handleSelectTemplate(template.question)}
+                  onClick={(e) => handleSelectTemplate(e, template.question)}
                   className="w-full p-4 bg-[#161B28] hover:bg-[#1F2937] rounded-lg text-left transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -473,8 +536,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                   <p className="text-[#7D8590] mb-4">Or pick a question to see the power of Omni Agent</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[800px] mx-auto mb-6">
                     <button
-                      onClick={() => setInputValue("What companies have Polychain invested in recently that raised over $20 million?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "What companies have Polychain invested in recently that raised over $20 million?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">Fundraising</span>
@@ -482,8 +545,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                       <p className="text-white text-sm">What companies have Polychain invested in recently that raised over $20 million?</p>
                     </button>
                     <button
-                      onClick={() => setInputValue("How was Solana funded or bootstrapped?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "How was Solana funded or bootstrapped?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">Diligence</span>
@@ -491,8 +554,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                       <p className="text-white text-sm">How was Solana funded or bootstrapped?</p>
                     </button>
                     <button
-                      onClick={() => setInputValue("Who are the largest block builders on Ethereum? Also, can you explain what LVR is and why it exists?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "Who are the largest block builders on Ethereum? Also, can you explain what LVR is and why it exists?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">Research</span>
@@ -500,8 +563,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                       <p className="text-white text-sm">Who are the largest block builders on Ethereum? Also, can you explain what LVR is and why it exists?</p>
                     </button>
                     <button
-                      onClick={() => setInputValue("What were the largest stories in Crypto last week?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "What were the largest stories in Crypto last week?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">News</span>
