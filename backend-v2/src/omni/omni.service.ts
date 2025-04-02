@@ -189,60 +189,20 @@ export class OmniService {
       - Break down positions by protocol
       - Show total value locked
       - Highlight key metrics
-      - Keep information organized and precise`
+      - Keep information organized and precise`,
+    webSearch: `You are a web search summarizer. Analyze and summarize search results clearly.
+      - Focus on the most relevant information
+      - Organize information logically
+      - Include key facts and data
+      - Use markdown formatting for better readability
+      - Cite sources when available
+      - Keep summaries concise but informative`
   };
-
-  private formatErrorMessage(error: any): string {
-    // Handle undefined error
-    if (!error) {
-      return '❌ An unknown error occurred. Please try again later.';
-    }
-
-    // Handle case where error is a string
-    if (typeof error === 'string') {
-      return `❌ ${error}`;
-    }
-
-    // Handle case where error.message exists
-    if (error.message && typeof error.message === 'string') {
-      if (error.message.includes('Unsupported chain')) {
-        const chainName = error.message.split('chain:')[1]?.trim() || 'specified chain';
-        return `❌ The ${chainName} is not supported. Please use one of the supported chains: Ethereum, Polygon, BSC, Arbitrum, Optimism, Base, Avalanche, Fantom, Cronos, or Gnosis.`;
-      }
-
-      // Add more specific error cases
-      const errorMap = {
-        'Invalid address': '❌ The wallet address provided is not valid. Please check and try again.',
-        'Rate limit exceeded': '❌ Too many requests. Please try again in a few moments.',
-        'API key invalid': '❌ There was an authentication error. Please try again later.',
-        'Network error': '❌ Network connection issue. Please check your connection and try again.',
-        'Request failed': '❌ The request failed. Please try again later.',
-        'Invalid token address': '❌ The token address provided is not valid. Please check and try again.',
-        'Token not found': '❌ The specified token could not be found. Please verify the token address.',
-        'Insufficient balance': '❌ The wallet has insufficient balance for this operation.',
-      };
-
-      // Check if the error message matches any known patterns
-      for (const [pattern, message] of Object.entries(errorMap)) {
-        if (error.message.toLowerCase().includes(pattern.toLowerCase())) {
-          return message;
-        }
-      }
-
-      // If no specific match, return the error message
-      return `❌ ${error.message}`;
-    }
-
-    // Default error message
-    return '❌ An unexpected error occurred. Please try again later.';
-  }
 
   private async createErrorStream(error: any): Promise<any> {
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
-
-    const errorMessage = this.formatErrorMessage(error);
     
     return openai.chat.completions.create({
       model: "gpt-3.5-turbo",
@@ -254,11 +214,37 @@ export class OmniService {
         },
         {
           role: "user",
-          content: errorMessage
+          content: '❌ Agent is currently experiencing issues. Please try again later.'
         }
       ],
       stream: true
     });
+  }
+
+  private async performWebSearch(query: string): Promise<any> {
+    try {
+      const url = new URL('https://api.search.brave.com/res/v1/web/search');
+      url.searchParams.append('q', query);
+      url.searchParams.append('count', '5');
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Subscription-Token': process.env.BRAVE_API_KEY
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('❌ Agent is currently experiencing issues. Please try again later.');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Web search error:', error);
+      throw new Error('❌ Agent is currently experiencing issues. Please try again later.');
+    }
   }
 
   async resolveAction(message: string) {
@@ -420,6 +406,28 @@ ${tokens.map((token, index) =>
 • Market Cap: $${token.marketCap}`).join('\n\n')} don't thanks for sharing or anything else, just return the data`;
           break;
 
+        case 'webSearch':
+          const searchData = response.result;
+          if (!searchData || !searchData.web) {
+            throw new Error('❌ Agent is currently experiencing issues. Please try again later.');
+          }
+
+          const results = searchData.web.results.map(result => ({
+            title: result.title,
+            description: result.description,
+            url: result.url
+          }));
+
+          prompt = `## Search Results for: "${parsedAction.query}"
+
+${results.map((result, index) => `
+### ${index + 1}. ${result.title}
+${result.description}
+Source: [${result.url}](${result.url})`).join('\n\n')}
+
+Analyze and summarize these search results in a clear, concise way. Do not include any prefix like 'Summary:' - just provide the information directly.`;
+          break;
+
         // Add more cases as needed...
         default:
           prompt = `Summarize this data in a natural way:
@@ -568,19 +576,33 @@ ${JSON.stringify(response, null, 2)}`;
 
   async execute(parsedAction: any) {
     try {
-      // Execute the appropriate Moralis API call based on the action
       const functionName = parsedAction.function;
       console.log(parsedAction);
-      
-      // Validate chain before proceeding
+
+      // Add web search case
+      if (functionName === 'webSearch') {
+        try {
+          const searchResults = await this.performWebSearch(parsedAction.query);
+          return {
+            success: true,
+            result: searchResults
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: new Error('❌ Agent is currently experiencing issues. Please try again later.')
+          };
+        }
+      }
+
+      // Execute the appropriate Moralis API call based on the action
       let selectedChain: string;
       try {
         selectedChain = this.getChainId(parsedAction.chain);
       } catch (error) {
-        console.error('Chain validation error:', error);
         return {
           success: false,
-          error: new Error(`Unsupported chain: ${parsedAction.chain}`)
+          error: new Error('❌ Agent is currently experiencing issues. Please try again later.')
         };
       }
 
@@ -707,12 +729,22 @@ ${JSON.stringify(response, null, 2)}`;
           return resHistoricalHolders.json();
 
         case 'getTrendingTokens':
-          const resTrending = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd`);
-          const data = await resTrending.json();
-          return {
-            success: true,
-            result: data.slice(0,10)
-          };
+          try {
+            const resTrending = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd`);
+            const data = await resTrending.json();
+            if (!data) {
+              throw new Error('❌ Agent is currently experiencing issues. Please try again later.');
+            }
+            return {
+              success: true,
+              result: data.slice(0,10)
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error: new Error('❌ Agent is currently experiencing issues. Please try again later.')
+            };
+          }
 
         case 'getTopProfitableWalletPerToken':
           const resTopTraders = await Moralis.EvmApi.token.getTopProfitableWalletPerToken({
@@ -727,7 +759,7 @@ ${JSON.stringify(response, null, 2)}`;
             const data = await resGainers.json();
             // console.log(data);
             if (!data) {
-              throw new Error('Failed to fetch top gainers data');
+              throw new Error('❌ Agent is currently experiencing issues. Please try again later.');
             }
             
             return {
@@ -737,7 +769,7 @@ ${JSON.stringify(response, null, 2)}`;
           } catch (error) {
             return {
               success: false,
-              error: new Error(error.message || 'Failed to fetch top gainers')
+              error: new Error('❌ Agent is currently experiencing issues. Please try again later.')
             };
           }
 
@@ -777,9 +809,11 @@ ${JSON.stringify(response, null, 2)}`;
 
     } catch (error) {
       console.error('Error executing action:', error);
+      const errorStream = await this.createErrorStream(error);
       return {
         success: false,
-        error: error
+        stream: true,
+        streamResponse: errorStream
       };
     }
   }
@@ -858,7 +892,7 @@ ${JSON.stringify(response, null, 2)}`;
       const parsedAction = await this.actionService.parseUserInput(message);
 
       if (parsedAction && parsedAction.function) {
-        const step = this.actionSteps[parsedAction.function] || 'Processing request';
+        const step = this.actionSteps[parsedAction.function] || 'Searching for information';
         return {
           success: true,
           step: step

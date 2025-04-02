@@ -50,6 +50,12 @@ export class ActionService {
       - "show defi positions" -> "getDefiPositionsSummary"
       - "what is my net worth" -> "getWalletNetWorth" (EVM) or "getSolPortfolio" (Solana)
       - "generate pnl" or "profit loss" -> "getWalletProfitabilitySummary"
+      - "search" or "find information" or "tell me about" -> "webSearch"
+
+      Web Search Detection:
+      - Look for keywords like "search", "find", "tell me about", "what is", "how to"
+      - If the query doesn't match any blockchain-specific functions, treat it as a web search
+      - For web searches, extract the search query and return it in the response
 
       Blockchain-specific functions:
       1. EVM Wallet Analysis:
@@ -177,6 +183,10 @@ export class ActionService {
       category: <category>
       timeframe: <timeframe>
       chain: <chain_symbol>
+
+      For web search:
+      function: webSearch
+      query: <search_query>
 
       For invalid input:
       error: Unsupported function
