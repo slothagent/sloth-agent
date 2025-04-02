@@ -19,7 +19,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <WagmiProvider config={config}>
         <RainbowKitProvider theme={darkTheme()} coolMode>
           <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet">
-            <WalletProvider>
+            <WalletProvider
+              stashedWallet={{
+                name: 'Sloth Agent',
+              }}
+            >
               {children}
             </WalletProvider>
           </SuiClientProvider>

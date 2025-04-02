@@ -1,4 +1,4 @@
-import { ConnectModal, useWallets } from '@mysten/dapp-kit';
+import { ConnectModal, useWallets, useDisconnectWallet } from '@mysten/dapp-kit';
 import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import '../../styles/dapp-kit-theme.css';
@@ -6,14 +6,14 @@ import '../../styles/dapp-kit-theme.css';
 const SuiWalletButton: React.FC = () => {
   const navigate = useNavigate();
   const wallets = useWallets();
-  const currentWallet = wallets[0]; // Use the first connected wallet
-  const currentAccount = currentWallet?.accounts[0]; // Use the first account
+  const currentWallet = wallets[0];
+  const currentAccount = currentWallet?.accounts[0];
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const { mutate: disconnect } = useDisconnectWallet();
+  
   const handleDisconnect = () => {
-    if (currentWallet?.features['standard:disconnect']) {
-      currentWallet.features['standard:disconnect'].disconnect();
-    }
+    disconnect();
   };
 
   const WalletContent = () => (
