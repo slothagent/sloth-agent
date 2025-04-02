@@ -6,6 +6,7 @@ import { SystemMessage, HumanMessage, AIMessage } from '@langchain/core/messages
 import { ActionService } from '../action/action.service';
 import { PriceService } from '../price/price.service';
 import Moralis from 'moralis';
+import { SuiService } from '../sui/sui.service';
 
 @Injectable()
 export class OmniService {
@@ -63,7 +64,8 @@ export class OmniService {
 
   constructor(
     private actionService: ActionService,
-    private priceService: PriceService
+    private priceService: PriceService,
+    private suiService: SuiService
   ) {
     // Initialize Moralis
     Moralis.start({
@@ -292,13 +294,14 @@ export class OmniService {
         };
       }
 
+      // console.log(response);
+
       const openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
 
       let prompt = '';
       const functionName = parsedAction.function;
-
       // Create appropriate prompt based on action type and response
       switch (functionName) {
         case 'getTokenPrice':
@@ -375,6 +378,24 @@ Provide a brief summary of the DeFi positions.`;
           }
           break;
 
+        case 'sui_getAllBalances':
+          if (response.result) {
+            prompt = `# Wallet Token Holdings on Sui Network
+
+${response.result.map((token, index) => `
+${index + 1}. **${token.metadata.name || token.coinType}** (${token.metadata.symbol})
+• Balance: ${(parseInt(token.totalBalance) / Math.pow(10, token.metadata.decimals)).toLocaleString()} ${token.metadata.symbol}
+• Token Type: [\`${token.coinType.slice(0, 10)+"..."+token.coinType.slice(-20)}\`](https://suiscan.xyz/mainnet/coin/${token.coinType}/txs)
+`).join('\n')}
+
+**Additional Information:**
+• Total Unique Tokens: ${response.totalToken}
+• View Full Portfolio: [SuiScan](${response.url})
+
+always list data token`;
+          }
+          break;
+
         case 'getTokenHolderStats':
           if (response.holders) {
             prompt = `Given these token holder statistics:
@@ -385,7 +406,25 @@ Provide a brief summary of the token holder distribution.`;
           }
           break;
 
+        case 'sui_getBalance':
+          // console.log(response);
+          if (response.result) {
+            prompt = `# Wallet Balance on Sui Network
+
+**SUI Token Details:**
+• Balance: ${response.result.totalBalance} SUI
+• Coin Objects: ${response.result.coinObjectCount}
+• Token Type: [\`${response.result.coinType.slice(0, 10)+"..."+response.result.coinType.slice(-20)}\`](https://suiscan.xyz/mainnet/coin/${response.result.coinType}/txs)
+
+**Additional Information:**
+• View Full Portfolio: [SuiScan](${response.url})
+
+*Last Updated: ${new Date().toLocaleString()}* always list data token`;
+          }
+          break;
+
         case 'getTopGainersTokens':
+          console.log(response);
           const tokens = response.result.map(token => ({
             symbol: token.symbol,
             name: token.name,
@@ -403,7 +442,32 @@ ${tokens.map((token, index) =>
 • Price: $${token.price}
 • 24h Change: ${token.change24h}%
 • Volume 24h: $${token.volume24h}
-• Market Cap: $${token.marketCap}`).join('\n\n')} don't thanks for sharing or anything else, just return the data`;
+• Market Cap: $${token.marketCap}`).join('\n\n')} always list data token`;
+          break;
+
+        case 'getTopERC20TokensByMarketCap':
+          // console.log(response);
+          const erc20Tokens = response.result.map(token => ({
+            name: token.tokenName,
+            symbol: token.tokenSymbol,
+            logo: token.tokenLogo,
+            price: parseFloat(token.priceUsd).toFixed(2),
+            change24h: parseFloat(token.price24hPercentChange).toFixed(2),
+            change7d: parseFloat(token.price7dPercentChange).toFixed(2),
+            marketCap: (parseFloat(token.marketCapUsd) / 1e9).toFixed(2)
+          }));
+
+          // console.log(erc20Tokens);
+
+          prompt = `Top ERC20 Tokens by Market Cap:
+
+${erc20Tokens.map((token, index) => 
+`${index + 1}. ${token.name} (${token.symbol})
+• Price: $${token.price}
+• 24h Change: ${token.change24h}%
+• 7d Change: ${token.change7d}%
+• Market Cap: $${token.marketCap}B
+![${token.name}](${token.logo})`).join('\n\n')} always list data token erc20`;
           break;
 
         case 'webSearch':
@@ -577,7 +641,126 @@ ${JSON.stringify(response, null, 2)}`;
   async execute(parsedAction: any) {
     try {
       const functionName = parsedAction.function;
-      console.log(parsedAction);
+      // console.log(parsedAction);
+
+      // Add Sui cases
+      if (functionName.startsWith('sui_')) {
+        try {
+          switch (functionName) {
+            case 'sui_getAllBalances':
+              const balances = await this.suiService.getAllBalances(parsedAction.wallet);
+              const balancesWithMetadata = await Promise.all(
+                balances.slice(0, 10).map(async (balance) => {
+                  const metadata = await this.suiService.getCoinMetadata(balance.coinType);
+                  console.log(metadata);
+                  return {
+                    coinType: balance.coinType,
+                    totalBalance: balance.totalBalance,
+                    metadata: metadata
+                  };
+                })
+              );
+              
+              // console.log(balancesWithMetadata);
+
+              return {
+                success: true,
+                result: balancesWithMetadata,
+                totalToken: balances.length,
+                url: `https://suiscan.xyz/mainnet/account/${parsedAction.wallet}/portfolio`
+              };
+
+            case 'sui_getAllCoins':
+              const coins = await this.suiService.getAllCoins(
+                parsedAction.wallet, 
+                parsedAction.cursor, 
+                parsedAction.limit
+              );
+              return {
+                success: true,
+                result: coins
+              };
+
+            case 'sui_getBalance':
+              const balance = await this.suiService.getBalance(
+                parsedAction.wallet,
+                parsedAction.coinType
+              );
+              return {
+                success: true,
+                result: balance,
+                url: `https://suiscan.xyz/mainnet/account/${parsedAction.wallet}/portfolio`
+              };
+
+            case 'sui_getCoinMetadata':
+              const metadata = await this.suiService.getCoinMetadata(parsedAction.coinType);
+              return {
+                success: true,
+                result: metadata
+              };
+
+            case 'sui_getCoins':
+              const specificCoins = await this.suiService.getCoins(
+                parsedAction.wallet,
+                parsedAction.coinType,
+                parsedAction.cursor,
+                parsedAction.limit
+              );
+              return {
+                success: true,
+                result: specificCoins
+              };
+
+            case 'sui_getTotalSupply':
+              const supply = await this.suiService.getTotalSupply(parsedAction.coinType);
+              return {
+                success: true,
+                result: supply
+              };
+
+            case 'sui_getStakes':
+              const stakes = await this.suiService.getStakes(parsedAction.wallet);
+              return {
+                success: true,
+                result: stakes
+              };
+
+            case 'sui_getValidatorsApy':
+              const apy = await this.suiService.getValidatorsApy();
+              return {
+                success: true,
+                result: apy
+              };
+
+            case 'sui_getCoinsWithPagination':
+              const paginatedCoins = await this.suiService.getCoinsWithPagination(
+                parsedAction.wallet,
+                parsedAction.page,
+                parsedAction.size
+              );
+              return {
+                success: true,
+                result: paginatedCoins
+              };
+
+            case 'sui_getCoinBalance':
+              const coinBalance = await this.suiService.getCoinBalance(
+                parsedAction.wallet,
+                parsedAction.coinType
+              );
+              return {
+                success: true,
+                result: coinBalance
+              };
+          }
+        } catch (error) {
+          console.error('Error executing Sui action:', error);
+          return {
+            success: false,
+            error: error.message || 'Failed to execute Sui action'
+          };
+        }
+      }
 
       // Add web search case
       if (functionName === 'webSearch') {
@@ -701,32 +884,13 @@ ${JSON.stringify(response, null, 2)}`;
           });
           return resProfitability.result;
 
-        case 'getSwapsByWalletAddress':
-          const resSwaps = await fetch(`https://deep-index.moralis.io/api/v2.2/wallets/${parsedAction.wallet}/swaps?chain=${selectedChain}&order=DESC`, this.fetchOptions());
-          return resSwaps.json();
-
-        case 'resolveAddressToDomain':
-          const resDomain = await fetch(`https://deep-index.moralis.io/api/v2.2/resolve/${parsedAction.wallet}/domain`, this.fetchOptions());
-          return resDomain.json();
-
-        case 'resolveENSDomain':
-          const resENS = await Moralis.EvmApi.resolve.resolveENSDomain({
-            "domain": parsedAction.domain
-          });
-          return resENS.result;
-
         // Token Analysis Functions
         case 'getTokenHolderStats':
           const resHolderStats = await fetch(`https://deep-index.moralis.io/api/v2.2/erc20/${parsedAction.tokenAddress}/holders?chain=${selectedChain}`, this.fetchOptions());
-          return resHolderStats.json();
-
-        case 'getHistoricalTokenHolders':
-          const dates = this.getDefaultDates();
-          const resHistoricalHolders = await fetch(
-            `https://deep-index.moralis.io/api/v2.2/erc20/${parsedAction.tokenAddress}/holders/historical?chain=${selectedChain}&fromDate=${parsedAction.fromDate || dates.fromDate}&toDate=${parsedAction.toDate || dates.toDate}&timeFrame=1d`, 
-            this.fetchOptions()
-          );
-          return resHistoricalHolders.json();
+          return{
+            success: true,
+            result: resHolderStats.json()
+          };
 
         case 'getTrendingTokens':
           try {
@@ -757,7 +921,7 @@ ${JSON.stringify(response, null, 2)}`;
           try {
             const resGainers = await fetch(`https://api.coinpaprika.com/v1/tickers`);
             const data = await resGainers.json();
-            // console.log(data);
+            console.log(data);
             if (!data) {
               throw new Error('❌ Agent is currently experiencing issues. Please try again later.');
             }
@@ -784,17 +948,13 @@ ${JSON.stringify(response, null, 2)}`;
           });
           return resStats.result;
 
-        case 'getPairCandlesticks':
-          const candleDates = this.getDefaultDates();
-          const resCandles = await fetch(
-            `https://deep-index.moralis.io/api/v2.2/pairs/${parsedAction.pairAddress}/ohlcv?chain=${selectedChain}&timeframe=${parsedAction.interval || '1h'}&currency=usd&fromDate=${parsedAction.fromDate || candleDates.fromDate}&toDate=${parsedAction.toDate || candleDates.toDate}`, 
-            this.fetchOptions()
-          );
-          return resCandles.json();
-
         case 'getTopERC20TokensByMarketCap':
           const resTopTokens = await Moralis.EvmApi.marketData.getTopERC20TokensByMarketCap();
-          return resTopTokens.result;
+          // console.log(resTopTokens);
+          return {
+            success: true,
+            result: resTopTokens.result
+          };
 
         case 'searchTokens':
           const resSearch = await fetch(`https://deep-index.moralis.io/api/v2.2/tokens/search?query=${parsedAction.query}&chains=${selectedChain}`, this.fetchOptions());
@@ -827,14 +987,8 @@ ${JSON.stringify(response, null, 2)}`;
     'getDefiPositionsSummary': 'Analyzing DeFi positions',
     'getTokenHolderStats': 'Getting token holder statistics',
     'getTopGainersTokens': 'Finding top gaining tokens',
-    'getSwapsByWalletAddress': 'Fetching wallet swap history',
-    'resolveAddressToDomain': 'Resolving address to domain',
-    'resolveENSDomain': 'Resolving ENS domain',
-    'getHistoricalTokenHolders': 'Getting historical token holders',
-    'getTopProfitableWalletPerToken': 'Finding top traders for token',
     'getTokenAnalytics': 'Analyzing token metrics',
     'getTokenStats': 'Getting token statistics',
-    'getPairCandlesticks': 'Fetching token price history',
     'getTopERC20TokensByMarketCap': 'Getting top tokens by market cap',
     'searchTokens': 'Searching for tokens'
   };
