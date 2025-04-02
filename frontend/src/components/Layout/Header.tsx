@@ -1,4 +1,5 @@
 import WalletButton from "../custom/WalletButton";
+import SuiWalletButton from "../custom/SuiWalletButton";
 import { Search, Menu, X } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
@@ -6,11 +7,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import SearchDialog from "../custom/SearchDialog";
 import { OmniModal } from "../custom/OmniModal";
+import NetworkSelector, { Network } from "../custom/NetworkSelector";
 
 const Header: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isOmniModalOpen, setIsOmniModalOpen] = useState(false);
+  const [selectedNetwork, setSelectedNetwork] = useState<Network>('ancient8');
   const navigate = useNavigate();
 
   // Handle keyboard shortcuts
@@ -50,18 +53,22 @@ const Header: React.FC = () => {
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <Input 
                   className="w-full pl-8 pr-2 py-1 h-10 bg-[#161B28] border-none text-white rounded text-sm focus:ring-1 focus:ring-[#2D3748] focus:outline-none cursor-pointer"
-                  placeholder="Search... (⌘ K)"
+                  placeholder="Search...           (⌘ K)"
                   onClick={() => setIsSearchOpen(true)}
                   readOnly
                 />
               </div>
+              <NetworkSelector 
+                selectedNetwork={selectedNetwork}
+                onNetworkChange={setSelectedNetwork}
+              />
               <button 
                 onClick={() => setIsOmniModalOpen(true)}
                 className="bg-[#161B28] h-10 px-3 flex justify-center items-center hover:bg-[#2D333B] transition-colors cursor-pointer"
               >
                 <span className="text-white text-sm">Omni Agent</span>
               </button>
-              <WalletButton />
+              {selectedNetwork === 'ancient8' || selectedNetwork === 'sonic' ? <WalletButton /> : <SuiWalletButton />}
             </div>
 
             <Button
@@ -89,19 +96,18 @@ const Header: React.FC = () => {
                   readOnly
                 />
               </div>
-              <div className="flex gap-2 w-full">
-                <div className="w-full">
-                  <button
-                    onClick={() => setIsOmniModalOpen(true)}
-                    className="flex-1 bg-[#161B28] w-full h-10 p-2 flex justify-center items-center"
-                  >
-                    <span className="text-white text-sm">Omni</span>
-                  </button>
-                </div>
-              </div>
-              {/* Mobile Wallet Button */}
-              <div className="flex justify-center">
-                <WalletButton />
+              <div className="flex flex-col gap-4">
+                <NetworkSelector 
+                  selectedNetwork={selectedNetwork}
+                  onNetworkChange={setSelectedNetwork}
+                />
+                <button
+                  onClick={() => setIsOmniModalOpen(true)}
+                  className="bg-[#161B28] w-full h-10 p-2 flex justify-center items-center"
+                >
+                  <span className="text-white text-sm">Omni</span>
+                </button>
+                {selectedNetwork === 'ancient8' || selectedNetwork === 'sonic' ? <WalletButton /> : <SuiWalletButton />}
               </div>
             </div>
           )}
