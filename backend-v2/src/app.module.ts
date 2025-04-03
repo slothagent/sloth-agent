@@ -12,12 +12,15 @@ import { ChatModule } from './chat/chat.module';
 import { OmniModule } from './omni/omni.module';
 import { ActionModule } from './action/action.module';
 import { SuiModule } from './sui/sui.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { MongodbService } from './database/mongodb.service';
+import { SuiTokenService } from './token/sui-token.service';
+import { SuiTokenController } from './token/sui-token.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot(),
     DatabaseModule,
     HealthModule,
     AgentModule,
@@ -31,5 +34,7 @@ import { SuiModule } from './sui/sui.module';
     ActionModule,
     SuiModule,
   ],
+  controllers: [AppController, SuiTokenController],
+  providers: [AppService, MongodbService, SuiTokenService],
 })
 export class AppModule {}
