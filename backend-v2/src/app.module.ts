@@ -11,6 +11,7 @@ import { TransactionModule } from './transaction/transaction.module';
 import { ChatModule } from './chat/chat.module';
 import { OmniModule } from './omni/omni.module';
 import { ActionModule } from './action/action.module';
+import { SuiModule } from './sui/sui.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ActionModule } from './action/action.module';
     ChatModule,
     OmniModule,
     ActionModule,
+    SuiModule,
   ],
 })
 export class AppModule {}
