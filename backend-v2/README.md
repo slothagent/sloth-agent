@@ -32,17 +32,6 @@ npm install
 bun install
 ```
 
-## Quick Setup
-
-We've provided setup scripts to make it easy to get started:
-
-```bash
-# Using Node.js
-./setup.sh
-
-# Using Bun
-./setup-bun.sh
-```
 
 ## Running the Application
 

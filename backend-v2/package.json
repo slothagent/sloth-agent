@@ -27,6 +27,7 @@
   "dependencies": {
     "@langchain/openai": "^0.4.4",
     "@moralisweb3/common-evm-utils": "^2.27.2",
+    "@mysten/sui.js": "^0.54.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^3.1.1",
     "@nestjs/core": "^11.0.1",

@@ -4,7 +4,6 @@ import axios from 'axios';
 @Injectable()
 export class SuiService {
   private readonly rpcUrl = 'https://fullnode.mainnet.sui.io:443';
-
   private async makeRpcRequest(method: string, params: any[] = []) {
     try {
       console.log(`Making RPC request: ${method}`, params);
@@ -34,6 +33,8 @@ export class SuiService {
       );
     }
   }
+
+
 
   async getAllBalances(owner: string) {
     return this.makeRpcRequest('suix_getAllBalances', [owner]);
