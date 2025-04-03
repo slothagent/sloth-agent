@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ChatOpenAI } from '@langchain/openai';
 import OpenAI from "openai";
 import { PromptTemplate } from '@langchain/core/prompts';
@@ -7,14 +7,38 @@ import { ActionService } from '../action/action.service';
 import { PriceService } from '../price/price.service';
 import Moralis from 'moralis';
 import { SuiService } from '../sui/sui.service';
+import { Pinecone } from '@pinecone-database/pinecone';
+import { Document } from '@langchain/core/documents';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { PineconeStore } from '@langchain/pinecone';
+
+interface DocumentMetadata {
+  type: string;
+  category: string;
+  chain?: string;
+  timestamp: string;
+  source: string;
+  confidence?: number;
+}
 
 @Injectable()
-export class OmniService {
+export class OmniService implements OnModuleInit {
   private openai: ChatOpenAI;
   private intentPrompt: PromptTemplate;
   private searchPrompt: PromptTemplate;
   private agentPrompt: PromptTemplate;
   private messageHistory: Map<string, Array<HumanMessage | AIMessage>>;
+  private pinecone: Pinecone;
+  private vectorStore: PineconeStore;
+  private embeddings: OpenAIEmbeddings;
+  private index: any;
+
+  private readonly namespaces = {
+    actions: "actions",
+    blockchain: "blockchain",
+    market: "market",
+    user: "user"
+  };
 
   // Add chain mapping
   private readonly chainIdMap = {
@@ -51,16 +75,6 @@ export class OmniService {
     return chainId;
   }
 
-  private getDefaultDates(): { fromDate: string; toDate: string } {
-    const toDate = new Date();
-    const fromDate = new Date();
-    fromDate.setDate(fromDate.getDate() - 7);
-
-    return {
-      fromDate: fromDate.toISOString().split('.')[0] + '.000',
-      toDate: toDate.toISOString().split('.')[0] + '.000'
-    };
-  }
 
   constructor(
     private actionService: ActionService,
@@ -130,6 +144,92 @@ export class OmniService {
 
       Use web search to find the most up-to-date information.
     `);
+  }
+
+  async onModuleInit() {
+    try {
+      // Initialize Pinecone
+      this.pinecone = new Pinecone({
+        apiKey: process.env.PINECONE_API_KEY
+      });
+
+      // Initialize OpenAI embeddings
+      this.embeddings = new OpenAIEmbeddings({
+        openAIApiKey: process.env.OPENAI_API_KEY,
+        modelName: "text-embedding-3-small"
+      });
+
+      // Initialize Pinecone index with explicit name
+      this.index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'default-index');
+
+      // Initialize data for each namespace
+      await this.initializeVectorStore();
+      
+      console.log('OmniService initialized successfully');
+    } catch (error) {
+      console.error('Error in OmniService onModuleInit:', error);
+    }
+  }
+
+  private async initializeVectorStore() {
+    try {
+      // Initialize each namespace with relevant data
+      for (const [type, namespace] of Object.entries(this.namespaces)) {
+        const initialData = [];
+        
+        if (type === 'blockchain') {
+          initialData.push(
+            {
+              id: 'eth1',
+              values: await this.embeddings.embedQuery("Ethereum is a decentralized blockchain platform that enables smart contracts and DApps."),
+              metadata: {
+                type: "blockchain",
+                category: "knowledge",
+                chain: "ethereum",
+                timestamp: new Date().toISOString(),
+                source: "initialization",
+                confidence: 1.0
+              }
+            },
+            {
+              id: 'btc1',
+              values: await this.embeddings.embedQuery("Bitcoin is the first and most well-known cryptocurrency, created by Satoshi Nakamoto."),
+              metadata: {
+                type: "blockchain",
+                category: "knowledge",
+                chain: "bitcoin",
+                timestamp: new Date().toISOString(),
+                source: "initialization",
+                confidence: 1.0
+              }
+            }
+          );
+        }
+
+        if (initialData.length > 0) {
+          await this.index.namespace(namespace).upsert(initialData);
+        }
+      }
+      console.log('Vector store initialized successfully');
+    } catch (error) {
+      console.error('Error initializing vector store:', error);
+    }
+  }
+
+  private async searchSimilarContent(query: string, type: string, k: number = 3): Promise<any[]> {
+    try {
+      const queryEmbedding = await this.embeddings.embedQuery(query);
+      const results = await this.index.namespace(this.namespaces[type]).query({
+        topK: k,
+        vector: queryEmbedding,
+        includeMetadata: true,
+        filter: { type: type }
+      });
+      return results.matches || [];
+    } catch (error) {
+      console.error('Error searching similar content:', error);
+      return [];
+    }
   }
 
   async checkIntent(message: string): Promise<boolean> {
@@ -254,18 +354,22 @@ export class OmniService {
       const parsedAction = await this.actionService.parseUserInput(message);
       console.log(parsedAction);
 
+      // Get relevant context from vector store
+      const similarDocs = await this.searchSimilarContent(message, 'blockchain');
+      const context = similarDocs.map(doc => doc.metadata.text).join('\n');
+
       if (!parsedAction || !parsedAction.function) {
         const openai = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
         });
 
         const stream = await openai.chat.completions.create({
-          model: "gpt-4o",
+          model: "gpt-4",
           temperature: 0.7,
           messages: [
             {
               role: "system",
-              content: this.systemPrompts.default
+              content: `${this.systemPrompts.default}\n\nRelevant context:\n${context}`
             },
             {
               role: "user",
@@ -409,10 +513,15 @@ Provide a brief summary of the token holder distribution.`;
         case 'sui_getBalance':
           // console.log(response);
           if (response.result) {
+            const formattedBalance = (parseInt(response.result.totalBalance) / 1e9).toLocaleString('en-US', {
+              minimumFractionDigits: 9,
+              maximumFractionDigits: 9
+            });
+            
             prompt = `# Wallet Balance on Sui Network
 
 **SUI Token Details:**
-• Balance: ${response.result.totalBalance} SUI
+• Balance: ${formattedBalance} SUI
 • Coin Objects: ${response.result.coinObjectCount}
 • Token Type: [\`${response.result.coinType.slice(0, 10)+"..."+response.result.coinType.slice(-20)}\`](https://suiscan.xyz/mainnet/coin/${response.result.coinType}/txs)
 
@@ -1067,6 +1176,32 @@ ${JSON.stringify(response, null, 2)}`;
         message: 'Error checking action',
         error: error
       };
+    }
+  }
+
+  // Add method to update vector store with new information
+  async updateVectorStore(text: string, metadata: Partial<DocumentMetadata>) {
+    try {
+      const store = new PineconeStore(this.embeddings, {
+        pineconeIndex: this.vectorStore.pineconeIndex,
+        namespace: this.namespaces[metadata.type],
+        textKey: 'text',
+      });
+
+      const document = new Document({
+        pageContent: text,
+        metadata: {
+          ...metadata,
+          timestamp: new Date().toISOString(),
+          source: metadata.source || 'user_interaction'
+        } as DocumentMetadata
+      });
+
+      await store.addDocuments([document]);
+      return true;
+    } catch (error) {
+      console.error('Error updating vector store:', error);
+      return false;
     }
   }
 } 
