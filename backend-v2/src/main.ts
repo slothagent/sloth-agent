@@ -1,9 +1,12 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false  // Disable built-in bodyParser to prevent double-parsing
+  });
   
   // Configure CORS
   app.enableCors({
@@ -12,6 +15,10 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'X-Requested-With', 'Accept'],
     credentials: true,
   });
+  
+  // Configure body parser with increased limits
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ limit: '50mb', extended: true }));
   
   // Set global prefix
   app.setGlobalPrefix('api');

@@ -35,7 +35,7 @@ export class SuiTokenService {
 
     const [tokens, total] = await Promise.all([
       collection.find<SuiToken>({})
-        .sort({ marketCap: -1 })
+        .sort({ holders: -1 })
         .skip(skip)
         .limit(limit)
         .toArray(),

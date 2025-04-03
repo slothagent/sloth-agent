@@ -4,6 +4,7 @@ import clientPromise from '../lib/mongodb';
 export interface Token {
   _id?: ObjectId;
   id: string;
+  type?: string;
   name: string;
   address: string;
   owner: string;
@@ -18,6 +19,8 @@ export interface Token {
   updatedAt?: Date;
   categories?: string[];
   network?: string;
+  iconUrl?: string;
+  tokenPrice?: number;
   market_data?: {
     current_price: {
       usd: number;

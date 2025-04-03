@@ -1,4 +1,5 @@
 import { Token } from '../token.service';
+import { SuiToken } from '../interfaces/sui-token.interface';
 
 export interface CoinGeckoToken {
   id: string;
@@ -39,5 +40,6 @@ export interface CoinGeckoToken {
 export interface TokenSearchResponse {
   localTokens: Token[];
   marketTokens: CoinGeckoToken[];
+  suiTokens: SuiToken[];
   total: number;
 } 

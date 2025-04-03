@@ -20,7 +20,9 @@ export class SuiTokenController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
   ) {
-    return this.suiTokenService.list(page, limit);
+    const pageNum = parseInt(page.toString());
+    const limitNum = parseInt(limit.toString());
+    return this.suiTokenService.list(pageNum, limitNum);
   }
 
   @Get('search')
