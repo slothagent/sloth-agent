@@ -3,6 +3,7 @@ import { MongodbService } from '../database/mongodb.service';
 import { Collection, ObjectId } from 'mongodb';
 import { CoinGeckoService } from './coingecko.service';
 import { TokenSearchResponse } from './interfaces/coingecko.interface';
+import { SuiTokenService } from './sui-token.service';
 
 export interface Token {
   _id?: ObjectId;
@@ -26,7 +27,8 @@ export interface Token {
 export class TokenService {
   constructor(
     private readonly mongodbService: MongodbService,
-    private readonly coingeckoService: CoinGeckoService
+    private readonly coingeckoService: CoinGeckoService,
+    private readonly suiTokenService: SuiTokenService
   ) {}
 
   async getCollection(): Promise<Collection> {
@@ -107,21 +109,24 @@ export class TokenService {
     console.log('Starting search with query:', query);
     
     try {
-      // Parallel execution of both searches
-      const [localTokens, marketTokens] = await Promise.all([
+      // Parallel execution of all searches
+      const [localTokens, marketTokens, suiTokens] = await Promise.all([
         this.searchLocal(query),
-        this.coingeckoService.searchTokens(query)
+        this.coingeckoService.searchTokens(query),
+        this.suiTokenService.search(query)
       ]);
       
       console.log('Search results:', {
         localTokensCount: localTokens.length,
-        marketTokensCount: marketTokens.length
+        marketTokensCount: marketTokens.length,
+        suiTokensCount: suiTokens.length
       });
       
       return {
         localTokens,
         marketTokens,
-        total: localTokens.length + marketTokens.length
+        suiTokens,
+        total: localTokens.length + marketTokens.length + suiTokens.length
       };
     } catch (error) {
       console.error('Error in token search:', error);
@@ -129,6 +134,7 @@ export class TokenService {
       return {
         localTokens: [],
         marketTokens: [],
+        suiTokens: [],
         total: 0
       };
     }

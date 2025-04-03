@@ -82,10 +82,14 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) => {
     if (token.address) {
       router.navigate({ to: `/token/${token.address}` })
       onClose()
-    } else {
+    }else if(token.type) {
+      window.open(`https://suiscan.xyz/mainnet/coin/${token.type}/txs`, '_blank')
+      onClose()
+    }else {
       window.open(`https://www.coingecko.com/en/coins/${token.id}`, '_blank')
       onClose()
     }
+    setSearchTerm('')
   }
 
   const handleTransactionClick = (tx: Transaction) => {
@@ -135,7 +139,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) => {
                       >
                         <div className="flex items-center space-x-3">
                           <img
-                            src={token.imageUrl || '/placeholder.png'}
+                            src={token.imageUrl || token.iconUrl || '/android-chrome-192x192.png'}
                             alt={token.name}
                             className="w-8 h-8 rounded-full"
                           />
@@ -145,7 +149,7 @@ const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) => {
                           </div>
                         </div>
                         <div className="text-xs text-gray-400">
-                          {formatNumber(token.market_data?.current_price?.usd || 1)} USD
+                          {formatNumber(token.market_data?.current_price?.usd || token.tokenPrice || 0, 5)} USD
                         </div>
                       </div>
                     ))}
