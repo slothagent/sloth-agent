@@ -429,7 +429,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                 <PlusCircle className="w-4 h-4" />
                 New Chat
               </button>
-              <h2 className="text-xl font-semibold text-white absolute left-1/2 -translate-x-1/2">Omni Agent</h2>
+              <h2 className="text-xl font-semibold text-white absolute left-1/2 -translate-x-1/2 items-start flex gap-3">Omni Agent <span className="text-xs font-normal text-gray-300">beta</span></h2>
             </>
           )}
           <button onClick={onClose} className="text-gray-400 hover:text-white cursor-pointer">

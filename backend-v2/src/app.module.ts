@@ -20,7 +20,9 @@ import { SuiTokenController } from './token/sui-token.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     DatabaseModule,
     HealthModule,
     AgentModule,
