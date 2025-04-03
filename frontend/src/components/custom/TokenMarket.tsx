@@ -9,12 +9,6 @@ import { formatNumber } from '../../utils/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useEthPrice } from '../../hooks/useEthPrice'
 import { useSonicPrice } from '../../hooks/useSonicPrice'
-import { tokenAbi } from '../../abi/tokenAbi'
-import { configSonicBlaze } from '../../config/wagmi'
-import { configAncient8 } from '../../config/wagmi'
-import { useCalculateBin } from '../../hooks/useCalculateBin'
-import { useReadContract } from 'wagmi'
-import { ethers } from 'ethers'
 import { Loader2 } from 'lucide-react'
 import { INITIAL_SUPPLY } from '../../lib/contants'
 
@@ -38,15 +32,6 @@ const TokenCard = ({ token }: { token: Token }) => {
 
   const { data: sonicPriceData } = useSonicPrice();
   const { data: ethPriceData } = useEthPrice();
-  const { calculateMarketCap } = useCalculateBin();
-
-  const { data: totalSupply } = useReadContract({
-    address: token?.address as `0x${string}`,
-    abi: tokenAbi,
-    functionName: 'totalSupply',
-    config: token?.network == "Sonic" ? configSonicBlaze : configAncient8
-  });
-
   // Get the ETH price for calculations, fallback to 2500 if not available
   const ethPrice = useMemo(() => {
     return ethPriceData?.price || 2500;
@@ -117,8 +102,8 @@ const TokenCard = ({ token }: { token: Token }) => {
 
   return (
     <div onClick={() => router.navigate({to: `/token/${token.address}`})} className='cursor-pointer'>
-      <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors flex flex-col">
-        <div className="flex items-start gap-4">
+      <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] transition-colors flex flex-col md:border-b border-gray-600">
+        <div className="flex items-start gap-2">
           <img
             src={token.imageUrl || ''}
             alt={token.name}
@@ -148,10 +133,10 @@ const TokenCard = ({ token }: { token: Token }) => {
           <img alt="Chain" loading="lazy" width="20" height="20" decoding="async" data-nimg="1" className="w-6" src={ token?.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
         </div>
 
-        <div className="mt-4 flex-1 flex flex-col">
+        <div className="mt-4 md:mt-0 flex-1 flex flex-col">
           <p className="text-sm text-gray-400 mb-auto">{truncateDescription(token.description || '')}</p>
           
-          <div className="mt-4">
+          <div className="mt-4 md:mt-0">
             <div className="flex justify-between">
               <div className="flex flex-col space-y-1">
                 <span className="text-blue-500 text-xs">MARKET CAP</span>
@@ -279,8 +264,8 @@ export default function TokenMarket() {
   ]
 
   return (
-    <div className="flex flex-col pt-6">
-      <div className='flex items-center justify-between'>
+    <div className="flex flex-col pt-6 w-full">
+      <div className='flex items-center justify-between w-full'>
         <p className='text-white text-2xl font-bold'>
           All Tokens
         </p>
@@ -306,15 +291,15 @@ export default function TokenMarket() {
           />
         </div>
       </div> */}
-      <div className='py-4 border-b border-gray-800'>
-        <div className='flex items-center justify-between gap-2'>
-          <div className='flex flex-wrap gap-2'>
+      <div className='py-4 border-b border-gray-800 w-full'>
+        <div className='flex items-center justify-between w-full'>
+          <div className='flex flex-wrap gap-4'>
           {categories
             .slice(0, showAllCategories ? categories.length : defaultVisible)
             .map((category) => (
               <button
                 key={category}
-                className="px-4 py-1.5 text-sm text-gray-400 border border-gray-800 hover:bg-[#1C2333] transition-colors"
+                className="px-2 py-1.5 text-sm text-gray-400 border border-gray-800 hover:bg-[#1C2333] transition-colors"
               >
                 {category}
               </button>
@@ -324,7 +309,7 @@ export default function TokenMarket() {
                   className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-blue-500 border border-[#1F2937] text-white hover:bg-blue-400 hover:text-white cursor-pointer`}
               >
                   Create New Token
-              </button>
+            </button>
           </div>
           <div className='md:hidden flex items-center'>
             <Button 
@@ -337,7 +322,7 @@ export default function TokenMarket() {
           </div>
         </div>
       </div>
-      <div className='gap-4 py-4 overflow-x-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
+      <div className='gap-4 pt-0 max-h-[490px] overflow-y-auto'>
         {tokensDataLoading  && (
           <div className="flex flex-row items-center gap-2">
             <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />

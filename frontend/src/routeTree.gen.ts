@@ -10,6 +10,7 @@ import { Route as CategoriesImport } from "./routes/categories";
 import { Route as ProfileImport } from "./routes/profile.$address";
 import { Route as OmniImport } from "./routes/omni";
 import { Route as OmniChatImport } from "./routes/omni.$chatId";
+import { Route as SolImport } from "./routes/sol/$tokenAddress";
 
 // Create/Update Routes
 const IndexRoute = IndexImport.update({
@@ -79,6 +80,12 @@ const OmniRoute = OmniImport.update({
 const OmniChatRoute = OmniChatImport.update({
   id: "/omni/$chatId",
   path: "/omni/$chatId",
+  getParentRoute: () => rootRoute,
+} as any);
+
+const SolRoute = SolImport.update({
+  id: "/sol/$tokenAddress",
+  path: "/sol/$tokenAddress",
   getParentRoute: () => rootRoute,
 } as any);
 
@@ -158,6 +165,12 @@ declare module "@tanstack/react-router" {
       fullPath: "/omni/$chatId";
       preLoaderRoute: typeof OmniChatImport;
     };
+    "/sol/$tokenAddress": {
+      id: "/sol/$tokenAddress";
+      path: "/sol/$tokenAddress";
+      fullPath: "/sol/$tokenAddress";
+      preLoaderRoute: typeof SolImport;
+    };
   }
 }
 
@@ -175,6 +188,7 @@ export interface FileRoutesByFullPath {
   "/profile/$address": typeof ProfileRoute;
   "/omni": typeof OmniRoute;
   "/omni/$chatId": typeof OmniChatRoute;
+  "/sol/$tokenAddress": typeof SolRoute;
 }
 
 export interface FileRoutesByTo {
@@ -189,6 +203,7 @@ export interface FileRoutesByTo {
   "/profile/$address": typeof ProfileRoute;
   "/omni": typeof OmniRoute;
   "/omni/$chatId": typeof OmniChatRoute;
+  "/sol/$tokenAddress": typeof SolRoute;
 }
 
 export interface FileRoutesById {
@@ -204,14 +219,15 @@ export interface FileRoutesById {
   "/profile/$address": typeof ProfileRoute;
   "/omni": typeof OmniRoute;
   "/omni/$chatId": typeof OmniChatRoute;
+  "/sol/$tokenAddress": typeof SolRoute;
 }
 
 export type FileRouteTypes = {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId" | "/categories" | "/profile/$address" | "/omni" | "/omni/$chatId";
+  fullPaths: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId" | "/categories" | "/profile/$address" | "/omni" | "/omni/$chatId" | "/sol/$tokenAddress";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId" | "/categories" | "/profile/$address" | "/omni" | "/omni/$chatId";
-  id: "__root__" | "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId" | "/categories" | "/profile/$address" | "/omni" | "/omni/$chatId";
+  to: "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId" | "/categories" | "/profile/$address" | "/omni" | "/omni/$chatId" | "/sol/$tokenAddress";
+  id: "__root__" | "/" | "/token/$tokenAddress" | "/token" | "/agent" | "/agent/create" | "/token/create" | "/agent/$agentId" | "/categories" | "/profile/$address" | "/omni" | "/omni/$chatId" | "/sol/$tokenAddress";
   fileRoutesById: FileRoutesById;
 }
 
@@ -227,6 +243,7 @@ export interface RootRouteChildren {
   ProfileRoute: typeof ProfileRoute;
   OmniRoute: typeof OmniRoute;
   OmniChatRoute: typeof OmniChatRoute;
+  SolRoute: typeof SolRoute;
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -241,6 +258,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   OmniRoute: OmniRoute,
   OmniChatRoute: OmniChatRoute,
+  SolRoute: SolRoute,
 };
 
 export const routeTree = rootRoute

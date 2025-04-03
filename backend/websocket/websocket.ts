@@ -1,6 +1,4 @@
 import { serve, ServerWebSocket } from "bun";
-import * as fs from 'fs';
-import * as path from 'path';
 import { MongoClient, MongoClientOptions, ChangeStream } from 'mongodb';
 import { Connection, PublicKey, TransactionSignature } from '@solana/web3.js';
 import dotenv from 'dotenv';

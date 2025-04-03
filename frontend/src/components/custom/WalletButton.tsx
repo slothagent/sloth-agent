@@ -6,7 +6,6 @@ import { configAncient8 } from '../../config/wagmi';
 import { useReadContract } from 'wagmi';
 
 const WalletButton: React.FC = () => {
-  const [isRegistering, setIsRegistering] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [checkedAddresses, setCheckedAddresses] = useState<Set<string>>(new Set());
@@ -58,8 +57,6 @@ const WalletButton: React.FC = () => {
         // console.log('User already exists, skipping registration');
         return;
       }
-      
-      setIsRegistering(true);
       setError(null);
       
       const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/user/register`, {
@@ -80,9 +77,7 @@ const WalletButton: React.FC = () => {
     } catch (err) {
       console.error('Error registering user:', err);
       setError(err instanceof Error ? err : new Error('Failed to register user'));
-    } finally {
-      setIsRegistering(false);
-    }
+    } 
   }, [checkedAddresses]);
 
   // Log any errors
@@ -136,7 +131,7 @@ const WalletButton: React.FC = () => {
                 return (
                   <button
                     onClick={openConnectModal}
-                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-6 transition-colors duration-200 text-sm border border-[#1F2937]"
+                    className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-6 transition-colors duration-200 text-sm border border-[#1F2937] cursor-pointer"
                   >
                     Connect
                   </button>

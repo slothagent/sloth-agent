@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowUp, History } from "lucide-react";
 import { useState, useEffect } from "react";
 import { v4 as uuidv4 } from 'uuid';
-import { useAccount } from "wagmi";
 import { Chat, getUserChats, createChat, addMessage, ChatMessage } from "../lib/chat";
 import { ChatHistoryDialog } from "../components/ChatHistoryDialog";
 import { setInitialMessage } from "../lib/messageStore";
@@ -21,7 +20,6 @@ function getTimeBasedGreeting() {
 
 function Omni() {
     const navigate = useNavigate();
-    const { address } = useAccount();
     const [inputValue, setInputValue] = useState("");
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [currentGreeting, setCurrentGreeting] = useState(getTimeBasedGreeting());
@@ -46,25 +44,23 @@ function Omni() {
         return () => clearInterval(timer);
     }, []);
 
-    // Load user's chats
+    // Load chats
     useEffect(() => {
-        async function loadUserChats() {
-            if (!address) return;
+        async function loadChats() {
             try {
-                const chats = await getUserChats(address);
-                // console.log(chats);
+                const chats = await getUserChats();
                 setUserChats(chats);
             } catch (error) {
-                console.error('Error loading user chats:', error);
+                console.error('Error loading chats:', error);
             }
         }
 
-        loadUserChats();
-    }, [address]);
+        loadChats();
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!inputValue.trim() || !address) return;
+        if (!inputValue.trim()) return;
 
         try {
             setIsTransitioning(true);
@@ -73,7 +69,7 @@ function Omni() {
             
             // Create chat and save message in parallel
             await Promise.all([
-                createChat(chatId, address),
+                createChat(chatId),
                 setInitialMessage(chatId, messageContent)
             ]);
 
@@ -108,14 +104,6 @@ function Omni() {
         }
     };
 
-    if (!address) {
-        return (
-            <div className="fixed inset-0 flex items-center justify-center bg-[#0B0E17] text-white">
-                <div className="text-xl">Please connect your wallet to continue.</div>
-            </div>
-        );
-    }
-
     return (
         <>
             {isTransitioning && <Loading />}
@@ -124,7 +112,7 @@ function Omni() {
                     <div className="flex flex-col items-center justify-center min-h-screen -mt-20 bg-[#0B0E17] text-white">
                         {/* Header Text */}
                         <div className="text-center mb-6 space-y-2">
-                            <h1 className="text-[40px] font-normal text-white">{currentGreeting}, {address.slice(0, 6)}...</h1>
+                            <h1 className="text-[40px] font-normal text-white">{currentGreeting}</h1>
                             <p className="text-[28px] text-[#7D8590]">How can I help you today?</p>
                         </div>
 
