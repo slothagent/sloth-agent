@@ -16,6 +16,22 @@ interface TemplateQuestion {
   question: string;
 }
 
+
+interface StreamResponse {
+  type: string;
+  response?: {
+    id: string;
+    status: string;
+    created_at: number;
+    output: any[];
+  };
+  item_id?: string;
+  output_index?: number;
+  content_index?: number;
+  delta?: string;
+  error?: string;
+}
+
 // Add LoadingBar component
 const LoadingBar = () => {
   const [progress, setProgress] = useState(0);
@@ -125,6 +141,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
     setIsSearching(true);
     setProcessSteps([{ message: "", status: 'pending' }]);
     let finalMessage = '';
+    let currentContent = '';
     
     try {
       // Get current step from check-action API
@@ -176,46 +193,69 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
-                const data = JSON.parse(line.slice(6)) as {
-                  done?: boolean;
-                  message?: string;
-                  content?: string;
-                };
+                const data = JSON.parse(line.slice(6)) as StreamResponse;
                 
-                if (data.done) {
-                  // Final data received
-                  finalMessage = data.message ?? finalMessage;
-                  // Mark step as completed
-                  setProcessSteps([{ message: checkData.step, status: 'completed' }]);
-                  break;
-                } else if (data.content) {
-                  // Append new content
-                  finalMessage += data.content;
-                  // Update messages in real-time only if shouldUpdateUI is true
-                  if (shouldUpdateUI) {
-                    setMessages(prev => {
-                      const newMessages = [...prev];
-                      const lastMessage = newMessages[newMessages.length - 1];
-                      if (lastMessage && lastMessage.role === 'assistant') {
-                        lastMessage.content = finalMessage;
-                        // Don't force immediate scroll during streaming
-                        scrollToBottom(false);
-                      } else {
+                switch (data.type) {
+                  case 'response.created':
+                    // Initialize message on stream start
+                    if (shouldUpdateUI) {
+                      setMessages(prev => {
+                        const newMessages = [...prev];
+                        if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+                          return prev;
+                        }
                         newMessages.push({
                           id: uuidv4(),
-                          content: finalMessage,
+                          content: '',
                           role: 'assistant',
                           timestamp: new Date()
                         });
-                        // Scroll immediately for new message
-                        scrollToBottom(true);
+                        return newMessages;
+                      });
+                    }
+                    break;
+
+                  case 'response.output_text.delta':
+                    if (data.delta) {
+                      currentContent += data.delta;
+                      if (shouldUpdateUI) {
+                        setMessages(prev => {
+                          const newMessages = [...prev];
+                          const lastMessage = newMessages[newMessages.length - 1];
+                          if (lastMessage && lastMessage.role === 'assistant') {
+                            lastMessage.content = currentContent;
+                            scrollToBottom(false);
+                          }
+                          return newMessages;
+                        });
                       }
-                      return newMessages;
-                    });
-                  }
+                    }
+                    break;
+
+                  case 'response.completed':
+                    finalMessage = currentContent;
+                    if (shouldUpdateUI) {
+                      setMessages(prev => {
+                        const newMessages = [...prev];
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage && lastMessage.role === 'assistant') {
+                          lastMessage.content = finalMessage;
+                        }
+                        return newMessages;
+                      });
+                    }
+                    // Mark step as completed
+                    setProcessSteps([{ message: checkData.step, status: 'completed' }]);
+                    break;
+
+                  case 'response.error':
+                    console.error('Streaming error:', data.error);
+                    throw new Error(data.error);
+                    break;
                 }
               } catch (e) {
                 console.error('Error parsing SSE data:', e);
+                throw e;
               }
             }
           }
@@ -273,7 +313,6 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
 
       // Start processing message immediately with streaming enabled
       const processPromise = processMessage(messageContent, true);
-      
       // Save user message to database in parallel
       const saveUserMessagePromise = addMessage(chatId!, userMessage);
       
@@ -346,6 +385,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
       
       // Wait for processing to complete
       const result = await processPromise;
+      // console.log('result', result);
       
       // After streaming is complete, save the final assistant message
       const assistantMessage: ChatMessage = {

@@ -341,7 +341,7 @@ export function useSolanaTokens() {
     // Add listener for Solana token creation events
     const removeListener = addDataListener('solanaTokens', (data: any) => {
       if (data && data.type === 'update' && data.data) {
-        console.log('Received token data:', data.data);
+        // console.log('Received token data:', data.data);
         
         setTokens(prev => {
           // Check if token already exists

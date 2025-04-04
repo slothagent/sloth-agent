@@ -7,36 +7,14 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 @Controller('omni')
 export class OmniController {
   constructor(private readonly omniService: OmniService) {}
-
-  @Post('check-intent')
-  async checkIntent(@Body() body: { message: string }) {
-    const isTokenCreationIntent = await this.omniService.checkIntent(body.message);
-    return { isTokenCreationIntent };
-  }
-
-  @Post('search')
-  async search(@Body() body: { query: string }) {
-    return await this.omniService.search(body.query);
-  }
-
-  @Post('chat/:userId')
-  async chat(
-    @Param('userId') userId: string,
-    @Body() body: { message: string }
-  ) {
-    return await this.omniService.chat(userId, body.message);
-  }
-
-  @Delete('chat/:userId')
-  async clearChat(@Param('userId') userId: string) {
-    return await this.omniService.clearChat(userId);
-  }
-
+  
   @Post('resolve-action')
   async handleAction(@Body() body: { message: string }, @Res() res: Response) {
     try {
       const result = await this.omniService.resolveAction(body.message);
       
+      // console.log(result);
+
       if (result.stream) {
         // Set headers for SSE
         res.setHeader('Content-Type', 'text/event-stream');
@@ -44,31 +22,76 @@ export class OmniController {
         res.setHeader('Connection', 'keep-alive');
 
         // Stream the response
-        for await (const chunk of result.streamResponse) {
-          const content = chunk.choices[0]?.delta?.content || '';
-          if (content) {
-            res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        let messageId = Date.now().toString();
+
+        // Send initial response
+        res.write(`data: ${JSON.stringify({
+          type: 'response.created',
+          response: {
+            id: messageId,
+            status: 'in_progress',
+            created_at: Date.now(),
+            output: []
+          }
+        })}\n\n`);
+
+        try {
+          for await (const chunk of result.streamResponse) {
+            if (chunk.type === 'response.output_text.delta') {
+              res.write(`data: ${JSON.stringify({
+                type: 'response.output_text.delta',
+                item_id: messageId,
+                output_index: 0,
+                content_index: 0,
+                delta: chunk.delta || ''
+              })}\n\n`);
+            } else {
+              // Forward other response types as is
+              res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+            }
+          }
+
+          // Send completion message
+          res.write(`data: ${JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: messageId,
+              status: 'completed',
+              created_at: Date.now(),
+              output: result.streamResponse
+            }
+          })}\n\n`);
+          
+          res.end();
+        } catch (streamError) {
+          console.error('Streaming error:', streamError);
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              message: 'Streaming error occurred',
+              error: streamError.message
+            });
+          } else {
+            res.write(`data: ${JSON.stringify({
+              type: 'response.error',
+              error: streamError.message
+            })}\n\n`);
+            res.end();
           }
         }
-
-        // Send the final data
-        res.write(`data: ${JSON.stringify({ 
-          done: true, 
-          data: result.streamResponse 
-        })}\n\n`);
-        
-        res.end();
       } else {
         // Send regular JSON response
         res.json(result);
       }
     } catch (error) {
       console.error('Error in handleAction:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Internal server error',
-        error: error.message
-      });
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: 'Internal server error',
+          error: error.message
+        });
+      }
     }
   }
 
