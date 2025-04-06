@@ -81,7 +81,7 @@ function Index() {
               <TabsTrigger value="transactions" className="px-3 whitespace-nowrap">Transactions</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="home" className="space-y-6 w-full flex gap-2">
+            <TabsContent value="home" className="space-y-6 w-full flex flex-col md:flex-row gap-2 ">
             <div className="w-full">
             <h1 className="text-white text-2xl font-bold mt-5">Meme Pump</h1>
             <span className="text-gray-400 text-sm">🌱 New Creations</span>
@@ -176,7 +176,7 @@ function Index() {
             </TabsContent>
                 
             <TabsContent value="feed" className="space-y-4">
-              <div className="flex flex-col w-full">
+              <div className="flex flex-col  w-full">
                 <h2 className="text-white text-xl font-semibold mb-4">Activity Feed</h2>
                 <div className="flex gap-2 h-3/4">
                   <div className="flex-1 mx-auto p-4 bg-[#161B28] max-h-[745px] overflow-y-auto  text-white">
