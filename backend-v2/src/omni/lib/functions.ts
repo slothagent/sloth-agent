@@ -65,7 +65,7 @@ const getTrendingTokens = async (): Promise<any> => {
     if (!data) {
       return '❌ Agent is currently experiencing issues. Please try again later.';
     }
-    return data.slice(0,10);
+    return data.slice(0,5);
   } catch (error) {
     return error;
   }
@@ -78,7 +78,7 @@ const getWalletTokenBalancesPrices = async (chain: string, wallet: string): Prom
       address: wallet,
       limit: 5
     });
-    return res.result.slice(0,10);
+    return res.result.slice(0,5);
   } catch (error) {
     return error;
   }
@@ -188,7 +188,7 @@ const suiGetAllBalances = async (suiService: any, wallet: string): Promise<any> 
   try {
     const balances = await suiService.getAllBalances(wallet);
     const balancesWithMetadata = await Promise.all(
-      balances.slice(0, 10).map(async (balance: any) => {
+      balances.slice(0, 5).map(async (balance: any) => {
         const metadata = await suiService.getCoinMetadata(balance.coinType);
         return {
           coinType: balance.coinType,

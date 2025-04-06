@@ -10,7 +10,6 @@ import { TokenModule } from './token/token.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { ChatModule } from './chat/chat.module';
 import { OmniModule } from './omni/omni.module';
-import { ActionModule } from './action/action.module';
 import { SuiModule } from './sui/sui.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -33,7 +32,6 @@ import { SuiTokenController } from './token/sui-token.controller';
     TransactionModule,
     ChatModule,
     OmniModule,
-    ActionModule,
     SuiModule,
   ],
   controllers: [AppController, SuiTokenController],
