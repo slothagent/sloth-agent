@@ -83,15 +83,17 @@ export class TokenController {
       console.log('Starting token search with query:', searchTerm);
       const searchResults = await this.tokenService.search(searchTerm);
       
-      // Combine local and market tokens
+      // Combine local, market and SUI tokens
       const combinedTokens = [
         ...searchResults.localTokens,
-        ...searchResults.marketTokens
+        ...searchResults.marketTokens,
+        ...searchResults.suiTokens
       ];
 
       console.log('Search completed. Results:', {
         localTokensCount: searchResults.localTokens.length,
         marketTokensCount: searchResults.marketTokens.length,
+        suiTokensCount: searchResults.suiTokens.length,
         totalResults: combinedTokens.length
       });
 

@@ -1,190 +1,134 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { JsonOutputParser } from '@langchain/core/output_parsers';
 import { LRUCache } from 'lru-cache';
+import { Pinecone } from '@pinecone-database/pinecone';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { BASE_PROMPT } from './prompts/base.prompt';
 
 @Injectable()
-export class ActionService {
+export class ActionService implements OnModuleInit {
   private model: ChatOpenAI;
   private promptTemplate: PromptTemplate;
   private outputParser: JsonOutputParser;
   private cache: LRUCache<string, any>;
+  private pinecone: Pinecone;
+  private index: any;
+  private embeddings: OpenAIEmbeddings;
 
   constructor() {
-    // Initialize the OpenAI model with faster GPT-3.5
-    this.model = new ChatOpenAI({
-      modelName: 'gpt-3.5-turbo',
-      temperature: 0,
-      maxTokens: 150, // Limit response length
-      cache: true, // Enable LangChain's built-in caching
-    });
+    try {
+      // Initialize the OpenAI model with API key
+      this.model = new ChatOpenAI({
+        openAIApiKey: process.env.OPENAI_API_KEY,
+        modelName: 'gpt-3.5-turbo',
+        temperature: 0,
+        maxTokens: 150,
+        cache: true,
+      });
 
-    // Initialize cache with 1 hour TTL
-    this.cache = new LRUCache({
-      max: 500, // Store up to 500 items
-      ttl: 1000 * 60 * 60, // Items expire after 1 hour
-    });
+      // Initialize cache with 1 hour TTL
+      this.cache = new LRUCache({
+        max: 500,
+        ttl: 1000 * 60 * 60,
+      });
 
-    // Create a more specific prompt template
-    this.promptTemplate = PromptTemplate.fromTemplate(
-      `Given the input: "{input}", identify the blockchain context and extract the appropriate Moralis API function name and parameters.
+      // Create prompt template with BASE_PROMPT
+      this.promptTemplate = PromptTemplate.fromTemplate(
+        `Given the input: "{input}" and the following relevant context: {context}, identify the blockchain context and extract the appropriate API function name and parameters.
 
-      Chain Detection Rules:
-      1. Look for explicit chain mentions:
-         - ETH/ETHEREUM -> eth
-         - MATIC/POLYGON -> polygon
-         - BNB/BSC -> bsc
-         - AVAX/AVALANCHE -> avalanche
-         - ARB/ARBITRUM -> arbitrum
-         - OP/OPTIMISM -> optimism
-         - SOL/SOLANA -> sol
-      2. If no chain is explicitly mentioned:
-         - For EVM addresses (0x...) -> default to "eth"
-         - For Solana addresses -> use "sol"
-         - For general queries without addresses -> default to "eth"
+        {base_prompt}
+        
+        Remember:
+        1. For general information or research queries about blockchain projects, companies, or market trends, use "webSearch"
+        2. For specific blockchain operations (balances, transfers, etc), use the appropriate chain-specific functions
+        3. Always validate addresses and coin types before selecting functions
+        `
+      );
 
-      Primary function mapping (check these first):
-      - "what's in my wallet" -> ALWAYS "getWalletTokenBalancesPrices" (EVM) or "getSolTokenBalances" (Solana)
-      - "what nfts" or "show nfts" -> "getWalletNFTs" (EVM) or "getSolNFTs" (Solana)
-      - "show defi positions" -> "getDefiPositionsSummary"
-      - "what is my net worth" -> "getWalletNetWorth" (EVM) or "getSolPortfolio" (Solana)
-      - "generate pnl" or "profit loss" -> "getWalletProfitabilitySummary"
+      // Initialize JSON output parser with strict validation
+      this.outputParser = new JsonOutputParser();
 
-      Blockchain-specific functions:
-      1. EVM Wallet Analysis:
-         - Token balances -> "getWalletTokenBalancesPrices"
-         - NFT holdings -> "getWalletNFTs"
-         - DeFi positions -> "getDefiPositionsSummary"
-         - Portfolio value -> "getWalletNetWorth"
-         - PnL summary -> "getWalletProfitabilitySummary"
-         - Token approvals -> "getWalletApprovals"
-         - Swap history -> "getSwapsByWalletAddress"
-         - Active chains -> "getWalletActiveChains"
-         - Address to ENS -> "resolveAddressToDomain"
-         - ENS to Address -> "resolveENSDomain"
+      // Initialize Pinecone
+      this.pinecone = new Pinecone({
+        apiKey: process.env.PINECONE_API_KEY
+      });
 
-      2. Solana Wallet Analysis:
-         - Token balances -> "getSolTokenBalances"
-         - NFT holdings -> "getSolNFTs"
-         - Portfolio summary -> "getSolPortfolio"
-         - Native balance -> "getSolBalance"
-         - Token transfers -> "getSolTokenTransfers"
-         - NFT transfers -> "getSolNFTTransfers"
-         - Domain resolution -> "getSolDomainResolution"
+      // Initialize embeddings
+      this.embeddings = new OpenAIEmbeddings({
+        openAIApiKey: process.env.OPENAI_API_KEY,
+        modelName: "text-embedding-3-small"
+      });
 
-      3. Token Market Data:
-         - Token price -> "getTokenPrice" (EVM) or "getSolTokenPrice" (Solana)
-         - Holder stats -> "getTokenHolderStats"
-         - Holder history -> "getHistoricalTokenHolders"
-         - Top traders -> "getTopProfitableWalletPerToken"
-         - Trending tokens -> "getTrendingTokens" (EVM) or "getSolTrendingTokens" (Solana)
-         - Top gainers -> "getTopGainersTokens"
-         - Token analytics -> "getTokenAnalytics"
-         - Token stats -> "getTokenStats"
-         - Trading pairs -> "getTokenPairs"
-         - Market cap ranking -> "getTopERC20TokensByMarketCap"
-         - Token search -> "searchTokens"
-         - Token filters -> "getFilteredTokens"
+    } catch (error) {
+      console.error('Error initializing ActionService:', error);
+      throw error;
+    }
+  }
 
-      4. DeFi & Market Analysis:
-         - DEX rankings -> "getVolumeStatsByCategory"
-         - Pool liquidity -> "getPairReserves"
-         - Trading pairs -> "getTokenPairs"
-         - Protocol summary -> "getDefiSummary"
-         - Cross-chain volume -> "getVolumeStatsByChain"
-         - Volume history -> "getTimeSeriesVolumeByCategory"
-         - Category comparison -> "getVolumeStatsByCategory"
-         - Volume trends -> "getTimeSeriesVolume"
+  async onModuleInit() {
+    try {
+      // Initialize Pinecone index
+      this.index = this.pinecone.Index(process.env.PINECONE_INDEX_NAME || 'default-index');
 
-      5. Cross-Chain Analysis:
-         - Portfolio overview -> "getWalletNetWorth" (EVM) + "getSolPortfolio" (Solana)
-         - NFT collection -> "getWalletNFTs" (EVM) + "getSolNFTs" (Solana)
-         - Token holdings -> "getWalletTokenBalancesPrices" (EVM) + "getSolTokenBalances" (Solana)
-         - Native balances -> "getNativeBalance" (EVM) + "getSolBalance" (Solana)
-         - Trading activity -> "getSwapsByWalletAddress" (EVM) + "getSolTokenTransfers" (Solana)
+      // Initialize action-specific data
+      await this.initializeActionVectorStore();
+      
+      console.log('ActionService initialized successfully');
+    } catch (error) {
+      console.error('Error in ActionService onModuleInit:', error);
+    }
+  }
 
-      Example inputs and expected outputs (in JSON format):
-      Input: "What's in my wallet 0x742d..."
-      Output: function=getWalletTokenBalancesPrices, wallet=0x742d..., chain=eth
+  private async initializeActionVectorStore() {
+    const actionData = [
+      // Web Search Actions
+      {
+        id: 'web_search',
+        values: await this.embeddings.embedQuery("General information, research, and news about blockchain projects and companies"),
+        metadata: { function: "webSearch", type: "information" }
+      },
+      // EVM Actions
+      {
+        id: 'evm_balance',
+        values: await this.embeddings.embedQuery("Get wallet token balances and prices for EVM chains"),
+        metadata: { function: "getWalletTokenBalancesPrices", type: "wallet_analysis", chain: "evm" }
+      },
+      // Sui Actions
+      {
+        id: 'sui_all_balances',
+        values: await this.embeddings.embedQuery("Get all token balances for Sui wallet"),
+        metadata: { function: "sui_getAllBalances", type: "wallet_analysis", chain: "sui" }
+      },
+      {
+        id: 'sui_specific_balance',
+        values: await this.embeddings.embedQuery("Get specific token balance for Sui wallet"),
+        metadata: { function: "sui_getBalance", type: "wallet_analysis", chain: "sui" }
+      }
+    ];
 
-      Input: "What NFTs do I own on Solana?"
-      Output: function=getSolNFTs, wallet=sol_address
+    try {
+      await this.index.namespace('actions').upsert(actionData);
+      console.log('Action vector store initialized');
+    } catch (error) {
+      console.error('Error initializing action vector store:', error);
+    }
+  }
 
-      Input: "Show my portfolio across chains"
-      Output: function=crossChainPortfolio, wallets=[evm:0x..., solana:sol_address]
-
-      Input: "What's the price of SOL"
-      Output: function=getSolTokenPrice, token=SOL
-
-      Input: "Show liquidity for ETH/USDC pair on polygon"
-      Output: function=getPairReserves, pair=ETH/USDC, chain=polygon
-
-      Input: "How many people hold $CGPT?"
-      Output: function=getTokenHolderStats, token=CGPT, chain=eth
-
-      Input: "Compare volume of AI vs Gaming tokens"
-      Output: function=getVolumeStatsByCategory, categories=[AI,Gaming], chain=eth
-
-      Important: 
-      1. Check primary functions first - they have highest priority
-      2. Use chain-specific functions based on address format
-      3. Use exact Moralis API function names
-      4. For token/pair analysis, ALWAYS extract the token symbols
-      5. For time series data, extract the timeframe if specified
-      6. For cross-chain queries, try to get data from both EVM and Solana
-      7. Always include "chain" parameter in response for EVM functions, defaulting to "eth" if not specified
-      8. Use abbreviated chain names: eth, polygon, bsc, avalanche, arbitrum, optimism, sol
-
-      Return your response in this exact JSON format:
-      For EVM wallet queries:
-      function: <moralis_function>
-      wallet: <evm_address>
-      chain: <chain_symbol>
-
-      For Solana wallet queries:
-      function: <moralis_function>
-      wallet: <solana_address>
-
-      For cross-chain queries:
-      function: crossChainPortfolio
-      wallets:
-        evm: <evm_address>
-        solana: <solana_address>
-
-      For token queries:
-      function: <moralis_function>
-      token: <token>
-      chain: <chain_symbol>
-
-      For pair queries:
-      function: <moralis_function>
-      pair: <token1>/<token2>
-      chain: <chain_symbol>
-
-      For category queries:
-      function: <moralis_function>
-      category: <category>
-      chain: <chain_symbol>
-
-      For comparison queries:
-      function: <moralis_function>
-      categories: [<category1>, <category2>]
-      chain: <chain_symbol>
-
-      For time series:
-      function: <moralis_function>
-      category: <category>
-      timeframe: <timeframe>
-      chain: <chain_symbol>
-
-      For invalid input:
-      error: Unsupported function
-      `
-    );
-
-    // Initialize JSON output parser with strict validation
-    this.outputParser = new JsonOutputParser();
+  private async searchSimilarActions(query: string): Promise<any[]> {
+    try {
+      const queryEmbedding = await this.embeddings.embedQuery(query);
+      const results = await this.index.namespace('actions').query({
+        topK: 3,
+        vector: queryEmbedding,
+        includeMetadata: true
+      });
+      return results.matches || [];
+    } catch (error) {
+      console.error('Error searching similar actions:', error);
+      return [];
+    }
   }
 
   async parseUserInput(userInput: string) {
@@ -215,14 +159,20 @@ export class ActionService {
         return cachedResult;
       }
 
-      // Create the chain
+      // Get relevant context from vector store
+      const similarActions = await this.searchSimilarActions(userInput);
+      const context = similarActions.map(doc => doc.metadata.function).join('\n');
+
+      // Create the chain with context
       const chain = this.promptTemplate
         .pipe(this.model)
         .pipe(this.outputParser);
 
-      // Run the chain
+      // Run the chain with context and base prompt
       const result = await chain.invoke({
         input: userInput,
+        context: context,
+        base_prompt: BASE_PROMPT
       });
 
       // Cache the result

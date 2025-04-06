@@ -4,24 +4,25 @@ import { Injectable } from '@nestjs/common';
 export class PriceService {
   async getTokenPrice(symbol: string): Promise<any> {
     try {
-      let response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol.toUpperCase()}USDT`);
-      
+      let response = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${symbol.toUpperCase()}&tsyms=USD`);
+      // console.log(response);
       if (!response.ok) {
-        console.log('Binance API failed, trying CoinGecko API');
+        console.log(response.json())
+        console.log('CryptoCompare API faile');
       }
       
       const data = await response.json();
       return { 
         success: true, 
         data: {
+          price: parseFloat(data.USD),
           symbol: symbol,
-          price: parseFloat(data.price),
           timestamp: new Date().toISOString(),
-          source: 'binance'
+          source: 'CryptoCompare'
         }
       };
     } catch (error) {
-      console.error('Error fetching ETH price:', error);
+      console.error(`Error fetching ${symbol} price:`, error);
       return { 
         success: true, 
         data: {

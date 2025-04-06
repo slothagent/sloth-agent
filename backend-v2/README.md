@@ -17,6 +17,9 @@ Create a `.env` file in the root directory with the following variables:
 MONGODB_URI=mongodb://localhost:27017/slothagent
 MONGODB_DB=slothagent
 REPLICATE_API_TOKEN=your_replicate_api_token
+OPENAI_API_KEY=your_openai_api_key
+MORALIS_API_KEY=your_moralis_api_key
+BRAVE_API_KEY=your_brave_api_key
 ```
 
 ## Installation
@@ -29,17 +32,6 @@ npm install
 bun install
 ```
 
-## Quick Setup
-
-We've provided setup scripts to make it easy to get started:
-
-```bash
-# Using Node.js
-./setup.sh
-
-# Using Bun
-./setup-bun.sh
-```
 
 ## Running the Application
 
@@ -86,9 +78,19 @@ npm run start:bun
 - `GET /api/transaction` - Get all transactions with pagination
 - `GET /api/transaction?tokenAddress={tokenAddress}` - Get transactions by token address
 - `GET /api/transaction?tokenAddress={tokenAddress}&latest=true` - Get the latest transaction for a token
-- `GET /api/transaction?tokenAddress={tokenAddress}&timeRange={1h|24h|7d|30d|1y}` - Get transactions for a token within a time range
+- `GET /api/transaction?tokenAddress={tokenAddress}&timeRange={1h|24h|7d|30d|1y}` - Get transactions for a time range
 - `GET /api/transaction?totalVolume=true` - Get total transaction volume
 - `POST /api/transaction` - Create a new transaction
+
+### Omni Service API
+
+#### Chat and Search
+- `POST /api/omni/chat` - Chat with AI assistant
+  - Body: `{ "userId": string, "message": string }`
+- `DELETE /api/omni/chat` - Clear chat history
+  - Query params: `userId`
+- `GET /api/omni/search` - Web search functionality
+  - Query params: `query`
 
 ### Price
 - `GET /api/binance-eth-price` - Get the current ETH price

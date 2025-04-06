@@ -16,6 +16,22 @@ interface TemplateQuestion {
   question: string;
 }
 
+
+interface StreamResponse {
+  type: string;
+  response?: {
+    id: string;
+    status: string;
+    created_at: number;
+    output: any[];
+  };
+  item_id?: string;
+  output_index?: number;
+  content_index?: number;
+  delta?: string;
+  error?: string;
+}
+
 // Add LoadingBar component
 const LoadingBar = () => {
   const [progress, setProgress] = useState(0);
@@ -125,6 +141,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
     setIsSearching(true);
     setProcessSteps([{ message: "", status: 'pending' }]);
     let finalMessage = '';
+    let currentContent = '';
     
     try {
       // Get current step from check-action API
@@ -176,46 +193,69 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
-                const data = JSON.parse(line.slice(6)) as {
-                  done?: boolean;
-                  message?: string;
-                  content?: string;
-                };
+                const data = JSON.parse(line.slice(6)) as StreamResponse;
                 
-                if (data.done) {
-                  // Final data received
-                  finalMessage = data.message ?? finalMessage;
-                  // Mark step as completed
-                  setProcessSteps([{ message: checkData.step, status: 'completed' }]);
-                  break;
-                } else if (data.content) {
-                  // Append new content
-                  finalMessage += data.content;
-                  // Update messages in real-time only if shouldUpdateUI is true
-                  if (shouldUpdateUI) {
-                    setMessages(prev => {
-                      const newMessages = [...prev];
-                      const lastMessage = newMessages[newMessages.length - 1];
-                      if (lastMessage && lastMessage.role === 'assistant') {
-                        lastMessage.content = finalMessage;
-                        // Don't force immediate scroll during streaming
-                        scrollToBottom(false);
-                      } else {
+                switch (data.type) {
+                  case 'response.created':
+                    // Initialize message on stream start
+                    if (shouldUpdateUI) {
+                      setMessages(prev => {
+                        const newMessages = [...prev];
+                        if (newMessages.length > 0 && newMessages[newMessages.length - 1].role === 'assistant') {
+                          return prev;
+                        }
                         newMessages.push({
                           id: uuidv4(),
-                          content: finalMessage,
+                          content: '',
                           role: 'assistant',
                           timestamp: new Date()
                         });
-                        // Scroll immediately for new message
-                        scrollToBottom(true);
+                        return newMessages;
+                      });
+                    }
+                    break;
+
+                  case 'response.output_text.delta':
+                    if (data.delta) {
+                      currentContent += data.delta;
+                      if (shouldUpdateUI) {
+                        setMessages(prev => {
+                          const newMessages = [...prev];
+                          const lastMessage = newMessages[newMessages.length - 1];
+                          if (lastMessage && lastMessage.role === 'assistant') {
+                            lastMessage.content = currentContent;
+                            scrollToBottom(false);
+                          }
+                          return newMessages;
+                        });
                       }
-                      return newMessages;
-                    });
-                  }
+                    }
+                    break;
+
+                  case 'response.completed':
+                    finalMessage = currentContent;
+                    if (shouldUpdateUI) {
+                      setMessages(prev => {
+                        const newMessages = [...prev];
+                        const lastMessage = newMessages[newMessages.length - 1];
+                        if (lastMessage && lastMessage.role === 'assistant') {
+                          lastMessage.content = finalMessage;
+                        }
+                        return newMessages;
+                      });
+                    }
+                    // Mark step as completed
+                    setProcessSteps([{ message: checkData.step, status: 'completed' }]);
+                    break;
+
+                  case 'response.error':
+                    console.error('Streaming error:', data.error);
+                    throw new Error(data.error);
+                    break;
                 }
               } catch (e) {
                 console.error('Error parsing SSE data:', e);
+                throw e;
               }
             }
           }
@@ -273,7 +313,6 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
 
       // Start processing message immediately with streaming enabled
       const processPromise = processMessage(messageContent, true);
-      
       // Save user message to database in parallel
       const saveUserMessagePromise = addMessage(chatId!, userMessage);
       
@@ -313,6 +352,75 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
     }
   };
 
+  const handleSelectTemplate = async (e: React.MouseEvent<HTMLButtonElement>, question: string) => {
+    e.preventDefault();
+    setInputValue(question);
+    setShowTemplates(false);
+    
+    try {
+      // Create new chat if none exists
+      if (!chatId) {
+        const newChatId = uuidv4();
+        await createChat(newChatId);
+        setChatId(newChatId);
+      }
+
+      // Create user message with the question directly
+      const userMessage: ChatMessage = {
+        id: uuidv4(),
+        content: question,
+        role: 'user',
+        timestamp: new Date()
+      };
+
+      // Add user message to UI immediately
+      setMessages(prev => [...prev, userMessage]);
+      setIsProcessing(true);
+
+      // Start processing message immediately with streaming enabled
+      const processPromise = processMessage(question, true);
+      
+      // Save user message to database in parallel
+      const saveUserMessagePromise = addMessage(chatId!, userMessage);
+      
+      // Wait for processing to complete
+      const result = await processPromise;
+      // console.log('result', result);
+      
+      // After streaming is complete, save the final assistant message
+      const assistantMessage: ChatMessage = {
+        id: uuidv4(),
+        content: result.success && result.message ? result.message : 'Sorry, there was an error processing your message.',
+        role: 'assistant',
+        timestamp: new Date()
+      };
+
+      // Wait for user message to be saved and then save assistant message
+      try {
+        await saveUserMessagePromise;
+        await addMessage(chatId!, assistantMessage);
+      } catch (error) {
+        console.error('Error saving messages:', error);
+      }
+    } catch (error) {
+      console.error('Error processing message:', error);
+      const errorMessage: ChatMessage = {
+        id: uuidv4(),
+        content: 'Sorry, there was an error processing your message.',
+        role: 'assistant',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      if (chatId) {
+        await addMessage(chatId, errorMessage);
+      }
+    } finally {
+      setIsProcessing(false);
+      setProcessSteps([]);
+      setInputValue('');
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -333,11 +441,6 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
   };
 
   const handleBack = () => {
-    setShowTemplates(false);
-  };
-
-  const handleSelectTemplate = (question: string) => {
-    setInputValue(question);
     setShowTemplates(false);
   };
 
@@ -366,7 +469,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                 <PlusCircle className="w-4 h-4" />
                 New Chat
               </button>
-              <h2 className="text-xl font-semibold text-white absolute left-1/2 -translate-x-1/2">Omni Agent</h2>
+              <h2 className="text-xl font-semibold text-white absolute left-1/2 -translate-x-1/2 items-start flex gap-3">Omni Agent <span className="text-xs font-normal text-gray-300">beta</span></h2>
             </>
           )}
           <button onClick={onClose} className="text-gray-400 hover:text-white cursor-pointer">
@@ -410,7 +513,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
               {templateQuestions.map((template, index) => (
                 <button
                   key={index}
-                  onClick={() => handleSelectTemplate(template.question)}
+                  onClick={(e) => handleSelectTemplate(e, template.question)}
                   className="w-full p-4 bg-[#161B28] hover:bg-[#1F2937] rounded-lg text-left transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-2">
@@ -473,8 +576,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                   <p className="text-[#7D8590] mb-4">Or pick a question to see the power of Omni Agent</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-[800px] mx-auto mb-6">
                     <button
-                      onClick={() => setInputValue("What companies have Polychain invested in recently that raised over $20 million?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "What companies have Polychain invested in recently that raised over $20 million?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">Fundraising</span>
@@ -482,8 +585,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                       <p className="text-white text-sm">What companies have Polychain invested in recently that raised over $20 million?</p>
                     </button>
                     <button
-                      onClick={() => setInputValue("How was Solana funded or bootstrapped?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "How was Solana funded or bootstrapped?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">Diligence</span>
@@ -491,8 +594,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                       <p className="text-white text-sm">How was Solana funded or bootstrapped?</p>
                     </button>
                     <button
-                      onClick={() => setInputValue("Who are the largest block builders on Ethereum? Also, can you explain what LVR is and why it exists?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "Who are the largest block builders on Ethereum? Also, can you explain what LVR is and why it exists?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">Research</span>
@@ -500,8 +603,8 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                       <p className="text-white text-sm">Who are the largest block builders on Ethereum? Also, can you explain what LVR is and why it exists?</p>
                     </button>
                     <button
-                      onClick={() => setInputValue("What were the largest stories in Crypto last week?")}
-                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group"
+                      onClick={(e) => handleSelectTemplate(e, "What were the largest stories in Crypto last week?")}
+                      className="bg-[#161B28] p-4 rounded-lg text-left hover:bg-[#1F2937] transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-[#7D8590] text-sm">News</span>
