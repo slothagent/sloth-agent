@@ -3,8 +3,8 @@ const { ethers } = require("hardhat");
 const { formatEther, parseEther, AbiCoder, toBigInt } = ethers;
 
 const RPC_URL = "https://28122024.rpc.thirdweb.com/0f0cbc64d2af63826712a3e7f09fdee7";
-const TOKEN_ADDRESS = "0x4c9F14bE5a6Ae6110FCa7161AF531D2818Bc23B0";
-const SLOTH_ADDRESS = "0xE2D95026c23E1fC02Cf5ECDe0beA4aae018e6cf5";
+const TOKEN_ADDRESS = "0xE15f0e61978338F2fe3f5EFf14E1bDd64a1aC644";
+const SLOTH_ADDRESS = "0x849C4bA7BdfcA475C98e8950B3041552ED17db68";
 const NATIVE_TOKEN = "0xfC57492d6569f6F45Ea1b8850e842Bf5F9656EA6";
 
 // Function signatures

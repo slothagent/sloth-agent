@@ -25,3 +25,7 @@ param create token
 ]
 SlothFactory deployed to: 0xCF866B12280312C726a56b18e0205C1Baaa38AB8
 Sloth Implementation deployed to: 0xFaa4bBd0c58eda97a3A07A82d5A731725162aA90
+
+EIP 721
+SlothFactory deployed to: 0x4E11A429EB9E62c2F07295957e8815D996727807
+Sloth Implementation deployed to: 0x837B51E83c901440C51465573fdF23671A16B002

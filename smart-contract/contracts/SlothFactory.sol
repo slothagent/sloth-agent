@@ -57,6 +57,11 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
 
     event SignerSet(address);
 
+    event Debug(string message, address sender, bytes32 data);
+    event DebugAddress(string message, address value);
+    event DebugUint(string message, uint256 value);
+    event DebugBool(string message, bool value);
+
     UpgradeableBeacon public beacon;
     address public signerAddress;
     address public bridge;
@@ -74,7 +79,33 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
 
     bytes tokenInitCode;
 
-    constructor(address owner) Ownable(owner) {}
+    // EIP-712 Domain
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
+    
+    // Create token operation typehash
+    bytes32 public constant CREATE_TYPEHASH = keccak256(
+        "Create(address creator,string name,string symbol,uint256 tokenId,uint256 initialDeposit,uint256 nonce,uint256 deadline,address relayer)"
+    );
+
+    // EIP-712 Domain Separator
+    bytes32 public immutable DOMAIN_SEPARATOR;
+    
+    // User nonces for replay protection
+    mapping(address => uint256) public nonces;
+
+    constructor(address owner) Ownable(owner) {
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                DOMAIN_TYPEHASH,
+                keccak256(bytes("Sloth Factory")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(this)
+            )
+        );
+    }
 
     function setSignerAddress(address _signer) external onlyOwner {
         _setSignerAddress(_signer);
@@ -212,31 +243,167 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
         );
     }
 
-    function create(
-        SlothCreationParams memory params
+    function _createBasicDigest(
+        address creator,
+        SlothCreationParams calldata params,
+        uint256 deadline,
+        uint256 nonce
+    ) internal view returns (bytes32) {
+        bytes32 paramsHash = keccak256(
+            abi.encode(
+                CREATE_TYPEHASH,
+                creator,
+                keccak256(bytes(params.name)),
+                keccak256(bytes(params.symbol)),
+                params.tokenId,
+                params.initialDeposit,
+                nonce,
+                deadline
+            )
+        );
+        return keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                paramsHash
+            )
+        );
+    }
+
+    function verifyCreateSignature(
+        address creator,
+        SlothCreationParams calldata params,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public view returns (bool) {
+        require(deadline >= block.timestamp, "Signature expired");
+        bytes32 digest = _createBasicDigest(creator, params, deadline, nonces[creator]);
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        return recoveredAddress != address(0) && recoveredAddress == creator;
+    }
+
+    function _createDigestWithRelayer(
+        address creator,
+        SlothCreationParams calldata params,
+        uint256 deadline,
+        uint256 nonce,
+        address relayer
+    ) internal view returns (bytes32) {
+        bytes32 paramsHash = keccak256(
+            abi.encode(
+                CREATE_TYPEHASH,
+                creator,
+                keccak256(bytes(params.name)),
+                keccak256(bytes(params.symbol)),
+                params.tokenId,
+                params.initialDeposit,
+                nonce,
+                deadline,
+                relayer
+            )
+        );
+        return keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                paramsHash
+            )
+        );
+    }
+
+    function verifyCreateSignatureWithRelayer(
+        address creator,
+        SlothCreationParams calldata params,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        address relayer,
+        uint256 nonce
+    ) public view returns (bool) {
+        require(deadline >= block.timestamp, "Signature expired");
+        require(nonce == nonces[creator], "Invalid nonce");
+        
+        bytes32 digest = _createDigestWithRelayer(creator, params, deadline, nonce, relayer);
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        return recoveredAddress != address(0) && recoveredAddress == creator;
+    }
+
+    function createWithPermit(
+        SlothCreationParams calldata params,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external returns (address token, address sloth) {
+        require(verifyCreateSignature(msg.sender, params, deadline, v, r, s), "Invalid signature");
+        nonces[msg.sender]++;
+        
+        return _create(msg.sender, params);
+    }
+
+    function createWithPermitRelayer(
+        address creator,
+        SlothCreationParams calldata params,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s,
+        uint256 nonce
+    ) external returns (address token, address sloth) {
+        emit Debug("Starting createWithPermitRelayer", msg.sender, "");
+        emit DebugAddress("Creator", creator);
+        
+        bool isValid = verifyCreateSignatureWithRelayer(creator, params, deadline, v, r, s, msg.sender, nonce);
+        emit DebugBool("Signature validation result", isValid);
+        
+        require(isValid, "Invalid signature");
+        nonces[creator]++;
+        emit DebugUint("New nonce", nonces[creator]);
+        
+        return _create(creator, params);
+    }
+
+    function _create(
+        address creator,
+        SlothCreationParams memory params
+    ) internal returns (address token, address sloth) {
+        emit Debug("Starting _create", msg.sender, "");
         require(forLaunching, "Only in launching mode");
+        emit DebugBool("forLaunching check passed", true);
 
         bytes32 salt = keccak256(abi.encodePacked(params.tokenId));
+        emit Debug("Generated salt", address(0), salt);
 
         token = Create2.deploy(
             0,
             salt,
             abi.encodePacked(type(SlothToken).creationCode)
         );
+        emit DebugAddress("Token deployed at", token);
 
         bytes32 pumpSalt = keccak256(abi.encodePacked(token));
+        emit Debug("Generated pump salt", address(0), pumpSalt);
 
+        // only sonic have stable pairs
         address uniswapPair = IUniswapV2Factory(uniswapV2Factory).getPair(
             token,
-            address(native)
+            address(native),
+            false
         );
+        emit DebugAddress("Existing uniswap pair", uniswapPair);
 
         if (uniswapPair == address(0)) {
+            emit Debug("Creating new uniswap pair", address(0), "");
+            // only sonic have stable pairs
             uniswapPair = IUniswapV2Factory(uniswapV2Factory).createPair(
                 token,
-                address(native)
+                address(native),
+                false
             );
+            emit DebugAddress("New uniswap pair created at", uniswapPair);
         }
 
         sloth = Create2.deploy(
@@ -247,18 +414,29 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
                 abi.encode(address(beacon), "")
             )
         );
+        emit DebugAddress("Sloth deployed at", sloth);
 
-        SlothToken(token).initialize(
+        try SlothToken(token).initialize(
             params.name,
             params.symbol,
             sloth,
             uniswapPair,
             totalSupply
-        );
+        ) {
+            emit Debug("Token initialization successful", address(0), "");
+        } catch Error(string memory reason) {
+            emit Debug("Token initialization failed", address(0), bytes32(bytes(reason)));
+            revert(reason);
+        }
 
-        IERC20(token).transfer(sloth, totalSupply);
+        try IERC20(token).transfer(sloth, totalSupply) {
+            emit Debug("Token transfer to sloth successful", address(0), "");
+        } catch Error(string memory reason) {
+            emit Debug("Token transfer to sloth failed", address(0), bytes32(bytes(reason)));
+            revert(reason);
+        }
 
-        ISloth(sloth).initialize(
+        try ISloth(sloth).initialize(
             token,
             native,
             uniswapV2Factory,
@@ -266,12 +444,17 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
             saleAmount,
             tokenOffset,
             nativeOffset
-        );
+        ) {
+            emit Debug("Sloth initialization successful", address(0), "");
+        } catch Error(string memory reason) {
+            emit Debug("Sloth initialization failed", address(0), bytes32(bytes(reason)));
+            revert(reason);
+        }
 
         emit SlothCreated(
             token,
             sloth,
-            msg.sender,
+            creator,
             totalSupply,
             saleAmount,
             tokenOffset,
@@ -282,9 +465,10 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
         );
 
         if (params.initialDeposit > 0) {
+            emit DebugUint("Processing initial deposit", params.initialDeposit);
             require(
                 IERC20(native).transferFrom(
-                    msg.sender,
+                    creator,
                     address(this),
                     params.initialDeposit
                 ),
@@ -292,15 +476,24 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
             );
 
             IERC20(native).transfer(sloth, params.initialDeposit);
-            ISloth(sloth).initialBuy(params.initialDeposit, msg.sender);
+            ISloth(sloth).initialBuy(params.initialDeposit, creator);
+            emit Debug("Initial deposit processed successfully", address(0), "");
         }
 
         if (creationFee > 0) {
+            emit DebugUint("Processing creation fee", creationFee);
             require(
-                IERC20(native).transferFrom(msg.sender, feeTo, creationFee),
+                IERC20(native).transferFrom(creator, feeTo, creationFee),
                 "Failed to pay creation fee"
             );
+            emit Debug("Creation fee processed successfully", address(0), "");
         }
+    }
+
+    function create(
+        SlothCreationParams memory params
+    ) external returns (address token, address sloth) {
+        return _create(msg.sender, params);
     }
 
     function createWithoutLaunching(

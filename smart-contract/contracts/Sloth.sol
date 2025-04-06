@@ -21,10 +21,57 @@ contract Sloth is ISloth, Initializable {
     uint256 public totalTokenSold;
     uint256 public totalNativeCollected;
 
+    // Debug events
+    event Debug(string message, address indexed sender, string data);
+    event DebugAddress(string message, address value);
+    event DebugBool(string message, bool value);
+    event DebugUint(string message, uint256 value);
+    event DebugSignatureVerification(
+        string message,
+        bytes32 typehash,
+        bytes32 structHash,
+        bytes32 digest,
+        address recoveredAddress,
+        address expectedSigner
+    );
+
     // Maximum balance for bonding curve (25,000 A8 tokens)
     uint256 public constant MAX_BONDING_BALANCE = 25_000 * 1e18;
     // Add event for token launch
     event TokenLaunched(address indexed launcher, uint256 nativeAmount, uint256 tokenAmount);
+
+    // EIP-712 Domain
+    bytes32 public constant DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
+    
+    // Buy operation typehash
+    bytes32 public constant BUY_TYPEHASH = keccak256(
+        "Buy(address buyer,address recipient,uint256 nativeAmount,uint256 nonce,uint256 deadline,address relayer)"
+    );
+    
+    // Sell operation typehash
+    bytes32 public constant SELL_TYPEHASH = keccak256(
+        "Sell(address seller,address recipient,uint256 tokenAmount,uint256 nonce,uint256 deadline,address relayer)"
+    );
+
+    // EIP-712 Domain Separator
+    bytes32 public immutable DOMAIN_SEPARATOR;
+    
+    // User nonces for replay protection
+    mapping(address => uint256) public nonces;
+
+    constructor() {
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                DOMAIN_TYPEHASH,
+                keccak256(bytes("Sloth Factory")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(this)
+            )
+        );
+    }
 
     function initialize(
         address _token,
@@ -87,36 +134,216 @@ contract Sloth is ISloth, Initializable {
         emit TokenBought(msg.sender, _to, _nativeAmount, tokenAmount);
     }
 
-    function buy(uint256 _nativeAmount, address _to) external {
-        require(_nativeAmount > 0, "Native amount must be greater than 0");
+    function _createBuyDigestWithRelayer(
+        address buyer,
+        address recipient,
+        uint256 nativeAmount,
+        uint256 nonce,
+        uint256 deadline,
+        address relayer
+    ) internal view returns (bytes32) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                BUY_TYPEHASH,
+                buyer,
+                recipient,
+                nativeAmount,
+                nonce,
+                deadline,
+                relayer
+            )
+        );
+        return keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
+    }
+
+    function _createSellDigestWithRelayer(
+        address seller,
+        address recipient,
+        uint256 tokenAmount,
+        uint256 nonce,
+        uint256 deadline,
+        address relayer
+    ) internal view returns (bytes32) {
+        bytes32 structHash = keccak256(
+            abi.encode(
+                SELL_TYPEHASH,
+                seller,
+                recipient,
+                tokenAmount,
+                nonce,
+                deadline,
+                relayer
+            )
+        );
+        return keccak256(
+            abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash)
+        );
+    }
+
+    function verifyBuySignatureWithRelayer(
+        address buyer,
+        address recipient,
+        uint256 nativeAmount,
+        uint256 nonce,
+        uint256 deadline,
+        address relayer,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external view returns (bool, address, bytes32) {
+        bytes32 digest = _createBuyDigestWithRelayer(
+            buyer,
+            recipient,
+            nativeAmount,
+            nonce,
+            deadline,
+            relayer
+        );
+
+        address recoveredAddress = ecrecover(digest, v, r, s);
+
+        /// todo: add fix for case-insensitive address comparison
+        return (
+            recoveredAddress != address(0),
+            recoveredAddress,
+            digest
+        );
+    }
+
+    function verifySellSignatureWithRelayer(
+        address seller,
+        address recipient,
+        uint256 tokenAmount,
+        uint256 nonce,
+        uint256 deadline,
+        address relayer,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external view returns (bool, address, bytes32) {
+        bytes32 digest = _createSellDigestWithRelayer(
+            seller,
+            recipient,
+            tokenAmount,
+            nonce,
+            deadline,
+            relayer
+        );
+
+        address recoveredAddress = ecrecover(digest, v, r, s);
+
+        /// todo: add fix for case-insensitive address comparison
+        return (
+            recoveredAddress != address(0),
+            recoveredAddress,
+            digest
+        );
+    }
+
+    function buyWithPermitRelayer(
+        address buyer,
+        address recipient,
+        uint256 nativeAmount,
+        uint256 nonce,
+        uint256 deadline,
+        address relayer,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(deadline >= block.timestamp, "Signature expired");
+        require(nonce == nonces[buyer], "Invalid nonce");
+        
+        (bool isValid,,) = this.verifyBuySignatureWithRelayer(
+            buyer,
+            recipient,
+            nativeAmount,
+            nonce,
+            deadline,
+            relayer,
+            v,
+            r,
+            s
+        );
+        
+        require(isValid, "Invalid signature");
+        nonces[buyer]++;
+        
+        _buy(buyer, recipient, nativeAmount);
+    }
+
+    function sellWithPermitRelayer(
+        address seller,
+        address recipient,
+        uint256 tokenAmount,
+        uint256 nonce,
+        uint256 deadline,
+        address relayer,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(deadline >= block.timestamp, "Signature expired");
+        require(nonce == nonces[seller], "Invalid nonce");
+        
+        (bool isValid,,) = this.verifySellSignatureWithRelayer(
+            seller,
+            recipient,
+            tokenAmount,
+            nonce,
+            deadline,
+            relayer,
+            v,
+            r,
+            s
+        );
+        
+        require(isValid, "Invalid signature");
+        nonces[seller]++;
+        
+        _sell(seller, recipient, tokenAmount);
+    }
+
+    function _buy(address buyer, address recipient, uint256 nativeAmount) internal {
+        require(nativeAmount > 0, "Native amount must be greater than 0");
         require(totalTokenSold > 0, "Initial buy not done");
 
-        uint256 tokenAmount = calculateTokenAmount(_nativeAmount);
+        uint256 tokenAmount = calculateTokenAmount(nativeAmount);
         require(tokenAmount + totalTokenSold <= saleAmount, "Not enough tokens for sale");
 
         totalTokenSold += tokenAmount;
-        totalNativeCollected += _nativeAmount;
+        totalNativeCollected += nativeAmount;
 
-        IERC20(native).transferFrom(msg.sender, address(this), _nativeAmount);
-        IERC20(token).transfer(_to, tokenAmount);
+        IERC20(native).transferFrom(buyer, address(this), nativeAmount);
+        IERC20(token).transfer(recipient, tokenAmount);
 
-        emit TokenBought(msg.sender, _to, _nativeAmount, tokenAmount);
+        emit TokenBought(buyer, recipient, nativeAmount, tokenAmount);
+    }
+
+    function _sell(address seller, address recipient, uint256 tokenAmount) internal {
+        require(tokenAmount > 0, "Token amount must be greater than 0");
+        require(totalTokenSold > 0, "No tokens have been sold yet");
+
+        uint256 nativeAmount = calculateNativeAmount(tokenAmount);
+        require(nativeAmount <= IERC20(native).balanceOf(address(this)), "Not enough native tokens in contract");
+
+        totalTokenSold -= tokenAmount;
+        totalNativeCollected -= nativeAmount;
+
+        IERC20(token).transferFrom(seller, address(this), tokenAmount);
+        IERC20(native).transfer(recipient, nativeAmount);
+
+        emit TokenSold(seller, recipient, tokenAmount, nativeAmount);
+    }
+
+    function buy(uint256 _nativeAmount, address _to) external {
+        _buy(msg.sender, _to, _nativeAmount);
     }
 
     function sell(uint256 _tokenAmount, address _to) external {
-        require(_tokenAmount > 0, "Token amount must be greater than 0");
-        require(totalTokenSold > 0, "No tokens have been sold yet");
-
-        uint256 nativeAmount = calculateNativeAmount(_tokenAmount);
-        require(nativeAmount <= IERC20(native).balanceOf(address(this)), "Not enough native tokens in contract");
-
-        totalTokenSold -= _tokenAmount;
-        totalNativeCollected -= nativeAmount;
-
-        IERC20(token).transferFrom(msg.sender, address(this), _tokenAmount);
-        IERC20(native).transfer(_to, nativeAmount);
-
-        emit TokenSold(msg.sender, _to, _tokenAmount, nativeAmount);
+        _sell(msg.sender, _to, _tokenAmount);
     }
 
     function calculateTokenAmount(uint256 _nativeAmount) public view returns (uint256) {
