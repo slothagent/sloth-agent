@@ -6,14 +6,6 @@ import axios from 'axios';
 
 dotenv.config();
 
-// Define signatures for token functions
-const SIGNATURES = {
-    allowance: '0xdd62ed3e',  // allowance(address,address)
-    approve: '0x095ea7b3',     // approve(address,uint256)
-    totalNativeCollected: "0x78e28b7e", // totalNativeCollected()
-};
-
-
 // Define interfaces
 interface SlothCreationParams {
     name: string;
@@ -33,57 +25,6 @@ interface CreateTokenRequest {
         r: string;
         s: string;
     };
-}
-
-
-// RPC helper functions
-async function makeRpcCall(method: string, params: any[]) {
-    try {
-        const response = await axios.post(process.env.RPC_URL_SONIC || '', {
-            jsonrpc: "2.0",
-            id: Math.floor(Math.random() * 1000),
-            method,
-            params
-        });
-
-        if (!response.data || response.data.error) {
-            console.error("RPC Error:", response.data?.error || "No response data");
-            throw new Error("RPC call failed");
-        }
-
-        return response.data.result;
-    } catch (error) {
-        console.error("RPC call failed:", error instanceof Error ? error.message : String(error));
-        throw error;
-    }
-}
-
-async function ethCall(to: string, data: string) {
-    try {
-        const result = await makeRpcCall("eth_call", [{
-            to,
-            data
-        }, "latest"]);
-
-        if (!result || !result.startsWith('0x')) {
-            console.error("Invalid eth_call result:", result);
-            throw new Error("Invalid eth_call result");
-        }
-
-        return result;
-    } catch (error) {
-        console.error("eth_call failed for contract:", to);
-        console.error("with data:", data);
-        throw error;
-    }
-}
-
-
-// Encode function call with parameters
-function encodeFunction(signature: string, ...params: bigint[]) {
-    const abiCoder = new ethers.AbiCoder();
-    const encodedParams = params.length > 0 ? abiCoder.encode(params.map(() => 'uint256'), params).slice(2) : '';
-    return signature + encodedParams;
 }
 
 // Helper function to convert BigInt values to strings
@@ -237,33 +178,37 @@ async function createTokenWithPermitRelayer(
             RELAYER_ADDRESS
         );
 
-        // Check allowance using RPC
-        const allowanceData = encodeFunction(
-            SIGNATURES.allowance,
-            BigInt(creatorAddress),
-            BigInt(NATIVE_TOKEN)
-        );
-        const allowanceHex = await ethCall(NATIVE_TOKEN, allowanceData);
-        const allowance = BigInt(allowanceHex);
-        console.log("Current allowance:", ethers.formatEther(allowance));
+        // Convert ETH to WETH and approve
+        const wethInterface = new ethers.Interface([
+            'function deposit() payable',
+            'function approve(address spender, uint256 amount) returns (bool)',
+            'function balanceOf(address account) view returns (uint256)'
+        ]);
 
-        if (allowance < BigInt(params.initialDeposit || '0')) {
-            console.log("\nApproving native token...");
-            const approveData = encodeFunction(
-                SIGNATURES.approve,
-                BigInt(slothFactoryContract.target.toString()),
-                BigInt(params.initialDeposit || '0')
-            );
-            
-            const approveTx = await signer.sendTransaction({
-                to: NATIVE_TOKEN,
-                data: approveData
-            });
-            console.log("Approval transaction sent:", approveTx.hash);
-            
-            await approveTx.wait();
-            console.log("Approval confirmed ✅");
-        }
+        const wethContract = new ethers.Contract(NATIVE_TOKEN, wethInterface, signer);
+
+        // First deposit ETH to get WETH
+        // console.log("\nDepositing ETH to get WETH...");
+        // const depositTx = await wethContract.deposit({
+        //     value: BigInt(params.initialDeposit || '0')
+        // });
+        // await depositTx.wait();
+        // console.log("ETH deposited to WETH ✅");
+
+        // Check WETH balance
+        const wethBalance = await wethContract.balanceOf(creatorAddress);
+        console.log("WETH Balance:", ethers.formatEther(wethBalance));
+
+        // Approve WETH spending
+        console.log("\nApproving WETH...");
+        const approveTx = await wethContract.approve(
+            SLOTH_FACTORY_CONTRACT_ADDRESS,
+            BigInt(params.initialDeposit || '0')
+        );
+        console.log("Approval transaction sent:", approveTx.hash);
+        
+        await approveTx.wait();
+        console.log("WETH Approval confirmed ✅");
 
         // Prepare request body
         const requestBody: CreateTokenRequest = {
@@ -318,7 +263,7 @@ async function createTokenWithPermitRelayer(
 async function main() {
     try {
         // Set up provider
-        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL_SONIC);
+        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL_ANCIENT8);
         
         // Set up signer (token creator)
         const creatorPrivateKey = process.env.PRIVATE_KEY;

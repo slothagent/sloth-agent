@@ -7,13 +7,13 @@ import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/Upgradeabl
 import {FullMath} from "./libraries/FullMath.sol";
 import {ISlothFactory} from "./interfaces/ISlothFactory.sol";
 import {ISloth} from "./interfaces/ISloth.sol";
-import {IUniswapV2Factory} from "./interfaces/IUniswapV2Factory.sol";
+import {IUniswapV2FactorySonic} from "./interfaces/IUniswapV2FactorySonic.sol";
 import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import "./SlothToken.sol";
 
-contract SlothFactory is ISlothFactory, Initializable, Ownable {
+contract SlothFactorySonic is ISlothFactory, Initializable, Ownable {
     using Create2 for *;
 
     event CurveSet(
@@ -387,17 +387,19 @@ contract SlothFactory is ISlothFactory, Initializable, Ownable {
         bytes32 pumpSalt = keccak256(abi.encodePacked(token));
         emit Debug("Generated pump salt", address(0), pumpSalt);
 
-        address uniswapPair = IUniswapV2Factory(uniswapV2Factory).getPair(
+        address uniswapPair = IUniswapV2FactorySonic(uniswapV2Factory).getPair(
             token,
-            address(native)
+            address(native),
+            false
         );
         emit DebugAddress("Existing uniswap pair", uniswapPair);
 
         if (uniswapPair == address(0)) {
             emit Debug("Creating new uniswap pair", address(0), "");
-            uniswapPair = IUniswapV2Factory(uniswapV2Factory).createPair(
+            uniswapPair = IUniswapV2FactorySonic(uniswapV2Factory).createPair(
                 token,
-                address(native)
+                address(native),
+                false
             );
             emit DebugAddress("New uniswap pair created at", uniswapPair);
         }

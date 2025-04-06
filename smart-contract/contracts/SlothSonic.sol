@@ -10,7 +10,7 @@ import {FullMath} from "./libraries/FullMath.sol";
 import {ISlothToken} from "./interfaces/ISlothToken.sol";
 import {SlothToken} from "./SlothToken.sol";
 
-contract Sloth is ISloth, Initializable {
+contract SlothSonic is ISloth, Initializable {
     address public token;
     address public native;
     address public uniswapV2Factory;

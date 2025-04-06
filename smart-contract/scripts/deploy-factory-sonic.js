@@ -6,13 +6,13 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
 
   // Deploy SlothFactory
-  const SlothFactory = await ethers.getContractFactory("SlothFactory");
+  const SlothFactory = await ethers.getContractFactory("SlothFactorySonic");
   const slothFactory = await SlothFactory.deploy(deployer.address);
   await slothFactory.waitForDeployment();
   console.log("SlothFactory deployed to:", await slothFactory.getAddress());
 
   // Deploy Sloth implementation
-  const Sloth = await ethers.getContractFactory("Sloth");
+  const Sloth = await ethers.getContractFactory("SlothSonic");
   const slothImplementation = await Sloth.deploy();
   await slothImplementation.waitForDeployment();
   console.log("Sloth Implementation deployed to:", await slothImplementation.getAddress());
