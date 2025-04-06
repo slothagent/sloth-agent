@@ -1,4 +1,3 @@
-
 interface FunctionTool {
     name: string;
     parameters: Record<string, unknown>;
@@ -167,7 +166,7 @@ export const functionTools: Array<FunctionTool> = [
     },
     {
         type: "function",
-        name: "sui_getAllBalances",
+        name: "suiGetAllBalances",
         description: "Get all token balances for a Sui wallet",
         parameters: {
             type: "object",
@@ -184,7 +183,146 @@ export const functionTools: Array<FunctionTool> = [
     },
     {
         type: "function",
-        name: "sui_getBalance",
+        name: "suiGetAllCoins",
+        description: "Get all coins for a Sui wallet",
+        parameters: {
+            type: "object",
+            properties: {
+                wallet: {
+                    type: "string",
+                    description: "Sui wallet address"
+                }
+            },
+            required: ["wallet"],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetBalance",
+        description: "Get balance of a specific coin for a Sui wallet",
+        parameters: {
+            type: "object",
+            properties: {
+                wallet: {
+                    type: "string",
+                    description: "Sui wallet address"
+                },
+                coinType: {
+                    type: "string",
+                    description: "Coin type to check balance for"
+                }
+            },
+            required: ["wallet", "coinType"],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetCoinMetadata",
+        description: "Get metadata for a specific coin type",
+        parameters: {
+            type: "object",
+            properties: {
+                coinType: {
+                    type: "string",
+                    description: "Coin type to get metadata for"
+                }
+            },
+            required: ["coinType"],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetCoins",
+        description: "Get specific coins for a wallet with optional pagination",
+        parameters: {
+            type: "object",
+            properties: {
+                wallet: {
+                    type: "string",
+                    description: "Sui wallet address"
+                },
+                coinType: {
+                    type: "string",
+                    description: "Coin type to get"
+                }
+            },
+            required: ["wallet", "coinType"],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetTotalSupply",
+        description: "Get total supply for a specific coin type",
+        parameters: {
+            type: "object",
+            properties: {
+                coinType: {
+                    type: "string",
+                    description: "Coin type to get total supply for"
+                }
+            },
+            required: ["coinType"],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetStakes",
+        description: "Get staking information for a Sui wallet",
+        parameters: {
+            type: "object",
+            properties: {
+                wallet: {
+                    type: "string",
+                    description: "Sui wallet address"
+                }
+            },
+            required: ["wallet"],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetValidatorsApy",
+        description: "Get APY information for all Sui validators",
+        parameters: {
+            type: "object",
+            properties: {},
+            required: [],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetCoinsWithPagination",
+        description: "Get coins for a wallet with page-based pagination",
+        parameters: {
+            type: "object",
+            properties: {
+                wallet: {
+                    type: "string",
+                    description: "Sui wallet address"
+                }
+            },
+            required: ["wallet"],
+            additionalProperties: false
+        },
+        strict: true
+    },
+    {
+        type: "function",
+        name: "suiGetCoinBalance",
         description: "Get balance of a specific coin for a Sui wallet",
         parameters: {
             type: "object",
