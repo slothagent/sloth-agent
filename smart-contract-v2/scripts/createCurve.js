@@ -13,7 +13,7 @@ async function main() {
         // Curve 1 - Flat distribution
         [500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500, 500],
         
-        // Curve 2 - Ascending distribution
+        // Curve 2 - Ascending distribution (Adjusted for 100,000 tokens)
         [300, 325, 350, 375, 400, 425, 450, 475, 500, 530, 550, 580, 600, 630, 650, 680, 700, 730, 750],
         
         // Curve 3 - Descending distribution

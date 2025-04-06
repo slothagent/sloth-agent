@@ -24,7 +24,6 @@ contract SlothFactory is Ownable2Step, ReentrancyGuard {
   uint256 public migrationFee;
   uint256 public pendingFees;
   uint256 public tradingFee;
-  uint256 public createFee;
   uint256 public creatorRewards;
   // Addresses
   address payable public immutable SHADOW_ROUTER;
@@ -89,7 +88,6 @@ contract SlothFactory is Ownable2Step, ReentrancyGuard {
     feeReceiver = payable(msig);
     tradingFee = 100; // 1%
     migrationFee = 400;
-    createFee = 1 ether;
     creatorRewards = 300; // 3%
   }
 
@@ -102,12 +100,10 @@ contract SlothFactory is Ownable2Step, ReentrancyGuard {
     Curve memory curve = curves[curveIndex_];
     uint256 percent = curve.percentOfLP;
     uint256[] memory arr = curve.distribution;
-    uint256 createFee_ = createFee;
     require(!isPaused, "Sloth: TOKEN_CREATION_IS_PAUSED");
     require(percent != 0, "Sloth: CURVE_DOES_NOT_EXIST");
     require(totalSupply_ >= 1 ether, "Sloth: TOTAL_SUPPLY_TOO_LOW");
-    require(msg.value <= 500 ether + createFee_, "Sloth: TOO_MUCH_ETH");
-    require(msg.value >= createFee_, "Sloth: TOO_LITTLE_ETH");
+    require(msg.value <= 500 ether, "Sloth: TOO_MUCH_ETH");
     SlothToken token = new SlothToken(name_, symbol_, totalSupply_);
 
     address t = address(token);
@@ -126,9 +122,8 @@ contract SlothFactory is Ownable2Step, ReentrancyGuard {
     tokens[t].pair = pair;
 
     emit TokenCreated(t, msg.sender, curveIndex_);
-    pendingFees += createFee_;
-    if (msg.value != createFee_) {
-      _buy(t, msg.sender, msg.value - createFee_, 0);
+    if (msg.value > 0) {
+      _buy(t, msg.sender, msg.value, 0);
     }
   }
 
@@ -362,11 +357,6 @@ contract SlothFactory is Ownable2Step, ReentrancyGuard {
   function setMigrationFee(uint256 migrationFee_) external onlyOwner {
     require(migrationFee_ <= 1000, "Sloth: MIGRATION_FEE_TOO_HIGH");
     migrationFee = migrationFee_;
-  }
-
-  function setCreateFee(uint256 createFee_) external onlyOwner {
-    require(createFee_ <= 50 ether, "Sloth: FEE_TOO_HIGH");
-    createFee = createFee_;
   }
 
   function setCreatorRewards(uint256 creatorRewards_) external onlyOwner {
