@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-interface ISloth {
+interface ISlothSonic {
     /**
      * @notice Emitted when tokens are bought in initial sale
      * @param buyer Address of the buyer
@@ -144,7 +144,7 @@ interface ISloth {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external;
+    ) external payable;
 
     /**
      * @notice Sell tokens with a permit through a relayer

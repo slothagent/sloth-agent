@@ -59,7 +59,7 @@ function convertBigIntToString(obj: any): any {
 // RPC helper functions
 async function makeRpcCall(method: string, params: any[]) {
     try {
-        const response = await axios.post(process.env.RPC_URL_SONIC || '', {
+        const response = await axios.post(process.env.RPC_URL_ANCIENT8 || '', {
             jsonrpc: "2.0",
             id: Math.floor(Math.random() * 1000),
             method,
@@ -280,7 +280,7 @@ async function sellTokenWithPermitRelayer(
 async function main() {
     try {
         // Set up provider
-        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL_SONIC);
+        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL_ANCIENT8);
         
         // Set up signer (seller)
         const sellerPrivateKey = process.env.PRIVATE_KEY;
@@ -295,7 +295,7 @@ async function main() {
             tokenAmount: ethers.parseEther("1") // Selling 1 token
         };
 
-        const SLOTH_ADDRESS = "0xb7868421Bf26e73079971fCe77158081A7ff70c2"; // Example Sloth contract address
+        const SLOTH_ADDRESS = "0x77D450C60c4746B16513b2aFb334Be77786ed27a"; // Example Sloth contract address
 
         console.log("Selling token with parameters:", convertBigIntToString(sellParams));
         const result = await sellTokenWithPermitRelayer(signer, SLOTH_ADDRESS, sellParams);
