@@ -283,101 +283,101 @@ export default function AgentDetails() {
                     </div>
                 </div>
             </div>
-            <div className='flex-1 h-[60%] inline-block border border-[#1F2937] bg-[#0B0E17]'>
+            <div className='flex-1 border border-[#1F2937] bg-[#0B0E17] flex flex-col'>
                 {activeTab === 'chat' && (
-                <div className="flex flex-col flex-1 h-full w-full">
-                    {/* Chat Messages */}
-                    <div className="flex-1 h-full overflow-y-auto p-4 space-y-4 max-w-full">
-                    {messages.map((msg, index) => {
-                        const isFirstInGroup = index === 0 || messages[index - 1].role !== msg.role;
-                        
-                        return (
-                        <div
-                            key={msg.id}
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                            {msg.role === 'assistant' && isFirstInGroup && (
-                            <img 
-                                src={selectedAgent?.imageUrl || DEFAULT_IMAGE}
-                                alt="Bot"
-                                className="w-8 h-8 rounded-lg mr-2"
-                            />
-                            )}
-                            
-                            <div
-                            className={`max-w-full overflow-x-hidden p-2 ${
-                                msg.role === 'user' ? 'bg-[#2196F3] text-white' : 'bg-[#233432] text-gray-100'
-                            }`}
-                            >
-                            {msg.type === 'tweets' && typeof msg.content === 'object' && 'texts' in msg.content ? (
-                                <div className="space-y-4">
-                                {msg.content.texts.map((tweet, index) => (
-                                    <div key={index} className="border border-gray-700 p-3 ">
-                                    <p className="text-sm whitespace-pre-wrap mb-2">{tweet}</p>
-                                    <Button
-                                        onClick={() => handlePostTweet(tweet)}
-                                        className="bg-[#1DA1F2] hover:bg-[#1DA1F2]/80 text-white text-xs py-1 px-3 rounded-full"
+                    <div className="flex flex-col h-full">
+                        {/* Messages container */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {messages.map((msg, index) => {
+                                const isFirstInGroup = index === 0 || messages[index - 1].role !== msg.role;
+                                
+                                return (
+                                <div
+                                    key={msg.id}
+                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                >
+                                    {msg.role === 'assistant' && isFirstInGroup && (
+                                    <img 
+                                        src={selectedAgent?.imageUrl || DEFAULT_IMAGE}
+                                        alt="Bot"
+                                        className="w-8 h-8 rounded-lg mr-2"
+                                    />
+                                    )}
+                                    
+                                    <div
+                                    className={`max-w-full overflow-x-hidden p-2 ${
+                                        msg.role === 'user' ? 'bg-[#2196F3] text-white' : 'bg-[#233432] text-gray-100'
+                                    }`}
                                     >
-                                        Post Tweet
-                                    </Button>
+                                    {msg.type === 'tweets' && typeof msg.content === 'object' && 'texts' in msg.content ? (
+                                        <div className="space-y-4">
+                                        {msg.content.texts.map((tweet, index) => (
+                                            <div key={index} className="border border-gray-700 p-3 ">
+                                            <p className="text-sm whitespace-pre-wrap mb-2">{tweet}</p>
+                                            <Button
+                                                onClick={() => handlePostTweet(tweet)}
+                                                className="bg-[#1DA1F2] hover:bg-[#1DA1F2]/80 text-white text-xs py-1 px-3 rounded-full"
+                                            >
+                                                Post Tweet
+                                            </Button>
+                                            </div>
+                                        ))}
+                                        </div>
+                                    ) : (
+                                        <div className='w-full'>
+                                            <p className="text-sm whitespace-pre-wrap break-words">{msg.content as string}</p>
+                                        </div>
+                                    )}
+                                    {msg.role === 'assistant' && (
+                                      <span className="text-[10px] opacity-50 mt-2 flex gap-2">
+                                        <RotateCcw className='w-4 h-4'/>
+                                        <Copy className='w-4 h-4'/>
+                                        <Upload className='w-4 h-4'/>
+                                        <ThumbsUp className='w-4 h-4'/>
+                                        <ThumbsDown className='w-4 h-4'/>
+                                      </span>
+                                    )}
                                     </div>
-                                ))}
                                 </div>
-                            ) : (
-                                <div className='w-full'>
-                                    <p className="text-sm whitespace-pre-wrap break-words">{msg.content as string}</p>
+                                );
+                            })}
+                          {isLoading && selectedAgent && (
+                              <div className="flex justify-start items-center">
+                                <img 
+                                  src={selectedAgent.imageUrl || DEFAULT_IMAGE} 
+                                  alt={selectedAgent.name || "Bot"} 
+                                  className="w-8 h-8 mr-2 rounded-full object-cover"
+                                  onError={(e) => e.currentTarget.src = DEFAULT_IMAGE} 
+                                />
+                                <div className="bg-gray-800 p-3 rounded-2xl">
+                                 <p className="text-sm text-gray-400 animate-pulse">{typingMessages[typingIndex]}</p>
                                 </div>
+                              </div>
                             )}
-                            {msg.role === 'assistant' && (
-                              <span className="text-[10px] opacity-50 mt-2 flex gap-2">
-                                <RotateCcw className='w-4 h-4'/>
-                                <Copy className='w-4 h-4'/>
-                                <Upload className='w-4 h-4'/>
-                                <ThumbsUp className='w-4 h-4'/>
-                                <ThumbsDown className='w-4 h-4'/>
-                              </span>
-                            )}
-                            </div>
+                            <div ref={messagesEndRef} />
                         </div>
-                        );
-                    })}
-                  {isLoading && selectedAgent && (
-                      <div className="flex justify-start items-center">
-                        <img 
-                          src={selectedAgent.imageUrl || DEFAULT_IMAGE} 
-                          alt={selectedAgent.name || "Bot"} 
-                          className="w-8 h-8 mr-2 rounded-full object-cover"
-                          onError={(e) => e.currentTarget.src = DEFAULT_IMAGE} 
-                        />
-                        <div className="bg-gray-800 p-3 rounded-2xl">
-                         <p className="text-sm text-gray-400 animate-pulse">{typingMessages[typingIndex]}</p>
+                        
+                        {/* Input container */}
+                        <div className="flex-shrink-0 border-t border-gray-800 bg-gray-900/50 p-6">
+                        <div className="flex gap-2">
+                            <Input
+                            type="text"
+                            placeholder="Type your message..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                            className="flex-1  bg-gray-800 rounded-none border-gray-700 focus:border-gray-600 text-gray-100"
+                            />
+                            <Button 
+                            onClick={handleSendMessage}
+                            disabled={isLoading || !message.trim()}
+                            className="bg-[#2196F3] rounded-none hover:bg-[#2196F3]/20 transition-colors px-6"
+                            >
+                            <Send className="h-5 w-5" />
+                            </Button>
                         </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
+                        </div>  
                     </div>
-                    
-                    {/* Input Area */}
-                    <div className="border-t border-gray-800 bg-gray-900/50 p-6">
-                    <div className="flex gap-2">
-                        <Input
-                        type="text"
-                        placeholder="Type your message..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                        className="flex-1  bg-gray-800 rounded-none border-gray-700 focus:border-gray-600 text-gray-100"
-                        />
-                        <Button 
-                        onClick={handleSendMessage}
-                        disabled={isLoading || !message.trim()}
-                        className="bg-[#2196F3] rounded-none hover:bg-[#2196F3]/20 transition-colors px-6"
-                        >
-                        <Send className="h-5 w-5" />
-                        </Button>
-                    </div>
-                    </div>  
-                </div>
                 )}
             </div>
         
