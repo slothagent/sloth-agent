@@ -53,7 +53,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({ selectedNetwork, onNe
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-4 flex items-center gap-2 transition-colors duration-200 text-sm border border-[#1F2937] rounded-md"
+        className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-4 flex items-center gap-2 transition-colors duration-200 text-sm border border-[#1F2937] rounded-md cursor-pointer"
       >
         <img 
           src={networks.find(n => n.id === selectedNetwork)?.icon} 
