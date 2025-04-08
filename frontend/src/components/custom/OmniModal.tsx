@@ -16,7 +16,6 @@ interface TemplateQuestion {
   question: string;
 }
 
-
 interface StreamResponse {
   type: string;
   response?: {
@@ -73,19 +72,19 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const templateQuestions: TemplateQuestion[] = [
-    { category: "Market Data", question: "How far away from its all time high is Ethereum?" },
-    { category: "Market Data", question: "Which assets over $1 billion market cap have reached an all time high in the last 3 months?" },
-    { category: "Developments", question: "What protocols have deployed to Arbitrum in the past year?" },
-    { category: "Market Data", question: "What are the top 10 DePIN projects by marketcap?" },
-    { category: "Diligence", question: "What is Ethena used for?" },
-    { category: "News", question: "What is ZK email?" },
-    { category: "Diligence", question: "Compare and contrast the native asset functions of BitTensor vs Render" },
-    { category: "Fundraising", question: "What are the five latest fundraising rounds that Multicoin Capital participated in?" },
-    { category: "Diligence", question: "How was Solana funded or bootstrapped?" },
-    { category: "News", question: "What's the latest news with the Base L2?" }
-  ];
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Debounced scroll function
   const scrollToBottom = (immediate = false) => {
@@ -385,7 +384,6 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
       
       // Wait for processing to complete
       const result = await processPromise;
-      // console.log('result', result);
       
       // After streaming is complete, save the final assistant message
       const assistantMessage: ChatMessage = {
@@ -445,7 +443,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
   };
 
   return (
-    <div className="fixed right-0 top-16 bottom-0 w-full md:w-[600px] bg-[#0B0E17] border-l border-[#1F2937] shadow-xl z-50">
+    <div className={`fixed ${isMobile ? 'inset-0' : 'right-0 top-16 bottom-0 w-[600px]'} bg-[#0B0E17] border-l border-[#1F2937] shadow-xl z-50`}>
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#1F2937]">
@@ -464,12 +462,12 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
             <>
               <button 
                 onClick={handleNewChat}
-                className="flex items-center gap-2 px-2 py-1 text-sm text-gray-400 hover:text-white hover:bg-[#2D333B] rounded transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-2 py-1 text-xs md:text-sm text-gray-400 hover:text-white hover:bg-[#2D333B] rounded transition-colors cursor-pointer"
               >
-                <PlusCircle className="w-4 h-4" />
-                New Chat
+                <PlusCircle className="w-6 h-6 md:w-4 md:h-4" />
+                <p className="hidden md:block">New Chat</p>
               </button>
-              <h2 className="text-xl font-semibold text-white absolute left-1/2 -translate-x-1/2 items-start flex gap-3">Omni Agent <span className="text-xs font-normal text-gray-300">beta</span></h2>
+              <h2 className="md:text-xl font-semibold text-white absolute left-1/2 -translate-x-1/2 items-start flex gap-3">Omni Agent <span className="text-xs font-normal text-gray-300">beta</span></h2>
             </>
           )}
           <button onClick={onClose} className="text-gray-400 hover:text-white cursor-pointer">
@@ -638,7 +636,7 @@ export function OmniModal({ isOpen, onClose }: OmniModalProps) {
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
-                          p: ({node, ...props}) => <p className="text-white text-sm mb-4" {...props} />,
+                          p: ({node, ...props}) => <p className="text-white text-sm mb-4 break-words" {...props} />,
                           a: ({node, ...props}) => <a target="_blank" className="text-blue-500 hover:underline" {...props} />,
                           ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-4" {...props} />,
                           ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-4" {...props} />,

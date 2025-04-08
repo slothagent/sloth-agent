@@ -11,6 +11,7 @@ import { useEthPrice } from '../../hooks/useEthPrice'
 import { useSonicPrice } from '../../hooks/useSonicPrice'
 import { Loader2 } from 'lucide-react'
 import { INITIAL_SUPPLY } from '../../lib/contants'
+import clsx from 'clsx'
 
 const formatLaunchDate = (dateString?: string) => {
   if (!dateString) return 'N/A'
@@ -66,33 +67,6 @@ const TokenCard = ({ token }: { token: Token }) => {
     return ancient8MarketCap || sonicMarketCap;
   }, [transactions]);
 
-  // const totalMarketCapToken = useMemo(() => {
-  //   if (!transactions || transactions.length === 0) return 0;
-
-  //   // Determine which network to use for base price
-  //   const ancient8Transactions = transactions.filter((tx: any) => tx.network === 'Ancient8');
-  //   const sonicTransactions = transactions.filter((tx: any) => tx.network === 'Sonic');
-    
-  //   let basePrice = 0;
-    
-  //   // Use the latest price from transactions as the base price
-  //   if (ancient8Transactions.length > 0) {
-  //     const lastTransaction = ancient8Transactions[0];
-  //     basePrice = lastTransaction?.price * ethPrice; // Convert to USD
-  //   } else if (sonicTransactions.length > 0) {
-  //     const lastTransaction = sonicTransactions[0];
-  //     basePrice = lastTransaction?.price * sonicPrice; // Convert to USD
-  //   }
-    
-  //   if (basePrice === 0) return 0;
-  //   // console.log("basePrice", basePrice);
-  //   // console.log("totalSupply", ethers.formatEther(totalSupply || BigInt(0)));
-  //   // Calculate market cap at the last bin (for Metropolis migration)
-  //   const { requiredMarketCap } = calculateMarketCap(Number(ethers.formatEther(totalSupply || BigInt(0))), basePrice);
-  //   // console.log("requiredMarketCap", requiredMarketCap);
-  //   return requiredMarketCap;
-  // }, [transactions, ethPrice, sonicPrice, calculateMarketCap]);
-
   const truncateDescription = (description: string) => {
     if (description.length > 50) {
       return description.substring(0, 50) + '...';
@@ -102,8 +76,8 @@ const TokenCard = ({ token }: { token: Token }) => {
 
   return (
     <div onClick={() => router.navigate({to: `/token/${token.address}`})} className='cursor-pointer'>
-      <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] h-full transition-colors flex flex-col">
-        <div className="flex items-start gap-4">
+      <div className="bg-[#161B28] p-4 hover:bg-[#1C2333] min-w-[300px] transition-colors flex flex-col md:border-b border-gray-600">
+        <div className="flex items-start gap-2">
           <img
             src={token.imageUrl || ''}
             alt={token.name}
@@ -133,10 +107,10 @@ const TokenCard = ({ token }: { token: Token }) => {
           <img alt="Chain" loading="lazy" width="20" height="20" decoding="async" data-nimg="1" className="w-6" src={ token?.network == "Sonic" ? "https://testnet.sonicscan.org/assets/sonic/images/svg/logos/chain-dark.svg?v=25.2.3.0" : "/assets/chains/a8.png"} style={{ color: 'transparent' }} />
         </div>
 
-        <div className="mt-4 flex-1 flex flex-col">
+        <div className="mt-4 md:mt-0 flex-1 flex flex-col">
           <p className="text-sm text-gray-400 mb-auto">{truncateDescription(token.description || '')}</p>
           
-          <div className="mt-4">
+          <div className="mt-4 md:mt-0">
             <div className="flex justify-between">
               <div className="flex flex-col space-y-1">
                 <span className="text-blue-500 text-xs">MARKET CAP</span>
@@ -148,19 +122,6 @@ const TokenCard = ({ token }: { token: Token }) => {
               </div>
             </div>
           </div>
-          
-          {/* <div className="mt-4">
-            <div className="w-full bg-gray-700 rounded-full h-1">
-              <div 
-                className="h-1 rounded-full bg-blue-500"
-                style={{ 
-                  width: `${(Number(Number(transactions[transactions.length - 1]?.fundingRaised))/22700)*100}%`,
-                  background: `linear-gradient(90deg, #161B28 0%, rgb(59 130 246) 100%)`
-                }}
-              />
-            </div>
-            <span className="text-blue-500 text-sm mt-1 block">{((Number(Number(transactions[transactions.length - 1]?.fundingRaised))/22700)*100).toFixed(2)}%</span>
-          </div> */}
         </div>
       </div>
     </div>
@@ -209,48 +170,48 @@ export default function TokenMarket() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [showAllCategories, setShowAllCategories] = useState(false)
-  const { tokens, loading: tokensLoading } = useTokensData();
-  const [defaultVisible, setDefaultVisible] = useState(1);
-
+  const { tokens, loading: tokensLoading } = useTokensData()
+  const [defaultVisible, setDefaultVisible] = useState(1)
+  const [selectedCategory, setSelectedCategory] = useState('All')
 
   useEffect(() => {
     const handleResize = () => {
-      setDefaultVisible(window.innerWidth < 768 ? 3 : 13);
-    };
+      setDefaultVisible(window.innerWidth < 768 ? 3 : 13)
+    }
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-
-  const {data: tokensData, isLoading: tokensDataLoading} = useQuery({
+  const { data: tokensData, isLoading: tokensDataLoading } = useQuery({
     queryKey: ['tokens'],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token?page=1&pageSize=10`);
-      const result = await response.json();
-      return result.data;
+      const response = await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/token?page=1&pageSize=10`)
+      const result = await response.json()
+      return result.data
     }
-  });
+  })
 
   const filteredTokens = useMemo(() => {
-    // Use websocket data if available, otherwise use API data
-    const sourceTokens = tokens?.length ? tokens : (tokensData || []);
-    
-    let result = !searchQuery ? [...sourceTokens] : sourceTokens.filter((token: Token) => 
-      token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      token.ticker.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    
+    const sourceTokens = tokens?.length ? tokens : (tokensData || [])
+
+    let result = !searchQuery
+      ? [...sourceTokens]
+      : sourceTokens.filter((token: Token) =>
+          token.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          token.ticker.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+
     if (searchQuery) {
       result = sortTokensByPriority(result, searchQuery.toLowerCase())
     } else {
       result.sort((a: Token, b: Token) => {
-        return new Date(b.createdAt?.toString() || '').getTime() - new Date(a.createdAt?.toString() || '').getTime()
+        return new Date(b.createdAt?.toString() || '').getTime() -
+               new Date(a.createdAt?.toString() || '').getTime()
       })
     }
-    
+
     return result
   }, [tokens, tokensData, searchQuery])
 
@@ -263,58 +224,48 @@ export default function TokenMarket() {
     'AI',
   ]
 
+  const visibleTokens = useMemo(() => {
+    return selectedCategory === 'All'
+      ? filteredTokens
+      : filteredTokens.filter((token: Token) =>
+          token.categories?.includes(selectedCategory)
+        )
+  }, [filteredTokens, selectedCategory])
+  
   return (
-    <div className="flex flex-col pt-6">
-      <div className='flex items-center justify-between'>
-        <p className='text-white text-2xl font-bold'>
-          All Tokens
-        </p>
-        {/* <div className="flex items-center gap-2 mt-2">
-          <Button 
-            variant="outline" 
-            className="text-gray-400 hover:bg-[#1C2333] hover:text-white text-sm bg-transparent rounded-none cursor-pointer"
-            onClick={() => router.navigate({to: '/token'})}
-          >
-            View More
-          </Button>
-        </div> */}
+    <div className="flex flex-col pt-6 w-full">
+      <div className="flex items-center justify-between w-full">
+        <p className="text-white text-2xl font-bold">All Tokens</p>
       </div>
-      {/* <div className="flex items-center gap-4 mt-4 mb-2 rounded-lg">
-        <div className="relative flex-1">
-          <Search size={16} className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
-          <input
-            type="text"
-            value={searchQuery}
-            placeholder="Search tokens by name and ticker"
-            className="w-full pl-10 pr-4 py-3 bg-[#1C2333] border-none rounded-none text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div> */}
-      <div className='py-4 border-b border-gray-800'>
-        <div className='flex items-center justify-between gap-2'>
-          <div className='flex flex-wrap gap-2'>
-          {categories
-            .slice(0, showAllCategories ? categories.length : defaultVisible)
-            .map((category) => (
-              <button
-                key={category}
-                className="px-4 py-1.5 text-sm text-gray-400 border border-gray-800 hover:bg-[#1C2333] transition-colors"
-              >
-                {category}
-              </button>
-            ))}
+
+      <div className="py-4 border-b border-gray-800 w-full">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex flex-wrap gap-4">
+            {categories
+              .slice(0, showAllCategories ? categories.length : defaultVisible)
+              .map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={clsx(
+                    'px-2 py-1.5 text-sm border border-gray-800 hover:bg-[#1C2333] transition-colors',
+                    selectedCategory === category ? 'text-white bg-[#1C2333]' : 'text-gray-400'
+                  )}
+                >
+                  {category}
+                </button>
+              ))}
             <button
-                  onClick={()=>router.navigate({to: '/token/create'})}
-                  className={`flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-blue-500 border border-[#1F2937] text-white hover:bg-blue-400 hover:text-white cursor-pointer`}
-              >
-                  Create New Token
-              </button>
+              onClick={() => router.navigate({ to: '/token/create' })}
+              className="flex items-center text-wrap gap-2 px-6 py-2 text-sm bg-blue-500 border border-[#1F2937] text-white hover:bg-blue-400 hover:text-white cursor-pointer"
+            >
+              Create New Token
+            </button>
           </div>
-          <div className='md:hidden flex items-center'>
-            <Button 
-              variant="outline" 
-              className="text-gray-400 hover:bg-[#1C2333] hover:text-white` text-sm"
+          <div className="md:hidden flex items-center">
+            <Button
+              variant="outline"
+              className="text-gray-400 bg-[#161B28] hover:bg-[#1C2333] hover:text-white text-sm"
               onClick={() => setShowAllCategories(!showAllCategories)}
             >
               {showAllCategories ? <Minus size={16} /> : <Plus size={16} />}
@@ -322,16 +273,19 @@ export default function TokenMarket() {
           </div>
         </div>
       </div>
-      <div className='gap-4 py-4 overflow-x-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-        {tokensDataLoading  && (
+
+      <div className="gap-4 pt-0 max-h-[490px] overflow-y-auto">
+        {tokensDataLoading && (
           <div className="flex flex-row items-center gap-2">
             <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
             <p className="text-gray-400 text-sm">Loading tokens...</p>
           </div>
         )}
-        {!tokensDataLoading && filteredTokens.slice(0, 4).map((token: Token, index: number) => (
-          <TokenCard key={index} token={token} />
-        ))}
+
+        {!tokensDataLoading &&
+          visibleTokens.slice(0, 4).map((token: Token, index: number) => (
+            <TokenCard key={index} token={token} />
+          ))}
       </div>
     </div>
   )
