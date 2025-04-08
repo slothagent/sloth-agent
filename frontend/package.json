@@ -10,6 +10,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@hashgraph/hedera-wallet-connect": "^1.5.1",
+    "@hashgraph/proto": "^2.16.0",
+    "@hashgraph/sdk": "^2.62.0",
     "@mysten/dapp-kit": "^0.15.1",
     "@mysten/sui": "^1.26.0",
     "@noble/curves": "^1.8.1",

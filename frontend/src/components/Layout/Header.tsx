@@ -7,6 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import SearchDialog from "../custom/SearchDialog";
 import { OmniModal } from "../custom/OmniModal";
 import SuiWalletButton from "../custom/SuiWalletButton";
+import HederaWalletButton from "../custom/HederaWalletButton";
 import NetworkSelector, { Network } from "../custom/NetworkSelector";
 
 const Header: React.FC = () => {
@@ -29,6 +30,17 @@ const Header: React.FC = () => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  const renderWalletButton = () => {
+    switch (selectedNetwork) {
+      case 'sui':
+        return <SuiWalletButton />;
+      case 'hedera':
+        return <HederaWalletButton />;
+      default:
+        return <WalletButton />;
+    }
+  };
 
   return (
     <>
@@ -59,16 +71,16 @@ const Header: React.FC = () => {
                 />
               </div>
               <NetworkSelector 
-                 selectedNetwork={selectedNetwork}
-                 onNetworkChange={setSelectedNetwork}
-               />
+                selectedNetwork={selectedNetwork}
+                onNetworkChange={setSelectedNetwork}
+              />
               <button 
                 onClick={() => setIsOmniModalOpen(true)}
                 className="bg-[#161B28] h-10 px-3 flex justify-center items-center hover:bg-[#2D333B] transition-colors cursor-pointer"
               >
                 <span className="text-white text-sm">Omni Agent</span>
               </button>
-              {selectedNetwork === 'ancient8' || selectedNetwork === 'sonic' ? <WalletButton /> : <SuiWalletButton />}
+              {renderWalletButton()}
             </div>
 
             <Button
@@ -108,7 +120,7 @@ const Header: React.FC = () => {
               </div>
               {/* Mobile Wallet Button */}
               <div className="flex justify-center">
-                <WalletButton />
+                {renderWalletButton()}
               </div>
             </div>
           )}

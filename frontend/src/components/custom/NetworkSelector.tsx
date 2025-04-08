@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useSwitchChain } from 'wagmi';
 
-export type Network = 'ancient8' | 'sonic' | 'sui';
+export type Network = 'ancient8' | 'sonic' | 'sui' | 'hedera';
 
 interface NetworkSelectorProps {
   selectedNetwork: Network;
@@ -32,6 +32,11 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({ selectedNetwork, onNe
       name: 'Sui Network', 
       icon: '/assets/chains/sui.png' 
     },
+    {
+      id: 'hedera',
+      name: 'Hedera Testnet',
+      icon: '/assets/chains/hedera.jpg',
+    }
   ];
 
   const handleNetworkChange = async (network: Network) => {
@@ -72,7 +77,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({ selectedNetwork, onNe
             <button
               key={network.id}
               onClick={() => handleNetworkChange(network.id as Network)}
-              className={`w-full px-4 py-2 text-sm text-white hover:bg-[#1C2333] flex items-center gap-2 ${
+              className={`w-full px-4 py-2 text-sm text-white hover:bg-[#1C2333] flex items-center gap-2 cursor-pointer ${
                 selectedNetwork === network.id ? 'bg-[#1C2333]' : ''
               }`}
             >
