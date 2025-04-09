@@ -1,0 +1,10 @@
+:root {
+  --dapp-kit-background: #161B28;
+  --dapp-kit-text: #FFFFFF;
+  --dapp-kit-primary: #1C2333;
+  --dapp-kit-secondary: #1F2937;
+  --dapp-kit-accent: #3B82F6;
+  --dapp-kit-muted: #6B7280;
+  --dapp-kit-radius-modal: 12px;
+  --dapp-kit-radius-button: 8px;
+} 
