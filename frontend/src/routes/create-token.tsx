@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '../utils/pinata';
 import { toast } from 'react-hot-toast';
@@ -15,8 +15,7 @@ import { Dialog } from '../components/ui/dialog';
 import { useSwitchChain } from 'wagmi';
 import { configAncient8 } from '../config/wagmi';
 import { configSonicBlaze } from '../config/wagmi';
-import { formatNumber } from '../utils/utils';
-import { useCalculateTokens } from '../hooks/useCalculateTokens';
+import { calculateAmount, formatNumber } from '../utils/utils';
 import { ethers } from 'ethers';
 import { waitForTransactionReceipt } from 'viem/actions';
 import { createPublicClient, http } from 'viem';
@@ -62,12 +61,37 @@ function CreateToken() {
     });
 
     const { data: nonces } = useReadContract({
-        address: '0xe520B9F320Ed91Cf590CF9884d2b051f2ece4C4E',
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
         abi: factoryAbi,
         functionName: 'nonces',
         args: [OwnerAddress as `0x${string}`],
         config: configAncient8
     });
+
+    const { data: nativeOffset } = useReadContract({
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
+        abi: factoryAbi,
+        functionName: 'nativeOffset',
+        args: [],
+        config: configAncient8
+    });
+
+    const { data: saleAmount } = useReadContract({
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
+        abi: factoryAbi,
+        functionName: 'saleAmount',
+        args: [],
+        config: configAncient8
+    });
+
+    const { data: tokenOffset } = useReadContract({
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
+        abi: factoryAbi,
+        functionName: 'tokenOffset',
+        args: [],
+        config: configAncient8
+    });
+
 
     const { data: a8Allowance } = useReadContract({
         address: selectedNetwork === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
@@ -273,6 +297,14 @@ function CreateToken() {
             setIsGenerating(false);
         }
     };
+
+    useEffect(() => {
+        if(amount){
+            const nativeAmount = calculateAmount(Number(amount), Number(nativeOffset), Number(saleAmount), 0,Number(tokenOffset));
+            console.log("nativeAmount", (Number(nativeAmount)/10**18).toString());
+            setAmountToReceive(Number(nativeAmount)/10**18);
+        }
+    }, [amount])
 
 
     const handleSubmit = async () => {
