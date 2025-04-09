@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useSwitchChain } from 'wagmi';
 
-export type Network = 'ancient8' | 'sonic' | 'sui';
+export type Network = 'ancient8' | 'sonic' | 'sui' | 'hedera';
 
 interface NetworkSelectorProps {
   selectedNetwork: Network;
@@ -32,6 +32,11 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({ selectedNetwork, onNe
       name: 'Sui Network', 
       icon: '/assets/chains/sui.png' 
     },
+    {
+      id: 'hedera',
+      name: 'Hedera Testnet',
+      icon: '/assets/chains/hedera.jpg',
+    }
   ];
 
   const handleNetworkChange = async (network: Network) => {
@@ -53,7 +58,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({ selectedNetwork, onNe
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-4 flex items-center gap-2 transition-colors duration-200 text-sm border border-[#1F2937] rounded-md"
+        className="bg-[#161B28] hover:bg-[#1C2333] text-gray-400 h-10 px-4 flex items-center gap-2 transition-colors duration-200 text-sm border border-[#1F2937] rounded-md cursor-pointer"
       >
         <img 
           src={networks.find(n => n.id === selectedNetwork)?.icon} 
@@ -72,7 +77,7 @@ const NetworkSelector: React.FC<NetworkSelectorProps> = ({ selectedNetwork, onNe
             <button
               key={network.id}
               onClick={() => handleNetworkChange(network.id as Network)}
-              className={`w-full px-4 py-2 text-sm text-white hover:bg-[#1C2333] flex items-center gap-2 ${
+              className={`w-full px-4 py-2 text-sm text-white hover:bg-[#1C2333] flex items-center gap-2 cursor-pointer ${
                 selectedNetwork === network.id ? 'bg-[#1C2333]' : ''
               }`}
             >

@@ -7,6 +7,7 @@ import { queryClient } from '../../config/query';
 import { SuiClientProvider, WalletProvider, createNetworkConfig } from '@mysten/dapp-kit';
 import { getFullnodeUrl } from '@mysten/sui/client';
 import '@mysten/dapp-kit/dist/index.css';
+import { HederaWalletProvider } from '../../context/useWalletConnectHedera';
 
 const { networkConfig } = createNetworkConfig({
   mainnet: { url: getFullnodeUrl('mainnet') },
@@ -18,15 +19,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={config}>
         <RainbowKitProvider theme={darkTheme()} coolMode>
-          <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet">
-            <WalletProvider
-              stashedWallet={{
-                name: 'Sloth Agent',
-              }}
+          <HederaWalletProvider>
+            <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet">
+              <WalletProvider
+                stashedWallet={{
+                  name: 'Sloth Agent',
+                }}
             >
               {children}
-            </WalletProvider>
-          </SuiClientProvider>
+              </WalletProvider>
+            </SuiClientProvider>
+          </HederaWalletProvider>
         </RainbowKitProvider>
       </WagmiProvider>
     </QueryClientProvider>

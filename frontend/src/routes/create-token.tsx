@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CirclePlus, Coins, Upload, Twitter } from 'lucide-react';
 import { uploadImageToPinata } from '../utils/pinata';
 import { toast } from 'react-hot-toast';
@@ -7,7 +7,7 @@ import { useAccount, useReadContract, useWriteContract, useBalance } from 'wagmi
 import { factoryAbi } from '../abi/factoryAbi';
 import { a8TokenAbi } from '../abi/a8TokenAbi';
 import { Button } from '../components/ui/button';
-import { parseEther, decodeEventLog } from 'viem';
+import { parseEther } from 'viem';
 import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -15,14 +15,12 @@ import { Dialog } from '../components/ui/dialog';
 import { useSwitchChain } from 'wagmi';
 import { configAncient8 } from '../config/wagmi';
 import { configSonicBlaze } from '../config/wagmi';
-import { formatNumber } from '../utils/utils';
-import { tokenInfo } from '../lib/contants';
-import { useCalculateTokens } from '../hooks/useCalculateTokens';
+import { calculateAmount, formatNumber } from '../utils/utils';
 import { ethers } from 'ethers';
 import { waitForTransactionReceipt } from 'viem/actions';
 import { createPublicClient, http } from 'viem';
 import { ancient8Sepolia } from 'wagmi/chains';
-import { sonicBlazeTestnet } from '../config/wagmi';
+import { useSignTypedData } from 'wagmi'
 
 export const Route = createFileRoute("/token/create")({
     component: CreateToken
@@ -49,18 +47,10 @@ function CreateToken() {
     const [isTwitterShareOpen, setIsTwitterShareOpen] = useState<boolean>(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedNetwork, setSelectedNetwork] = useState<string|null>(null);
-    const [minTokensOut, setMinTokensOut] = useState<number>(0);
+
     const [amountToReceive, setAmountToReceive] = useState<number>(0);
     const { switchChain } = useSwitchChain();
-    const { calculateExpectedTokens } = useCalculateTokens();
-
-    // Add A8 token contract states
-    const { data: createFee } = useReadContract({
-        address: selectedNetwork === "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}`,
-        abi: factoryAbi,
-        functionName: 'createFee',
-        config: selectedNetwork === "Ancient8" ? configAncient8 : configSonicBlaze
-    });
+    const { signTypedDataAsync } = useSignTypedData()
 
     const { data: a8Balance } = useReadContract({
         address: selectedNetwork === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
@@ -69,6 +59,39 @@ function CreateToken() {
         args: [OwnerAddress as `0x${string}`],
         config: configAncient8
     });
+
+    const { data: nonces } = useReadContract({
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
+        abi: factoryAbi,
+        functionName: 'nonces',
+        args: [OwnerAddress as `0x${string}`],
+        config: configAncient8
+    });
+
+    const { data: nativeOffset } = useReadContract({
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
+        abi: factoryAbi,
+        functionName: 'nativeOffset',
+        args: [],
+        config: configAncient8
+    });
+
+    const { data: saleAmount } = useReadContract({
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
+        abi: factoryAbi,
+        functionName: 'saleAmount',
+        args: [],
+        config: configAncient8
+    });
+
+    const { data: tokenOffset } = useReadContract({
+        address: selectedNetwork == "Ancient8" ? process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}` : undefined,
+        abi: factoryAbi,
+        functionName: 'tokenOffset',
+        args: [],
+        config: configAncient8
+    });
+
 
     const { data: a8Allowance } = useReadContract({
         address: selectedNetwork === "Ancient8" ? process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}` : undefined,
@@ -84,10 +107,6 @@ function CreateToken() {
     });
     const router = useRouter();
 
-    const client = createPublicClient({
-        chain: selectedNetwork == "Sonic" ? sonicBlazeTestnet : ancient8Sepolia,
-        transport: http()
-    });
 
     const networks = [
         {
@@ -280,20 +299,13 @@ function CreateToken() {
     };
 
     useEffect(() => {
-        if(tokenInfo&&amount){
-            const calculateTokens = async () => {
-                const expectedTokens = await calculateExpectedTokens(tokenInfo, amount||"0");
-                console.log("expectedTokens", ethers.formatEther(expectedTokens));
-                // Add 15% slippage tolerance
-                const slippageTolerance = 0.15;
-                const minTokensOut = expectedTokens * ethers.getBigInt(Math.floor(100 - (slippageTolerance * 100))) / ethers.getBigInt(100);
-                // console.log("Minimum tokens to receive:", ethers.formatEther(minTokensOut));
-                setMinTokensOut(Number(minTokensOut));
-                setAmountToReceive(Number(ethers.formatEther(expectedTokens)));
-            }
-            calculateTokens();
+        if(amount){
+            const nativeAmount = calculateAmount(Number(amount), Number(nativeOffset), Number(saleAmount), 0,Number(tokenOffset));
+            console.log("nativeAmount", (Number(nativeAmount)/10**18).toString());
+            setAmountToReceive(Number(nativeAmount)/10**18);
         }
-    }, [tokenInfo,amount]);
+    }, [amount])
+
 
     const handleSubmit = async () => {
         if (!isConnected) {
@@ -318,82 +330,6 @@ function CreateToken() {
         setIsBuyOpen(true);
     }
 
-    const handleBuyToken = async (tokenAddress: string) => {
-        if (!amount) return;
-        
-        const loadingToast = toast.loading('Buying token...');
-        
-        try {
-            // For Ancient8 network, handle A8 token approvals
-            if (selectedNetwork === "Ancient8") {
-                const buyAmount = parseEther(amount);
-                
-                // Check A8 token balance and allowance
-                if (!a8Balance || a8Balance < buyAmount) {
-                    toast.error(`Insufficient A8 token balance. Need ${amount} A8 tokens`, { id: loadingToast });
-                    return;
-                }
-
-                // Check and set allowance for A8 tokens if needed
-                if (!a8Allowance || a8Allowance < buyAmount) {
-                    try {
-                        const client = createPublicClient({
-                            chain: ancient8Sepolia,
-                            transport: http()
-                        });
-                        
-                        const approveTx = await writeContractAsync({
-                            address: process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}`,
-                            abi: a8TokenAbi,
-                            functionName: 'approve',
-                            args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, buyAmount]
-                        });
-                        
-                        toast.loading('Approving A8 tokens...', { id: loadingToast });
-                        
-                        await waitForTransactionReceipt(client, { hash: approveTx as `0x${string}` });
-                        toast.success('A8 tokens approved successfully', { id: loadingToast });
-                    } catch (error: any) {
-                        console.error('A8 token approval error:', error);
-                        toast.error('Failed to approve A8 tokens', { id: loadingToast });
-                        return;
-                    }
-                }
-            }
-
-            const tx = await writeContractAsync({
-                address: selectedNetwork === "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
-                abi: factoryAbi,
-                functionName: 'buy',
-                value: selectedNetwork === "Sonic" ? parseEther(amount) : parseEther("0"), // Only send ETH value for Sonic network
-                args: [tokenAddress as `0x${string}`, BigInt(minTokensOut||0)]
-            });
-            await waitForTransactionReceipt(client, { hash: tx as `0x${string}` });
-            await fetch(`${import.meta.env.PUBLIC_API_NEW}/api/transaction`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    network: selectedNetwork,
-                    userAddress: OwnerAddress,
-                    tokenAddress,
-                    amountToken: amountToReceive,
-                    amount: parseFloat(amount||"0"),
-                    price: 1,
-                    transactionType: 'BUY',
-                    transactionHash: tx as `0x${string}`
-                }),
-            });
-            setAmount(null);
-            setIsTwitterShareOpen(true);
-            toast.success('Buy successful!', { id: loadingToast });
-        } catch (error: any) {
-            console.error('Buy error:', error);
-            toast.error('Failed to buy token', { id: loadingToast });
-        }
-    };
-
 
     const handleCreateToken = async () => {
         const loadingToast = toast.loading('Creating token...');
@@ -412,18 +348,9 @@ function CreateToken() {
 
             // Handle A8 token approvals for Ancient8 network
             if (selectedNetwork === "Ancient8") {
-                if (!createFee) {
-                    toast.error('Failed to get creation fee', { id: loadingToast });
-                    return;
-                }
-
-                if (!a8Balance || a8Balance < createFee) {
-                    toast.error(`Insufficient A8 token balance. Need ${ethers.formatEther(createFee)} A8 tokens`, { id: loadingToast });
-                    return;
-                }
 
                 // Check and set allowance for A8 tokens if needed
-                if (!a8Allowance || a8Allowance < createFee) {
+                if (!a8Allowance || a8Allowance < ethers.parseEther(amount||"0")) {
                     try {
                         const client = createPublicClient({
                             chain: ancient8Sepolia,
@@ -434,7 +361,7 @@ function CreateToken() {
                             address: process.env.PUBLIC_A8_TOKEN_ADDRESS as `0x${string}`,
                             abi: a8TokenAbi,
                             functionName: 'approve',
-                            args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, createFee]
+                            args: [process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`, ethers.parseEther(amount||"0")]
                         });
                         
                         toast.loading('Approving A8 tokens...', { id: loadingToast });
@@ -449,34 +376,90 @@ function CreateToken() {
             }
             
             try {
-                const client = createPublicClient({
-                    chain: selectedNetwork == "Sonic" ? sonicBlazeTestnet : ancient8Sepolia,
-                    transport: http()
+
+                const CREATE_TYPE = [
+                    { name: "creator", type: "address" },
+                    { name: "name", type: "string" },
+                    { name: "symbol", type: "string" },
+                    { name: "tokenId", type: "uint256" },
+                    { name: "initialDeposit", type: "uint256" },
+                    { name: "nonce", type: "uint256" },
+                    { name: "deadline", type: "uint256" },
+                    { name: "relayer", type: "address" }
+                ];
+
+                const tokenId = BigInt(Math.floor(Math.random() * 1000000));
+                const initialDeposit = BigInt(ethers.parseEther(amount||"0") || 0);
+
+                const value = {
+                    creator: OwnerAddress as `0x${string}`,
+                    name: tokenName,
+                    symbol: ticker,
+                    tokenId,
+                    initialDeposit,
+                    nonce: nonces,
+                    deadline: BigInt(Math.floor(Date.now() / 1000) + 1000 * 60 * 5),
+                    relayer: '0x40550d2C3574c696446663FB911ee9EfDB7bf964'
+                };
+            
+                const signatureHex = await signTypedDataAsync({
+                    domain: {
+                        name: "Sloth Factory",
+                        version: "1",
+                        chainId: selectedNetwork == "Sonic" ? BigInt(57054) : BigInt(28122024),
+                        verifyingContract: selectedNetwork == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`
+                    },
+                    types: {
+                        Create: CREATE_TYPE
+                    },
+                    primaryType: 'Create',
+                    message: value
                 });
-                const tx = await writeContractAsync({
-                    address: selectedNetwork == "Sonic" ? process.env.PUBLIC_FACTORY_ADDRESS_SONIC as `0x${string}` : process.env.PUBLIC_FACTORY_ADDRESS_ANCIENT8 as `0x${string}`,
-                    abi: factoryAbi,
-                    functionName: 'createToken',
-                    value: selectedNetwork == "Sonic" ? parseEther("2") : parseEther("0"), // No ETH value needed for Ancient8
-                    args: [tokenName, ticker, BigInt(parseEther("1000000000")), 2]
+
+                const { v, r, s } = ethers.Signature.from(signatureHex);
+                console.log("signature", signatureHex);
+                // Prepare request body for relayer
+                const requestBody = {
+                    type: 'create-token',
+                    creator: OwnerAddress,
+                    params: {
+                        name: tokenName,
+                        symbol: ticker,
+                        tokenId: tokenId.toString(),
+                        initialDeposit: initialDeposit.toString()
+                    },
+                    deadline: value.deadline.toString(),
+                    nonce: nonces?.toString() || '0',
+                    signature: { v, r, s }
+                };
+
+                console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+                // Send request to relayer
+                const response = await fetch('https://relayer.slothai.xyz/relay', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestBody)
                 });
+
+                const result = await response.json();
                 
-                const res = await waitForTransactionReceipt(client, { hash: tx as `0x${string}` });
-                // console.log("res", res)
-                const decoded = decodeEventLog({
-                    abi: factoryAbi,
-                    data: selectedNetwork == "Sonic" ? res.logs[3].data : res.logs[4].data,
-                    topics: selectedNetwork == "Sonic" ? res.logs[3].topics : res.logs[4].topics,
-                });
-                // console.log("decoded", decoded)
-                const { token } = decoded.args as any;
-                setTokenAddress(token);
-                // console.log("token", token)
-                await createToken(token);
-                toast.success('Token created successfully!', { id: loadingToast });
-                if(amount){
-                    await handleBuyToken(token);
+                if (!response.ok) {
+                    console.error('Relayer error response:', result);
+                    throw new Error(`Failed to create token: ${result.error}`);
                 }
+
+                console.log('Token creation successful!');
+                console.log('Transaction hash:', result.txHash);
+                console.log('Token address:', result.token);
+                setTokenAddress(result.token);
+                
+                // Create token in database
+                await createToken(result.token);
+
+                toast.success('Token created successfully!', { id: loadingToast });
             } catch (error: any) {
                 console.error('Token creation error:', error);
                 if (error.code === 4001 || error.message?.includes('User rejected')) {

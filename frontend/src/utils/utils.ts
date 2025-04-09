@@ -1,4 +1,5 @@
 import { toast } from "react-hot-toast";
+import { FullMath } from "./fullMath";
 
 const timeAgo = (date: string | Date) => {
     const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
@@ -47,4 +48,28 @@ const copyToClipboard = (text: string) => {
   toast.success('Copied to clipboard');
 };
 
-export { timeAgo, formatNumber, formatAddress, copyToClipboard };
+const calculateAmount = (amount: number, nativeOffset: number, saleAmount: number, totalNativeCollected: number, tokenOffset: number) => {
+  return FullMath.mulDiv(
+    BigInt(amount) + BigInt(nativeOffset),
+    BigInt(saleAmount),
+    BigInt(totalNativeCollected) + BigInt(tokenOffset)
+  );
+}
+
+const calculateNativeAmount = (tokenAmount: number, tokenOffset: number, totalNativeCollected: number, saleAmount: number) => {
+  return FullMath.mulDiv(
+      BigInt(tokenAmount) + BigInt(tokenOffset),
+      BigInt(totalNativeCollected),
+      BigInt(saleAmount)
+  );
+}
+
+
+export { 
+  timeAgo, 
+  formatNumber, 
+  formatAddress, 
+  copyToClipboard, 
+  calculateAmount, 
+  calculateNativeAmount 
+};
